@@ -1,4 +1,4 @@
-import { TrendingUpIcon, TrendingDownIcon } from 'lucide-react'
+import { TrendingDownIcon, TrendingUpIcon } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
@@ -38,20 +38,14 @@ const stats = [
 // Mini sparkline component
 function MiniChart({ color, trend }: { color: string; trend: 'up' | 'down' }) {
   // Generate a simple path for the sparkline
-  const points = trend === 'up' 
-    ? 'M0,20 L10,18 L20,15 L30,12 L40,14 L50,10 L60,8 L70,5 L80,3'
-    : 'M0,5 L10,8 L20,10 L30,8 L40,12 L50,15 L60,13 L70,18 L80,20'
+  const points =
+    trend === 'up'
+      ? 'M0,20 L10,18 L20,15 L30,12 L40,14 L50,10 L60,8 L70,5 L80,3'
+      : 'M0,5 L10,8 L20,10 L30,8 L40,12 L50,15 L60,13 L70,18 L80,20'
 
   return (
-    <svg className="w-20 h-6" viewBox="0 0 80 24">
-      <path
-        d={points}
-        fill="none"
-        className={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <svg className="h-6 w-20" viewBox="0 0 80 24">
+      <path d={points} fill="none" className={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
@@ -70,16 +64,26 @@ export function SystemImpactOverview() {
                 <span className="text-xs text-muted-foreground">{stat.label}</span>
                 <div className="flex items-center gap-1 text-xs">
                   {stat.trend.direction === 'up' ? (
-                    <TrendingUpIcon className={cn('size-3', stat.trend.direction === 'up' && stat.label !== 'Upcoming Deadlines' ? 'text-red-400' : 'text-emerald-400')} />
+                    <TrendingUpIcon
+                      className={cn(
+                        'size-3',
+                        stat.trend.direction === 'up' && stat.label !== 'Upcoming Deadlines'
+                          ? 'text-red-400'
+                          : 'text-emerald-400'
+                      )}
+                    />
                   ) : (
                     <TrendingDownIcon className="size-3 text-emerald-400" />
                   )}
-                  <span className={cn(
-                    stat.trend.direction === 'up' && stat.label !== 'Upcoming Deadlines' 
-                      ? 'text-red-400' 
-                      : 'text-emerald-400'
-                  )}>
-                    {stat.trend.direction === 'up' ? '+' : '-'}{stat.trend.value}
+                  <span
+                    className={cn(
+                      stat.trend.direction === 'up' && stat.label !== 'Upcoming Deadlines'
+                        ? 'text-red-400'
+                        : 'text-emerald-400'
+                    )}
+                  >
+                    {stat.trend.direction === 'up' ? '+' : '-'}
+                    {stat.trend.value}
                   </span>
                 </div>
               </div>

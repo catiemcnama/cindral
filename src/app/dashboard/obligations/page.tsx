@@ -1,5 +1,5 @@
+import { AlertCircleIcon, CheckCircleIcon, ClockIcon } from 'lucide-react'
 import { Metadata } from 'next'
-import { CheckCircleIcon, ClockIcon, AlertCircleIcon } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -78,9 +78,7 @@ export default function ObligationsPage() {
     <div className="p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold">Obligations</h1>
-        <p className="text-muted-foreground">
-          Track compliance obligations across all regulatory frameworks
-        </p>
+        <p className="text-muted-foreground">Track compliance obligations across all regulatory frameworks</p>
       </div>
 
       <div className="space-y-6">
@@ -90,7 +88,7 @@ export default function ObligationsPage() {
           return (
             <Card key={group.regulation}>
               <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
+                <div className="mb-4 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <h2 className="text-lg font-semibold">{group.regulation}</h2>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -103,7 +101,7 @@ export default function ObligationsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">{compliancePercentage}%</span>
-                    <Progress value={compliancePercentage} className="w-32 h-2" />
+                    <Progress value={compliancePercentage} className="h-2 w-32" />
                   </div>
                 </div>
 
@@ -115,10 +113,7 @@ export default function ObligationsPage() {
                     return (
                       <div
                         key={obligation.id}
-                        className={cn(
-                          'flex items-center justify-between p-3 rounded-lg',
-                          style.bg
-                        )}
+                        className={cn('flex items-center justify-between rounded-lg p-3', style.bg)}
                       >
                         <div className="flex items-center gap-3">
                           <Icon className={cn('size-4', style.color)} />
@@ -128,9 +123,7 @@ export default function ObligationsPage() {
                           <Badge variant="outline" className={style.color}>
                             {statusLabels[obligation.status]}
                           </Badge>
-                          <span className="text-xs font-mono text-muted-foreground">
-                            {obligation.id}
-                          </span>
+                          <span className="font-mono text-xs text-muted-foreground">{obligation.id}</span>
                         </div>
                       </div>
                     )

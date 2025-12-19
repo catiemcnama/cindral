@@ -75,15 +75,13 @@ export default function RegulationsPage() {
     <div className="p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold">Regulations</h1>
-        <p className="text-muted-foreground">
-          Browse and manage regulatory frameworks affecting your organization
-        </p>
+        <p className="text-muted-foreground">Browse and manage regulatory frameworks affecting your organization</p>
       </div>
 
       <div className="grid gap-4">
         {regulations.map((regulation) => (
           <Link key={regulation.id} href={`/dashboard/regulations/${regulation.id}`}>
-            <Card className="bg-card/50 hover:bg-card/80 transition-colors cursor-pointer">
+            <Card className="cursor-pointer bg-card/50 transition-colors hover:bg-card/80">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between gap-6">
                   <div className="flex-1 space-y-2">
@@ -107,7 +105,7 @@ export default function RegulationsPage() {
                   </div>
 
                   <div className="text-right">
-                    <div className="text-xs text-muted-foreground mb-1">Compliance</div>
+                    <div className="mb-1 text-xs text-muted-foreground">Compliance</div>
                     <div className={cn('text-2xl font-bold', getComplianceColor(regulation.complianceScore))}>
                       {regulation.complianceScore}%
                     </div>

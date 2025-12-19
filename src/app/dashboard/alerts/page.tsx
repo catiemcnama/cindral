@@ -1,5 +1,5 @@
-import { Metadata } from 'next'
 import { ChevronRightIcon, DownloadIcon } from 'lucide-react'
+import { Metadata } from 'next'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -91,17 +91,15 @@ export default function AlertsPage() {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Alerts Center</h1>
         </div>
-        <div className="text-sm text-muted-foreground">
-          {alerts.length} alerts
-        </div>
+        <div className="text-sm text-muted-foreground">{alerts.length} alerts</div>
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="mb-6 flex items-center gap-4">
         <Select defaultValue="all">
           <SelectTrigger className="w-45">
             <SelectValue placeholder="Severity" />
@@ -144,17 +142,15 @@ export default function AlertsPage() {
       {/* Alert list */}
       <div className="space-y-3">
         {alerts.map((alert) => (
-          <Card key={alert.id} className="bg-card/50 hover:bg-card/80 transition-colors">
+          <Card key={alert.id} className="bg-card/50 transition-colors hover:bg-card/80">
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3 flex-1">
-                  <ChevronRightIcon className="size-5 text-muted-foreground mt-0.5 shrink-0" />
-                  <div className="space-y-2 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-mono text-muted-foreground">{alert.id}</span>
-                      <Badge className={cn('capitalize', severityStyles[alert.severity])}>
-                        {alert.severity}
-                      </Badge>
+                <div className="flex flex-1 items-start gap-3">
+                  <ChevronRightIcon className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
+                  <div className="flex-1 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-sm text-muted-foreground">{alert.id}</span>
+                      <Badge className={cn('capitalize', severityStyles[alert.severity])}>{alert.severity}</Badge>
                       <Badge variant="outline" className={regulationStyles[alert.regulation]}>
                         {alert.regulation}
                       </Badge>
@@ -172,7 +168,7 @@ export default function AlertsPage() {
                 </div>
 
                 <Button variant="default" size="sm" className="shrink-0">
-                  <DownloadIcon className="size-4 mr-2" />
+                  <DownloadIcon className="mr-2 size-4" />
                   Generate Evidence Pack
                 </Button>
               </div>

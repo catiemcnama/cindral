@@ -1,11 +1,11 @@
 import { Metadata } from 'next'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
 
 export const metadata: Metadata = {
   title: 'Settings - Cindral',
@@ -14,12 +14,10 @@ export const metadata: Metadata = {
 
 export default function SettingsPage() {
   return (
-    <div className="p-6 max-w-3xl">
+    <div className="max-w-3xl p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold">Settings</h1>
-        <p className="text-muted-foreground">
-          Manage your account and application preferences
-        </p>
+        <p className="text-muted-foreground">Manage your account and application preferences</p>
       </div>
 
       <div className="space-y-6">
@@ -68,9 +66,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-medium">Weekly Digest</div>
-                <div className="text-sm text-muted-foreground">
-                  Get a weekly summary of compliance status
-                </div>
+                <div className="text-sm text-muted-foreground">Get a weekly summary of compliance status</div>
               </div>
               <Switch defaultChecked />
             </div>
@@ -78,9 +74,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-medium">Deadline Reminders</div>
-                <div className="text-sm text-muted-foreground">
-                  Receive reminders before compliance deadlines
-                </div>
+                <div className="text-sm text-muted-foreground">Receive reminders before compliance deadlines</div>
               </div>
               <Switch defaultChecked />
             </div>

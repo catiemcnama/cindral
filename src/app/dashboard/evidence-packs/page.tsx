@@ -1,6 +1,5 @@
+import { AlertCircleIcon, CheckCircleIcon, ClockIcon, DownloadIcon, ExternalLinkIcon, FileTextIcon } from 'lucide-react'
 import { Metadata } from 'next'
-import { ExternalLinkIcon, DownloadIcon, FileTextIcon, CheckCircleIcon, AlertCircleIcon, ClockIcon } from 'lucide-react'
-
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -67,19 +66,19 @@ export default function EvidencePacksPage() {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Evidence Pack Generator</h1>
         <div className="flex items-center gap-2">
           <Button variant="outline">
-            <ExternalLinkIcon className="size-4 mr-2" />
+            <ExternalLinkIcon className="mr-2 size-4" />
             Export to Confluence
           </Button>
           <Button variant="outline">
-            <ExternalLinkIcon className="size-4 mr-2" />
+            <ExternalLinkIcon className="mr-2 size-4" />
             Export to Jira
           </Button>
           <Button>
-            <DownloadIcon className="size-4 mr-2" />
+            <DownloadIcon className="mr-2 size-4" />
             Export to PDF
           </Button>
         </div>
@@ -90,7 +89,7 @@ export default function EvidencePacksPage() {
         <Card className="bg-card/50">
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
-              <div className="flex items-center justify-center size-12 rounded-lg bg-primary/10">
+              <div className="flex size-12 items-center justify-center rounded-lg bg-primary/10">
                 <FileTextIcon className="size-6 text-primary" />
               </div>
               <div>
@@ -104,15 +103,15 @@ export default function EvidencePacksPage() {
 
         {/* Connection line */}
         <div className="flex justify-center">
-          <div className="w-0.5 h-8 bg-border" />
+          <div className="h-8 w-0.5 bg-border" />
         </div>
 
         {/* Article Card */}
         <Card className="bg-card/50">
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
-              <div className="flex items-center justify-center size-12 rounded-lg bg-blue-500/10">
-                <span className="text-blue-400 font-semibold text-sm">Art</span>
+              <div className="flex size-12 items-center justify-center rounded-lg bg-blue-500/10">
+                <span className="text-sm font-semibold text-blue-400">Art</span>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Article</div>
@@ -125,7 +124,7 @@ export default function EvidencePacksPage() {
 
         {/* Connection line */}
         <div className="flex justify-center">
-          <div className="w-0.5 h-8 bg-border" />
+          <div className="h-8 w-0.5 bg-border" />
         </div>
 
         {/* Obligations Section */}
@@ -139,26 +138,16 @@ export default function EvidencePacksPage() {
               const StatusIcon = statusStyle.icon
 
               return (
-                <div
-                  key={obligation.id}
-                  className={cn(
-                    'flex items-start gap-4 p-4 rounded-lg border',
-                    statusStyle.bg
-                  )}
-                >
-                  <StatusIcon className={cn('size-5 mt-0.5 shrink-0', statusStyle.iconColor)} />
+                <div key={obligation.id} className={cn('flex items-start gap-4 rounded-lg border p-4', statusStyle.bg)}>
+                  <StatusIcon className={cn('mt-0.5 size-5 shrink-0', statusStyle.iconColor)} />
                   <div className="flex-1">
                     <p className="text-sm">{obligation.title}</p>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="mt-1 flex items-center gap-2">
                       <ClockIcon className="size-3 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">
-                        Last updated: {obligation.lastUpdated}
-                      </span>
+                      <span className="text-xs text-muted-foreground">Last updated: {obligation.lastUpdated}</span>
                     </div>
                   </div>
-                  <span className="text-xs font-mono text-muted-foreground shrink-0">
-                    {obligation.id}
-                  </span>
+                  <span className="shrink-0 font-mono text-xs text-muted-foreground">{obligation.id}</span>
                 </div>
               )
             })}

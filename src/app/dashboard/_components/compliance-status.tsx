@@ -1,8 +1,8 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ChartContainer, ChartConfig } from '@/components/ui/chart'
-import { PieChart, Pie, Cell, ResponsiveContainer, Label } from 'recharts'
+import { ChartConfig, ChartContainer } from '@/components/ui/chart'
+import { Cell, Label, Pie, PieChart, ResponsiveContainer } from 'recharts'
 
 // Mock data matching the Figma mockup - 67% overall compliance
 const complianceData = [
@@ -56,24 +56,11 @@ export function ComplianceStatus() {
                   content={({ viewBox }) => {
                     if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
                       return (
-                        <text
-                          x={viewBox.cx}
-                          y={viewBox.cy}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                        >
-                          <tspan
-                            x={viewBox.cx}
-                            y={viewBox.cy}
-                            className="fill-foreground text-3xl font-bold"
-                          >
+                        <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
+                          <tspan x={viewBox.cx} y={viewBox.cy} className="fill-foreground text-3xl font-bold">
                             {compliantPercentage}%
                           </tspan>
-                          <tspan
-                            x={viewBox.cx}
-                            y={(viewBox.cy || 0) + 20}
-                            className="fill-muted-foreground text-xs"
-                          >
+                          <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 20} className="fill-muted-foreground text-xs">
                             Overall
                           </tspan>
                         </text>
@@ -88,13 +75,10 @@ export function ComplianceStatus() {
         </ChartContainer>
 
         {/* Legend */}
-        <div className="flex flex-wrap justify-center gap-4 mt-2">
+        <div className="mt-2 flex flex-wrap justify-center gap-4">
           {complianceData.map((entry) => (
             <div key={entry.name} className="flex items-center gap-2">
-              <div
-                className="size-3 rounded-full"
-                style={{ backgroundColor: entry.fill }}
-              />
+              <div className="size-3 rounded-full" style={{ backgroundColor: entry.fill }} />
               <span className="text-xs text-muted-foreground">
                 {entry.name} ({entry.value}%)
               </span>

@@ -1,9 +1,9 @@
-import Link from 'next/link'
 import { ArrowRightIcon } from 'lucide-react'
+import Link from 'next/link'
 
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
 // Mock data matching the Figma mockup
@@ -79,17 +79,14 @@ export function RegulatoryFeed() {
 
       <div className="space-y-3">
         {regulatoryChanges.map((change) => (
-          <Card key={change.id} className="bg-card/50 hover:bg-card/80 transition-colors">
+          <Card key={change.id} className="bg-card/50 transition-colors hover:bg-card/80">
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-4">
-                <div className="space-y-2 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex-1 space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Badge
                       variant="outline"
-                      className={cn(
-                        'font-medium',
-                        regulationStyles[change.regulation] || 'bg-muted'
-                      )}
+                      className={cn('font-medium', regulationStyles[change.regulation] || 'bg-muted')}
                     >
                       {change.regulation}
                     </Badge>
@@ -98,13 +95,7 @@ export function RegulatoryFeed() {
                   <p className="text-sm leading-relaxed">{change.title}</p>
                   <p className="text-xs text-muted-foreground">{change.timeAgo}</p>
                 </div>
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    'shrink-0 capitalize',
-                    severityStyles[change.severity]
-                  )}
-                >
+                <Badge variant="outline" className={cn('shrink-0 capitalize', severityStyles[change.severity])}>
                   {change.severity}
                 </Badge>
               </div>
