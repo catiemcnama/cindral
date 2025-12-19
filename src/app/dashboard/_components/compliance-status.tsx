@@ -1,0 +1,107 @@
+'use client'
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ChartContainer, ChartConfig } from '@/components/ui/chart'
+import { PieChart, Pie, Cell, ResponsiveContainer, Label } from 'recharts'
+
+// Mock data matching the Figma mockup - 67% overall compliance
+const complianceData = [
+  { name: 'Compliant', value: 67, fill: 'hsl(var(--chart-1))' },
+  { name: 'In Progress', value: 18, fill: 'hsl(var(--chart-2))' },
+  { name: 'Non-Compliant', value: 15, fill: 'hsl(var(--chart-3))' },
+]
+
+const chartConfig: ChartConfig = {
+  compliant: {
+    label: 'Compliant',
+    color: 'hsl(var(--chart-1))',
+  },
+  inProgress: {
+    label: 'In Progress',
+    color: 'hsl(var(--chart-2))',
+  },
+  nonCompliant: {
+    label: 'Non-Compliant',
+    color: 'hsl(var(--chart-3))',
+  },
+}
+
+export function ComplianceStatus() {
+  const totalValue = complianceData.reduce((acc, curr) => acc + curr.value, 0)
+  const compliantPercentage = Math.round((complianceData[0].value / totalValue) * 100)
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base font-medium">Compliance Status</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col items-center">
+        <ChartContainer config={chartConfig} className="h-50 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={complianceData}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={80}
+                paddingAngle={2}
+                dataKey="value"
+                strokeWidth={0}
+              >
+                {complianceData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                ))}
+                <Label
+                  content={({ viewBox }) => {
+                    if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
+                      return (
+                        <text
+                          x={viewBox.cx}
+                          y={viewBox.cy}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                        >
+                          <tspan
+                            x={viewBox.cx}
+                            y={viewBox.cy}
+                            className="fill-foreground text-3xl font-bold"
+                          >
+                            {compliantPercentage}%
+                          </tspan>
+                          <tspan
+                            x={viewBox.cx}
+                            y={(viewBox.cy || 0) + 20}
+                            className="fill-muted-foreground text-xs"
+                          >
+                            Overall
+                          </tspan>
+                        </text>
+                      )
+                    }
+                    return null
+                  }}
+                />
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+        </ChartContainer>
+
+        {/* Legend */}
+        <div className="flex flex-wrap justify-center gap-4 mt-2">
+          {complianceData.map((entry) => (
+            <div key={entry.name} className="flex items-center gap-2">
+              <div
+                className="size-3 rounded-full"
+                style={{ backgroundColor: entry.fill }}
+              />
+              <span className="text-xs text-muted-foreground">
+                {entry.name} ({entry.value}%)
+              </span>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
