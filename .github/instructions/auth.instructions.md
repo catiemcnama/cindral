@@ -355,30 +355,31 @@ async sendInvitationEmail(data) {
 
 ## Common Patterns
 
-### Middleware Protection
+### Middleware Protection (proxy.ts)
 
-Create [`src/middleware.ts`](src/middleware.ts) for Next.js 15.2+:
+> **Note**: In Next.js 16+, middleware is renamed to **proxy**. Create `src/proxy.ts` (not `middleware.ts`).
+
+Create [`src/proxy.ts`](src/proxy.ts) for route protection:
 
 ```typescript
-import { NextRequest, NextResponse } from 'next/server'
-import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
+import { headers } from 'next/headers'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const session = await auth.api.getSession({
     headers: await headers(),
   })
 
   if (!session) {
-    return NextResponse.redirect(new URL('/sign-in', request.url))
+    return NextResponse.redirect(new URL('/signin', request.url))
   }
 
   return NextResponse.next()
 }
 
 export const config = {
-  runtime: 'nodejs',
-  matcher: ['/dashboard/:path*', '/settings/:path*'],
+  matcher: ['/app/:path*', '/dashboard/:path*'],
 }
 ```
 
