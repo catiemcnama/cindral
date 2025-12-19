@@ -3,9 +3,13 @@ import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { organization } from 'better-auth/plugins'
 
+// Provide a dummy secret during build time to prevent BetterAuthError
+// The real secret from env vars is used at runtime
+const secret = process.env.BETTER_AUTH_SECRET || 'build-time-placeholder-secret-not-used-in-production'
+
 export const auth = betterAuth({
-  secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL,
+  secret,
+  baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
   database: drizzleAdapter(db, {
     provider: 'pg',
   }),
