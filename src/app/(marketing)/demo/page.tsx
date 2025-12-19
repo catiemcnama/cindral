@@ -80,8 +80,8 @@ export default function DemoPage() {
                 See Cindral <GradientText>in action</GradientText>
               </h1>
               <p className="mb-8 text-lg text-zinc-600 dark:text-zinc-400">
-                Book a personalized demo with our team. We&apos;ll show you how Cindral can transform
-                your compliance operations and answer any questions you have.
+                Book a personalized demo with our team. We&apos;ll show you how Cindral can transform your compliance
+                operations and answer any questions you have.
               </p>
 
               <ul className="mb-10 space-y-3">
@@ -94,9 +94,7 @@ export default function DemoPage() {
               </ul>
 
               <div className="space-y-6">
-                <h3 className="font-semibold text-zinc-900 dark:text-white">
-                  Your demo will include:
-                </h3>
+                <h3 className="font-semibold text-zinc-900 dark:text-white">Your demo will include:</h3>
                 <div className="space-y-4">
                   {demoIncludes.map((item) => (
                     <div key={item.title} className="flex items-start gap-4">
@@ -124,17 +122,10 @@ export default function DemoPage() {
                       viewBox="0 0 24 24"
                       stroke="currentColor"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <h2 className="mb-2 text-2xl font-bold text-zinc-900 dark:text-white">
-                    You&apos;re all set!
-                  </h2>
+                  <h2 className="mb-2 text-2xl font-bold text-zinc-900 dark:text-white">You&apos;re all set!</h2>
                   <p className="mb-6 text-zinc-600 dark:text-zinc-400">
                     We&apos;ll send you a calendar invite shortly. Looking forward to meeting you!
                   </p>
@@ -142,9 +133,7 @@ export default function DemoPage() {
               ) : (
                 <>
                   <div className="mb-6 text-center">
-                    <h2 className="mb-2 text-xl font-bold text-zinc-900 dark:text-white">
-                      Request a Demo
-                    </h2>
+                    <h2 className="mb-2 text-xl font-bold text-zinc-900 dark:text-white">Request a Demo</h2>
                     <p className="text-sm text-zinc-600 dark:text-zinc-400">
                       Fill out the form and we&apos;ll be in touch within 24 hours.
                     </p>
@@ -159,9 +148,7 @@ export default function DemoPage() {
                           type="text"
                           placeholder="Jane"
                           value={formState.firstName}
-                          onChange={(e) =>
-                            setFormState({ ...formState, firstName: e.target.value })
-                          }
+                          onChange={(e) => setFormState({ ...formState, firstName: e.target.value })}
                           required
                           className="mt-1.5"
                         />
@@ -224,11 +211,9 @@ export default function DemoPage() {
                       <select
                         id="companySize"
                         value={formState.companySize}
-                        onChange={(e) =>
-                          setFormState({ ...formState, companySize: e.target.value })
-                        }
+                        onChange={(e) => setFormState({ ...formState, companySize: e.target.value })}
                         required
-                        className="mt-1.5 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
+                        className="mt-1.5 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
                       >
                         <option value="">Select...</option>
                         {companySizes.map((size) => (

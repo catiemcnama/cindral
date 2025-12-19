@@ -21,18 +21,7 @@ export const metadata: Metadata = {
   },
   description:
     'Transform complex regulations like the EU AI Act and DORA into actionable insights. Automatically map requirements to your systems, teams, and processes.',
-  keywords: [
-    'compliance',
-    'regulatory',
-    'DORA',
-    'AI Act',
-    'GDPR',
-    'GRC',
-    'governance',
-    'risk',
-    'fintech',
-    'regtech',
-  ],
+  keywords: ['compliance', 'regulatory', 'DORA', 'AI Act', 'GDPR', 'GRC', 'governance', 'risk', 'fintech', 'regtech'],
   authors: [{ name: 'Cindral' }],
   creator: 'Cindral',
   openGraph: {
@@ -41,8 +30,7 @@ export const metadata: Metadata = {
     url: 'https://trycindral.com',
     siteName: 'Cindral',
     title: 'Cindral - Compliance That Maps to Your Reality',
-    description:
-      'Transform complex regulations into actionable insights. Stay ahead of DORA, AI Act, GDPR, and more.',
+    description: 'Transform complex regulations into actionable insights. Stay ahead of DORA, AI Act, GDPR, and more.',
     images: [
       {
         url: '/og-image.png',

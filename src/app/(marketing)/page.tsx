@@ -1,4 +1,3 @@
-import { Button } from '@/components/ui/button'
 import {
   Container,
   FAQItem,
@@ -10,18 +9,8 @@ import {
   StatCard,
   TestimonialCard,
 } from '@/components/marketing/sections'
-import {
-  ArrowRight,
-  Bell,
-  CheckCircle2,
-  FileCheck,
-  GitBranch,
-  Globe,
-  Map,
-  Shield,
-  Sparkles,
-  Zap,
-} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { ArrowRight, Bell, CheckCircle2, FileCheck, GitBranch, Globe, Map, Shield, Sparkles, Zap } from 'lucide-react'
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -32,8 +21,7 @@ export const metadata: Metadata = {
     'Transform complex regulations like the EU AI Act and DORA into actionable insights. Automatically map requirements to your systems, teams, and processes.',
   openGraph: {
     title: 'Cindral - Compliance That Maps to Your Reality',
-    description:
-      'Transform complex regulations into actionable insights. Stay ahead of DORA, AI Act, GDPR, and more.',
+    description: 'Transform complex regulations into actionable insights. Stay ahead of DORA, AI Act, GDPR, and more.',
     url: 'https://trycindral.com',
     siteName: 'Cindral',
     images: [
@@ -93,8 +81,7 @@ const features = [
   {
     icon: Globe,
     title: 'Multi-Jurisdiction',
-    description:
-      'Track regulations across EU, US, UK, APAC, and more. One platform for your global compliance needs.',
+    description: 'Track regulations across EU, US, UK, APAC, and more. One platform for your global compliance needs.',
     color: 'indigo' as const,
   },
 ]
@@ -109,14 +96,13 @@ const testimonials = [
   },
   {
     quote:
-      "The system mapping feature is a game-changer. When DORA requirements changed, we knew exactly which APIs were affected within minutes.",
+      'The system mapping feature is a game-changer. When DORA requirements changed, we knew exactly which APIs were affected within minutes.',
     author: 'Marcus Weber',
     role: 'CTO',
     company: 'TechBank AG',
   },
   {
-    quote:
-      'Our auditors were impressed with the evidence packs. What used to take our team days now takes minutes.',
+    quote: 'Our auditors were impressed with the evidence packs. What used to take our team days now takes minutes.',
     author: 'Emily Rodriguez',
     role: 'VP of Risk',
     company: 'Nexus Capital',
@@ -183,9 +169,7 @@ export default function HomePage() {
             {/* Badge */}
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-1.5 text-sm shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
               <Sparkles className="h-4 w-4 text-amber-500" />
-              <span className="text-zinc-600 dark:text-zinc-400">
-                Trusted by leading financial institutions
-              </span>
+              <span className="text-zinc-600 dark:text-zinc-400">Trusted by leading financial institutions</span>
             </div>
 
             {/* Headline */}
@@ -195,8 +179,8 @@ export default function HomePage() {
 
             {/* Subheadline */}
             <p className="mx-auto mb-10 max-w-2xl text-lg text-zinc-600 lg:text-xl dark:text-zinc-400">
-              Transform complex regulations like the EU AI Act and DORA into actionable insights.
-              Automatically map requirements to your systems, teams, and processes.
+              Transform complex regulations like the EU AI Act and DORA into actionable insights. Automatically map
+              requirements to your systems, teams, and processes.
             </p>
 
             {/* CTAs */}
@@ -215,9 +199,7 @@ export default function HomePage() {
             </div>
 
             {/* Social proof */}
-            <p className="mt-8 text-sm text-zinc-500">
-              No credit card required • 14-day free trial • Cancel anytime
-            </p>
+            <p className="mt-8 text-sm text-zinc-500">No credit card required • 14-day free trial • Cancel anytime</p>
           </div>
 
           {/* Hero Image */}
@@ -260,9 +242,9 @@ export default function HomePage() {
                 Regulations change faster than you can track
               </h2>
               <p className="text-lg text-zinc-600 dark:text-zinc-400">
-                When DORA updates Article 11 or GDPR requirements expand, compliance teams spend
-                weeks manually reviewing documents, mapping impacts, and updating spreadsheets. By
-                the time you&apos;re done, something else has changed.
+                When DORA updates Article 11 or GDPR requirements expand, compliance teams spend weeks manually
+                reviewing documents, mapping impacts, and updating spreadsheets. By the time you&apos;re done, something
+                else has changed.
               </p>
             </div>
             <div>
@@ -274,9 +256,8 @@ export default function HomePage() {
                 Instant visibility, automatic mapping
               </h2>
               <p className="text-lg text-zinc-600 dark:text-zinc-400">
-                Cindral monitors regulatory sources in real-time and automatically maps changes to
-                your systems. Know exactly which APIs, databases, and teams are affected—before your
-                auditor asks.
+                Cindral monitors regulatory sources in real-time and automatically maps changes to your systems. Know
+                exactly which APIs, databases, and teams are affected—before your auditor asks.
               </p>
             </div>
           </div>
@@ -324,8 +305,8 @@ export default function HomePage() {
                 See how regulations connect to your infrastructure
               </h2>
               <p className="mb-6 text-lg text-zinc-600 dark:text-zinc-400">
-                Visualize the relationship between regulations, your systems, and your teams.
-                Interactive graphs show dependencies and impact paths at a glance.
+                Visualize the relationship between regulations, your systems, and your teams. Interactive graphs show
+                dependencies and impact paths at a glance.
               </p>
               <ul className="space-y-3">
                 {[
@@ -358,7 +339,7 @@ export default function HomePage() {
       <Section>
         <Container>
           <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
-            <div className="order-2 lg:order-1 overflow-hidden rounded-xl border border-zinc-200 shadow-lg dark:border-zinc-800">
+            <div className="order-2 overflow-hidden rounded-xl border border-zinc-200 shadow-lg lg:order-1 dark:border-zinc-800">
               <Image
                 src="/screenshots/alerts.png"
                 alt="Smart Alerts dashboard"
@@ -376,8 +357,8 @@ export default function HomePage() {
                 Never miss a regulatory change that matters
               </h2>
               <p className="mb-6 text-lg text-zinc-600 dark:text-zinc-400">
-                Intelligent alerts prioritize by severity and impact. Get notified via Slack, email,
-                or in-app—however your team works best.
+                Intelligent alerts prioritize by severity and impact. Get notified via Slack, email, or in-app—however
+                your team works best.
               </p>
               <ul className="space-y-3">
                 {[
@@ -444,12 +425,8 @@ export default function HomePage() {
               },
             ].map((item) => (
               <div key={item.step} className="relative">
-                <div className="mb-4 text-5xl font-bold text-zinc-100 dark:text-zinc-800">
-                  {item.step}
-                </div>
-                <h3 className="mb-2 text-xl font-semibold text-zinc-900 dark:text-white">
-                  {item.title}
-                </h3>
+                <div className="mb-4 text-5xl font-bold text-zinc-100 dark:text-zinc-800">{item.step}</div>
+                <h3 className="mb-2 text-xl font-semibold text-zinc-900 dark:text-white">{item.title}</h3>
                 <p className="text-zinc-600 dark:text-zinc-400">{item.description}</p>
               </div>
             ))}
@@ -460,10 +437,7 @@ export default function HomePage() {
       {/* FAQ */}
       <Section variant="muted">
         <Container className="max-w-3xl">
-          <SectionHeader
-            title="Frequently asked questions"
-            subtitle="Everything you need to know about Cindral."
-          />
+          <SectionHeader title="Frequently asked questions" subtitle="Everything you need to know about Cindral." />
 
           <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
             {faqs.map((faq) => (
@@ -497,8 +471,8 @@ export default function HomePage() {
                 Ready to simplify compliance?
               </h2>
               <p className="mx-auto mb-8 max-w-xl text-lg text-zinc-300">
-                Join forward-thinking organizations using Cindral to turn regulatory complexity into
-                a competitive advantage.
+                Join forward-thinking organizations using Cindral to turn regulatory complexity into a competitive
+                advantage.
               </p>
               <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
                 <Link href="/signup">
@@ -517,9 +491,7 @@ export default function HomePage() {
                   </Button>
                 </Link>
               </div>
-              <p className="mt-6 text-sm text-zinc-400">
-                No credit card required • 14-day free trial
-              </p>
+              <p className="mt-6 text-sm text-zinc-400">No credit card required • 14-day free trial</p>
             </div>
           </div>
         </Container>

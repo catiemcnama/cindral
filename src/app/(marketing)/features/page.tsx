@@ -1,10 +1,4 @@
-import {
-  Container,
-  FeatureCard,
-  GradientText,
-  Section,
-  SectionHeader,
-} from '@/components/marketing/sections'
+import { Container, FeatureCard, GradientText, Section, SectionHeader } from '@/components/marketing/sections'
 import { Button } from '@/components/ui/button'
 import {
   ArrowRight,
@@ -48,36 +42,31 @@ const coreFeatures = [
   {
     icon: Map,
     title: 'System Mapping',
-    description:
-      'Visual graphs connecting regulations to your APIs, databases, cloud infrastructure, and teams.',
+    description: 'Visual graphs connecting regulations to your APIs, databases, cloud infrastructure, and teams.',
     color: 'amber' as const,
   },
   {
     icon: Bell,
     title: 'Smart Alerts',
-    description:
-      'Intelligent notifications prioritized by severity and impact, delivered how your team works best.',
+    description: 'Intelligent notifications prioritized by severity and impact, delivered how your team works best.',
     color: 'rose' as const,
   },
   {
     icon: FileCheck,
     title: 'Evidence Packs',
-    description:
-      'Generate audit-ready documentation with one click. Export to Confluence, Jira, or PDF.',
+    description: 'Generate audit-ready documentation with one click. Export to Confluence, Jira, or PDF.',
     color: 'emerald' as const,
   },
   {
     icon: GitBranch,
     title: 'Change Impact Analysis',
-    description:
-      'Instantly understand which systems, teams, and processes are affected by regulatory changes.',
+    description: 'Instantly understand which systems, teams, and processes are affected by regulatory changes.',
     color: 'purple' as const,
   },
   {
     icon: Globe,
     title: 'Multi-Jurisdiction',
-    description:
-      'Track regulations across EU, US, UK, APAC, and more from a single unified dashboard.',
+    description: 'Track regulations across EU, US, UK, APAC, and more from a single unified dashboard.',
     color: 'indigo' as const,
   },
 ]
@@ -160,8 +149,8 @@ export default function FeaturesPage() {
               Built for <GradientText>modern compliance</GradientText>
             </h1>
             <p className="mx-auto mb-10 max-w-2xl text-lg text-zinc-600 lg:text-xl dark:text-zinc-400">
-              Everything you need to track regulations, understand impact, and prove compliance—all
-              in one platform designed for how GRC teams actually work.
+              Everything you need to track regulations, understand impact, and prove compliance—all in one platform
+              designed for how GRC teams actually work.
             </p>
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link href="/signup">
@@ -210,8 +199,8 @@ export default function FeaturesPage() {
                 50+ sources. One unified feed.
               </h2>
               <p className="mb-6 text-lg text-zinc-600 dark:text-zinc-400">
-                Stop checking multiple regulatory websites. Cindral aggregates updates from every
-                source that matters to your business and presents them in a single, actionable feed.
+                Stop checking multiple regulatory websites. Cindral aggregates updates from every source that matters to
+                your business and presents them in a single, actionable feed.
               </p>
               <ul className="space-y-3">
                 {[
@@ -244,7 +233,7 @@ export default function FeaturesPage() {
       <Section variant="muted">
         <Container>
           <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
-            <div className="order-2 lg:order-1 overflow-hidden rounded-xl border border-zinc-200 shadow-lg dark:border-zinc-800">
+            <div className="order-2 overflow-hidden rounded-xl border border-zinc-200 shadow-lg lg:order-1 dark:border-zinc-800">
               <Image
                 src="/screenshots/system-map.png"
                 alt="System Mapping"
@@ -262,9 +251,8 @@ export default function FeaturesPage() {
                 Visualize your entire tech estate
               </h2>
               <p className="mb-6 text-lg text-zinc-600 dark:text-zinc-400">
-                Import your systems, define data flows, and let Cindral automatically map
-                regulations to the infrastructure they affect. Interactive graphs make complex
-                dependencies easy to understand.
+                Import your systems, define data flows, and let Cindral automatically map regulations to the
+                infrastructure they affect. Interactive graphs make complex dependencies easy to understand.
               </p>
               <ul className="space-y-3">
                 {[
@@ -297,9 +285,8 @@ export default function FeaturesPage() {
                 Audit-ready in one click
               </h2>
               <p className="mb-6 text-lg text-zinc-600 dark:text-zinc-400">
-                Generate comprehensive evidence packs that auditors love. Include system mappings,
-                control evidence, policy documents, and change history—all formatted and ready to
-                submit.
+                Generate comprehensive evidence packs that auditors love. Include system mappings, control evidence,
+                policy documents, and change history—all formatted and ready to submit.
               </p>
               <ul className="space-y-3">
                 {[
@@ -315,32 +302,26 @@ export default function FeaturesPage() {
                 ))}
               </ul>
             </div>
-            <div className="overflow-hidden rounded-xl border border-zinc-200 shadow-lg dark:border-zinc-800 bg-zinc-100 p-8 dark:bg-zinc-800">
+            <div className="overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 p-8 shadow-lg dark:border-zinc-800 dark:bg-zinc-800">
               <div className="space-y-4">
                 <div className="flex items-center gap-3 rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
                   <FileText className="h-8 w-8 text-blue-500" />
                   <div>
-                    <div className="font-medium text-zinc-900 dark:text-white">
-                      DORA Compliance Pack
-                    </div>
+                    <div className="font-medium text-zinc-900 dark:text-white">DORA Compliance Pack</div>
                     <div className="text-sm text-zinc-500">Generated Dec 15, 2024</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
                   <FileText className="h-8 w-8 text-purple-500" />
                   <div>
-                    <div className="font-medium text-zinc-900 dark:text-white">
-                      AI Act Risk Assessment
-                    </div>
+                    <div className="font-medium text-zinc-900 dark:text-white">AI Act Risk Assessment</div>
                     <div className="text-sm text-zinc-500">Generated Dec 12, 2024</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 rounded-lg bg-white p-4 shadow-sm dark:bg-zinc-900">
                   <FileText className="h-8 w-8 text-emerald-500" />
                   <div>
-                    <div className="font-medium text-zinc-900 dark:text-white">
-                      GDPR Data Mapping
-                    </div>
+                    <div className="font-medium text-zinc-900 dark:text-white">GDPR Data Mapping</div>
                     <div className="text-sm text-zinc-500">Generated Dec 10, 2024</div>
                   </div>
                 </div>
@@ -377,12 +358,10 @@ export default function FeaturesPage() {
       <Section className="border-none">
         <Container>
           <div className="rounded-2xl bg-zinc-900 px-8 py-12 text-center lg:px-16 lg:py-16 dark:bg-zinc-800">
-            <h2 className="mb-4 text-2xl font-bold text-white lg:text-3xl">
-              See all features in action
-            </h2>
+            <h2 className="mb-4 text-2xl font-bold text-white lg:text-3xl">See all features in action</h2>
             <p className="mx-auto mb-8 max-w-lg text-zinc-400">
-              The best way to understand Cindral is to see it work with your data. Start a free
-              trial or book a personalized demo.
+              The best way to understand Cindral is to see it work with your data. Start a free trial or book a
+              personalized demo.
             </p>
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link href="/signup">
@@ -392,11 +371,7 @@ export default function FeaturesPage() {
                 </Button>
               </Link>
               <Link href="/demo">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="border-zinc-600 text-white hover:bg-white/10"
-                >
+                <Button variant="outline" size="lg" className="border-zinc-600 text-white hover:bg-white/10">
                   Book a Demo
                 </Button>
               </Link>

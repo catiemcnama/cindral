@@ -46,9 +46,7 @@ function Navbar() {
               href={link.href}
               className={cn(
                 'text-sm font-medium transition-colors hover:text-zinc-900 dark:hover:text-white',
-                pathname === link.href
-                  ? 'text-zinc-900 dark:text-white'
-                  : 'text-zinc-600 dark:text-zinc-400'
+                pathname === link.href ? 'text-zinc-900 dark:text-white' : 'text-zinc-600 dark:text-zinc-400'
               )}
             >
               {link.label}
@@ -69,16 +67,8 @@ function Navbar() {
         </div>
 
         {/* Mobile menu button */}
-        <button
-          className="md:hidden"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Toggle menu"
-        >
-          {mobileMenuOpen ? (
-            <X className="h-6 w-6 text-zinc-600" />
-          ) : (
-            <Menu className="h-6 w-6 text-zinc-600" />
-          )}
+        <button className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Toggle menu">
+          {mobileMenuOpen ? <X className="h-6 w-6 text-zinc-600" /> : <Menu className="h-6 w-6 text-zinc-600" />}
         </button>
       </div>
 
@@ -93,15 +83,13 @@ function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
                 className={cn(
                   'text-sm font-medium transition-colors',
-                  pathname === link.href
-                    ? 'text-zinc-900 dark:text-white'
-                    : 'text-zinc-600 dark:text-zinc-400'
+                  pathname === link.href ? 'text-zinc-900 dark:text-white' : 'text-zinc-600 dark:text-zinc-400'
                 )}
               >
                 {link.label}
               </Link>
             ))}
-            <div className="flex flex-col gap-2 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+            <div className="flex flex-col gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-800">
               <Link href="/signin">
                 <Button variant="ghost" size="sm" className="w-full">
                   Sign in
@@ -276,12 +264,8 @@ function Footer() {
 
         {/* Bottom bar */}
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-zinc-200 pt-8 sm:flex-row dark:border-zinc-800">
-          <p className="text-sm text-zinc-500">
-            © {new Date().getFullYear()} Cindral. All rights reserved.
-          </p>
-          <p className="text-sm text-zinc-500">
-            Made with ❤️ for compliance teams everywhere
-          </p>
+          <p className="text-sm text-zinc-500">© {new Date().getFullYear()} Cindral. All rights reserved.</p>
+          <p className="text-sm text-zinc-500">Made with ❤️ for compliance teams everywhere</p>
         </div>
       </div>
     </footer>

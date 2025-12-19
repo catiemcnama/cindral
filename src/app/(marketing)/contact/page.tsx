@@ -125,17 +125,10 @@ export default function ContactPage() {
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h2 className="mb-2 text-2xl font-bold text-zinc-900 dark:text-white">
-                  Message sent!
-                </h2>
+                <h2 className="mb-2 text-2xl font-bold text-zinc-900 dark:text-white">Message sent!</h2>
                 <p className="mb-6 text-zinc-600 dark:text-zinc-400">
                   Thanks for reaching out. We&apos;ll get back to you within 24 hours.
                 </p>
@@ -146,9 +139,7 @@ export default function ContactPage() {
             ) : (
               <>
                 <div className="mb-8 text-center">
-                  <h2 className="mb-2 text-2xl font-bold text-zinc-900 dark:text-white">
-                    Send us a message
-                  </h2>
+                  <h2 className="mb-2 text-2xl font-bold text-zinc-900 dark:text-white">Send us a message</h2>
                   <p className="text-zinc-600 dark:text-zinc-400">
                     Fill out the form below and we&apos;ll get back to you shortly.
                   </p>
@@ -201,7 +192,7 @@ export default function ContactPage() {
                       value={formState.department}
                       onChange={(e) => setFormState({ ...formState, department: e.target.value })}
                       required
-                      className="mt-1.5 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
+                      className="mt-1.5 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
                     >
                       <option value="">Select an option...</option>
                       {departments.map((dept) => (
@@ -247,9 +238,7 @@ export default function ContactPage() {
       <Section>
         <Container>
           <div className="text-center">
-            <h2 className="mb-4 text-2xl font-bold text-zinc-900 dark:text-white">
-              Looking for quick answers?
-            </h2>
+            <h2 className="mb-4 text-2xl font-bold text-zinc-900 dark:text-white">Looking for quick answers?</h2>
             <p className="mb-6 text-zinc-600 dark:text-zinc-400">
               Check out our FAQ section or browse our documentation.
             </p>

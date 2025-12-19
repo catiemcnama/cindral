@@ -7,8 +7,7 @@ import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'Pricing - Cindral',
-  description:
-    'Simple, transparent pricing for teams of all sizes. Start free, upgrade as you grow.',
+  description: 'Simple, transparent pricing for teams of all sizes. Start free, upgrade as you grow.',
 }
 
 const plans = [
@@ -132,7 +131,7 @@ const faqs = [
   {
     question: 'Can I try Cindral before committing?',
     answer:
-      "Yes! Our Starter plan is free forever, and Professional comes with a 14-day free trial. No credit card required to get started.",
+      'Yes! Our Starter plan is free forever, and Professional comes with a 14-day free trial. No credit card required to get started.',
   },
   {
     question: 'What happens if I exceed my plan limits?',
@@ -151,8 +150,7 @@ const faqs = [
   },
   {
     question: 'What payment methods do you accept?',
-    answer:
-      'We accept all major credit cards, and Enterprise customers can pay via invoice with NET 30 terms.',
+    answer: 'We accept all major credit cards, and Enterprise customers can pay via invoice with NET 30 terms.',
   },
   {
     question: 'Is there a discount for nonprofits or startups?',
@@ -221,12 +219,8 @@ export default function PricingPage() {
                 </div>
 
                 <div className="mb-6">
-                  <span className="text-4xl font-bold text-zinc-900 dark:text-white">
-                    {plan.price}
-                  </span>
-                  {plan.period && (
-                    <span className="text-zinc-600 dark:text-zinc-400"> / {plan.period}</span>
-                  )}
+                  <span className="text-4xl font-bold text-zinc-900 dark:text-white">{plan.price}</span>
+                  {plan.period && <span className="text-zinc-600 dark:text-zinc-400"> / {plan.period}</span>}
                 </div>
 
                 <Link href={plan.ctaLink} className="block">
@@ -261,48 +255,29 @@ export default function PricingPage() {
       {/* Feature Comparison */}
       <Section variant="muted">
         <Container>
-          <SectionHeader
-            title="Compare plans in detail"
-            subtitle="Find the perfect plan for your compliance needs."
-          />
+          <SectionHeader title="Compare plans in detail" subtitle="Find the perfect plan for your compliance needs." />
 
           <div className="overflow-x-auto">
             <table className="w-full min-w-[600px]">
               <thead>
                 <tr className="border-b border-zinc-200 dark:border-zinc-800">
-                  <th className="py-4 text-left text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                    Features
-                  </th>
-                  <th className="py-4 text-center text-sm font-medium text-zinc-900 dark:text-white">
-                    Starter
-                  </th>
-                  <th className="py-4 text-center text-sm font-medium text-zinc-900 dark:text-white">
-                    Professional
-                  </th>
-                  <th className="py-4 text-center text-sm font-medium text-zinc-900 dark:text-white">
-                    Enterprise
-                  </th>
+                  <th className="py-4 text-left text-sm font-medium text-zinc-600 dark:text-zinc-400">Features</th>
+                  <th className="py-4 text-center text-sm font-medium text-zinc-900 dark:text-white">Starter</th>
+                  <th className="py-4 text-center text-sm font-medium text-zinc-900 dark:text-white">Professional</th>
+                  <th className="py-4 text-center text-sm font-medium text-zinc-900 dark:text-white">Enterprise</th>
                 </tr>
               </thead>
               <tbody>
                 {comparisonFeatures.map((category) => (
                   <>
                     <tr key={category.category}>
-                      <td
-                        colSpan={4}
-                        className="pt-8 pb-2 text-sm font-semibold text-zinc-900 dark:text-white"
-                      >
+                      <td colSpan={4} className="pt-8 pb-2 text-sm font-semibold text-zinc-900 dark:text-white">
                         {category.category}
                       </td>
                     </tr>
                     {category.features.map((feature) => (
-                      <tr
-                        key={feature.name}
-                        className="border-b border-zinc-100 dark:border-zinc-800/50"
-                      >
-                        <td className="py-3 text-sm text-zinc-600 dark:text-zinc-400">
-                          {feature.name}
-                        </td>
+                      <tr key={feature.name} className="border-b border-zinc-100 dark:border-zinc-800/50">
+                        <td className="py-3 text-sm text-zinc-600 dark:text-zinc-400">{feature.name}</td>
                         <td className="py-3 text-center">
                           <div className="flex justify-center">
                             <FeatureValue value={feature.starter} />
@@ -331,10 +306,7 @@ export default function PricingPage() {
       {/* FAQ */}
       <Section>
         <Container className="max-w-3xl">
-          <SectionHeader
-            title="Pricing FAQ"
-            subtitle="Everything you need to know about our pricing."
-          />
+          <SectionHeader title="Pricing FAQ" subtitle="Everything you need to know about our pricing." />
 
           <div className="space-y-6">
             {faqs.map((faq) => (
