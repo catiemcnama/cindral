@@ -1,13 +1,9 @@
-import { config } from 'dotenv';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-import * as schema from './schema';
-
-// Load environment variables
-config({ path: '.env.local' });
+import { drizzle } from 'drizzle-orm/postgres-js'
+import postgres from 'postgres'
+import * as schema from './schema'
 
 if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL environment variable is not set');
+  throw new Error('DATABASE_URL environment variable is not set')
 }
 
 /**
@@ -15,13 +11,13 @@ if (!process.env.DATABASE_URL) {
  * This is a Next.js specific optimization for development hot reloading
  */
 const globalForDb = globalThis as unknown as {
-  conn: postgres.Sql | undefined;
-};
+  conn: postgres.Sql | undefined
+}
 
-const conn = globalForDb.conn ?? postgres(process.env.DATABASE_URL);
-if (process.env.NODE_ENV !== 'production') globalForDb.conn = conn;
+const conn = globalForDb.conn ?? postgres(process.env.DATABASE_URL)
+if (process.env.NODE_ENV !== 'production') globalForDb.conn = conn
 
 /**
  * Drizzle database instance with schema
  */
-export const db = drizzle({ client: conn, schema });
+export const db = drizzle({ client: conn, schema })

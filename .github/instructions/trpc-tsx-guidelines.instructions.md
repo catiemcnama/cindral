@@ -1,7 +1,7 @@
 ---
 name: tRPC Client Component Guidelines
 description: Instructions for using tRPC with TanStack Query in .tsx client components
-applyTo: "**/*.tsx"
+applyTo: '**/*.tsx'
 ---
 
 # tRPC Integration for Client Components
@@ -39,7 +39,7 @@ export function MyComponent() {
 
   if (result.isLoading) return <div>Loading...</div>;
   if (result.error) return <div>Error: {result.error.message}</div>;
-  
+
   return <div>{result.data?.name}</div>;
 }
 ```
@@ -77,39 +77,30 @@ export function CreateUserComponent() {
 ## Conditional Queries (Skip Token)
 
 ```typescript
-import { skipToken } from '@tanstack/react-query';
+import { skipToken } from '@tanstack/react-query'
 
-const userId = getCurrentUserId(); // could be null/undefined
+const userId = getCurrentUserId() // could be null/undefined
 
-const userQuery = useQuery(
-  userId
-    ? trpc.getUserById.queryOptions({ id: userId })
-    : skipToken
-);
+const userQuery = useQuery(userId ? trpc.getUserById.queryOptions({ id: userId }) : skipToken)
 ```
 
 ## Query Key Manipulation
 
 ```typescript
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query'
 
-const queryClient = useQueryClient();
+const queryClient = useQueryClient()
 
 // Invalidate a specific query
 queryClient.invalidateQueries({
   queryKey: trpc.getUserById.queryKey({ id: '123' }),
-});
+})
 
 // Get cached data
-const cachedUser = queryClient.getQueryData(
-  trpc.getUserById.queryKey({ id: '123' })
-);
+const cachedUser = queryClient.getQueryData(trpc.getUserById.queryKey({ id: '123' }))
 
 // Set cached data
-queryClient.setQueryData(
-  trpc.getUserById.queryKey({ id: '123' }),
-  { id: '123', name: 'Jane' }
-);
+queryClient.setQueryData(trpc.getUserById.queryKey({ id: '123' }), { id: '123', name: 'Jane' })
 ```
 
 ## Important Rules

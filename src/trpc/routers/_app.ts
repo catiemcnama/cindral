@@ -1,42 +1,58 @@
-import { users } from '@/db/schema';
-import { z } from 'zod';
-import { publicProcedure, router } from '../init';
+import { user } from '@/db/schema'
+import { z } from 'zod'
+import { orgProcedure, protectedProcedure, publicProcedure, router } from '../init'
 
 export const appRouter = router({
+  // Public procedures
   hello: publicProcedure
     .input(
       z.object({
         text: z.string(),
-      }),
+      })
     )
     .query((opts) => {
       return {
         greeting: `Hello ${opts.input.text}`,
-      };
+      }
     }),
 
-  getUsers: publicProcedure.query(async (opts) => {
-    const allUsers = await opts.ctx.db.select().from(users);
-    return allUsers;
+  // Protected procedures - require authentication
+  getMe: protectedProcedure.query(async (opts) => {
+    return opts.ctx.user
   }),
 
-  createUser: publicProcedure
-    .input(
-      z.object({
-        name: z.string().min(1),
-        email: z.string().email(),
-      }),
-    )
-    .mutation(async (opts) => {
-      const [newUser] = await opts.ctx.db
-        .insert(users)
-        .values({
-          name: opts.input.name,
-          email: opts.input.email,
-        })
-        .returning();
-      return newUser;
-    }),
-});
+  getMyOrganizations: protectedProcedure.query(async (opts) => {
+    const memberships = await opts.ctx.db.query.member.findMany({
+      where: (member, { eq }) => eq(member.userId, opts.ctx.user.id),
+      with: {
+        organization: true,
+      },
+    })
 
-export type AppRouter = typeof appRouter;
+    return memberships.map((m) => ({
+      ...m.organization,
+      role: m.role,
+    }))
+  }),
+
+  // Organization-scoped procedures
+  getOrgMembers: orgProcedure.query(async (opts) => {
+    const members = await opts.ctx.db.query.member.findMany({
+      where: (member, { eq }) => eq(member.organizationId, opts.ctx.activeOrganizationId),
+      with: {
+        user: true,
+      },
+    })
+
+    return members
+  }),
+
+  // Admin examples
+  getAllUsers: publicProcedure.query(async (opts) => {
+    // Note: In production, this should be protected and check for admin role
+    const allUsers = await opts.ctx.db.select().from(user)
+    return allUsers
+  }),
+})
+
+export type AppRouter = typeof appRouter
