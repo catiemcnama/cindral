@@ -260,15 +260,20 @@ cindral-web/
 │       ├── trpc-tsx-guidelines.instructions.md
 │       └── auth.instructions.md
 ├── src/
+│   ├── proxy.ts          # Route protection middleware (Next.js 16+)
 │   ├── app/              # Next.js App Router pages
 │   │   ├── api/
 │   │   │   ├── auth/     # Better Auth API routes
 │   │   │   └── trpc/     # tRPC API endpoint
+│   │   ├── (auth)/       # Auth pages (signin, signup)
+│   │   ├── (marketing)/  # Marketing pages (landing)
+│   │   ├── app/          # Protected app pages
 │   │   ├── auth-test/    # Auth demo page
 │   │   ├── layout.tsx    # Root layout
 │   │   └── page.tsx      # Home page
 │   ├── components/       # React components
 │   │   ├── ui/           # Reusable UI components
+│   │   ├── app-sidebar.tsx # App sidebar with user menu
 │   │   ├── auth-demo.tsx # Auth UI demo
 │   │   └── organization-demo.tsx # Org UI demo
 │   ├── db/               # Database layer
