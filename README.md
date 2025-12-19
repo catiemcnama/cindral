@@ -1,162 +1,188 @@
 # Cindral Web
 
-A [Next.js](https://nextjs.org) project with the App Router, using [tRPC](https://trpc.io) for type-safe API communication and [TanStack Query](https://tanstack.com/query) for state management.
+A modern full-stack web application built with Next.js, featuring type-safe APIs, a robust database layer, and a comprehensive UI component library.
 
-## Getting Started
+## Tech Stack
 
-First, run the development server:
+### Core Framework
+- **[Next.js 16](https://nextjs.org)** - React framework with App Router
+- **[React 19](https://react.dev)** - UI library
+- **[TypeScript](https://www.typescriptlang.org)** - Type safety
+
+### API & Data Fetching
+- **[tRPC v11](https://trpc.io)** - End-to-end type-safe APIs
+- **[TanStack Query v5](https://tanstack.com/query)** - Async state management
+- **[Zod](https://zod.dev)** - Schema validation
+- **[SuperJSON](https://github.com/blitz-js/superjson)** - JSON serialization with Date, Map, Set support
+
+### Database
+- **[Drizzle ORM](https://orm.drizzle.team)** - TypeScript ORM
+- **[PostgreSQL 17](https://www.postgresql.org)** - Database
+- **[postgres.js](https://github.com/porsager/postgres)** - PostgreSQL client
+
+### UI & Styling
+- **[Tailwind CSS v4](https://tailwindcss.com)** - Utility-first CSS
+- **[Radix UI](https://www.radix-ui.com)** - Headless UI primitives
+- **[Lucide React](https://lucide.dev)** - Icon library
+- **Custom component library** - Pre-built, accessible components
+
+### Development Tools
+- **[Bun](https://bun.sh)** - Fast JavaScript runtime & package manager
+- **[Docker](https://www.docker.com)** - Containerization for local PostgreSQL
+- **[Drizzle Studio](https://orm.drizzle.team/drizzle-studio/overview)** - Database GUI
+- **[ESLint](https://eslint.org)** - Code linting
+- **[Prettier](https://prettier.io)** - Code formatting
+
+## Quick Start
+
+### Prerequisites
+- **Bun** (or Node.js 18+)
+- **Docker** and **Docker Compose**
+- **Git**
+
+### 1. Clone and Install
+
+```bash
+git clone <repository-url>
+cd cindral-web
+bun install
+```
+
+### 2. Set Up Environment
+
+```bash
+# Copy the example environment file
+cp .env.example .env.local
+
+# The default DATABASE_URL should work for local development:
+# DATABASE_URL=postgres://postgres:postgres@localhost:5432/cindral
+```
+
+### 3. Start the Database
+
+```bash
+# Start PostgreSQL in Docker
+docker-compose up -d
+
+# Push the schema to the database
+bun run db:push
+```
+
+### 4. Run the Development Server
 
 ```bash
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the application.
 
-## Project Architecture
+## Local Development Workflow
 
-### tRPC Integration
+### Daily Development
 
-This project uses **tRPC v11** with **TanStack React Query** integration for end-to-end type-safe API communication.
+```bash
+# 1. Make sure the database is running
+docker-compose up -d
 
-#### Key Directories
+# 2. Start the dev server
+bun dev
 
-- **`src/trpc/init.ts`** - tRPC backend initialization and context setup
-- **`src/trpc/client.tsx`** - Client provider and React Context setup
-- **`src/trpc/server.tsx`** - Server Component helpers for prefetching and hydration
-- **`src/trpc/query-client.ts`** - Shared QueryClient configuration
-- **`src/trpc/routers/_app.ts`** - Root API router definition
-- **`src/app/api/trpc/[trpc]/route.ts`** - tRPC API endpoint
-
-### How to Use tRPC
-
-#### 1. Define a Procedure in the Router
-
-Add new procedures to `src/trpc/routers/_app.ts`:
-
-```typescript
-import { z } from 'zod';
-import { publicProcedure, router } from '../init';
-
-export const appRouter = router({
-  // Queries
-  getUserById: publicProcedure
-    .input(z.object({ id: z.string() }))
-    .query(async (opts) => {
-      // Access input: opts.input.id
-      return { id: opts.input.id, name: 'John Doe' };
-    }),
-
-  // Mutations
-  createUser: publicProcedure
-    .input(z.object({ name: z.string() }))
-    .mutation(async (opts) => {
-      // Access input: opts.input.name
-      return { id: 'user_123', name: opts.input.name };
-    }),
-});
-
-export type AppRouter = typeof appRouter;
+# 3. (Optional) Open Drizzle Studio to view/edit data
+bun run db:studio
 ```
 
-#### 2. Use in Client Components
+### Making Database Changes
 
-Always use `useTRPC()` hook with TanStack Query's `useQuery`, `useMutation`, and related hooks:
+```bash
+# 1. Edit your schema in src/db/schema.ts
 
-```typescript
-'use client';
+# 2. For rapid local development (no migration files):
+bun run db:push
 
-import { useTRPC } from '@/trpc/client';
-import { useQuery, useMutation } from '@tanstack/react-query';
-
-export function MyComponent() {
-  const trpc = useTRPC();
-
-  // For queries - use queryOptions
-  const user = useQuery(
-    trpc.getUserById.queryOptions({ id: '123' })
-  );
-
-  // For mutations - use mutationOptions
-  const createUserMutation = useMutation(
-    trpc.createUser.mutationOptions()
-  );
-
-  // Access data, status, and trigger mutations
-  return (
-    <div>
-      {user.isLoading && <p>Loading...</p>}
-      {user.data && <p>{user.data.name}</p>}
-      <button onClick={() => createUserMutation.mutate({ name: 'Jane' })}>
-        Create User
-      </button>
-    </div>
-  );
-}
+# OR for production-ready migrations:
+bun run db:generate  # Generate migration file
+bun run db:migrate   # Apply migrations
 ```
 
-#### 3. Use in Server Components (RSC) with Prefetching
+### Code Quality
 
-For Server Components, prefetch data using the `trpc` helper from `src/trpc/server.tsx`:
+```bash
+# Type checking
+bun run type-check
 
-```typescript
-import { HydrateClient, trpc } from '@/trpc/server';
+# Linting
+bun run lint
 
-export default async function Page() {
-  // Prefetch data on the server
-  void trpc.getUserById.prefetch({ id: '123' });
-
-  return (
-    <HydrateClient>
-      {/* Client components here will have prefetched data hydrated */}
-      <MyComponent />
-    </HydrateClient>
-  );
-}
+# Formatting
+bun run format
 ```
 
-#### 4. Advanced Patterns
+## Project Structure
 
-**Query Key Manipulation:**
-```typescript
-const queryClient = useQueryClient();
-
-// Invalidate a specific query
-queryClient.invalidateQueries({
-  queryKey: trpc.getUserById.queryKey({ id: '123' }),
-});
-
-// Get cached data
-const cachedData = queryClient.getQueryData(
-  trpc.getUserById.queryKey({ id: '123' })
-);
+```
+cindral-web/
+├── src/
+│   ├── app/              # Next.js App Router pages
+│   │   ├── api/trpc/     # tRPC API endpoint
+│   │   ├── layout.tsx    # Root layout
+│   │   └── page.tsx      # Home page
+│   ├── components/ui/    # Reusable UI components
+│   ├── db/               # Database layer
+│   │   ├── schema.ts     # Drizzle schema definitions
+│   │   └── index.ts      # Database client
+│   ├── trpc/             # tRPC configuration
+│   │   ├── init.ts       # tRPC initialization & context
+│   │   ├── client.tsx    # Client-side tRPC setup
+│   │   ├── server.tsx    # Server-side tRPC helpers
+│   │   └── routers/      # API route definitions
+│   ├── hooks/            # Custom React hooks
+│   └── lib/              # Utility functions
+├── .github/
+│   └── instructions/     # AI coding guidelines
+├── drizzle/              # Database migrations
+├── public/               # Static assets
+├── docker-compose.yml    # PostgreSQL container config
+├── drizzle.config.ts     # Drizzle ORM config
+└── package.json          # Dependencies & scripts
 ```
 
-**Conditional Queries:**
-```typescript
-import { skipToken } from '@tanstack/react-query';
+## Available Scripts
 
-const user = useQuery(
-  userId
-    ? trpc.getUserById.queryOptions({ id: userId })
-    : skipToken
-);
-```
+| Command | Description |
+|---------|-------------|
+| `bun dev` | Start development server |
+| `bun build` | Build for production |
+| `bun start` | Start production server |
+| `bun run type-check` | Run TypeScript type checking |
+| `bun run lint` | Run ESLint |
+| `bun run format` | Format code with Prettier |
+| `bun run db:generate` | Generate database migrations |
+| `bun run db:migrate` | Apply database migrations |
+| `bun run db:push` | Push schema changes (dev) |
+| `bun run db:studio` | Open Drizzle Studio |
 
-## Important Notes
+## Key Features & Patterns
 
-⚠️ **DO NOT** use the old tRPC React Query integration pattern:
-- ❌ `trpc.hello.useQuery(...)` - This is the old pattern
-- ✅ `useQuery(trpc.hello.queryOptions(...))` - This is the correct pattern
+### Type-Safe API with tRPC
+- Define procedures in `src/trpc/routers/`
+- Automatic TypeScript types from backend to frontend
+- See [tRPC guidelines](.github/instructions/trpc-tsx-guidelines.instructions.md) for usage patterns
 
-The modern approach provides better TypeScript support, cleaner composition with TanStack Query features, and follows the official recommendation.
+### Database Access
+- Drizzle ORM for type-safe database queries
+- Database available in tRPC context as `ctx.db`
+- See [database instructions](.github/instructions/database.instructions.md) for details
 
-## Testing
-
-Visit [http://localhost:3000/test-trpc](http://localhost:3000/test-trpc) to see a working example of the tRPC + TanStack Query integration.
+### UI Components
+- Pre-built components in `src/components/ui/`
+- Based on Radix UI primitives
+- Styled with Tailwind CSS
+- Fully accessible (ARIA compliant)
 
 ## Learn More
 
-- [tRPC Documentation](https://trpc.io/docs)
-- [tRPC + TanStack Query Integration](https://trpc.io/docs/client/tanstack-react-query)
-- [TanStack Query Documentation](https://tanstack.com/query/latest)
+- **[Database Setup & Usage](.github/instructions/database.instructions.md)** - Complete database guide
+- **[tRPC Usage Guidelines](.github/instructions/trpc-tsx-guidelines.instructions.md)** - How to use tRPC correctly
 - [Next.js Documentation](https://nextjs.org/docs)
+- [tRPC Documentation](https://trpc.io/docs)
+- [Drizzle ORM Documentation](https://orm.drizzle.team)
