@@ -254,6 +254,11 @@ bun run format
 
 ```
 cindral-web/
+├── .github/
+│   └── instructions/     # AI coding guidelines
+│       ├── database.instructions.md
+│       ├── trpc-tsx-guidelines.instructions.md
+│       └── auth.instructions.md
 ├── src/
 │   ├── app/              # Next.js App Router pages
 │   │   ├── api/
@@ -279,11 +284,6 @@ cindral-web/
 │   │   ├── server.tsx    # Server-side tRPC helpers
 │   │   └── routers/      # API route definitions
 │   └── hooks/            # Custom React hooks
-├── .github/
-│   └── instructions/     # AI coding guidelines
-│       ├── database.instructions.md
-│       ├── trpc-tsx-guidelines.instructions.md
-│       └── auth.instructions.md
 ├── drizzle/              # Database migrations
 ├── public/               # Static assets
 ├── docker-compose.yml    # PostgreSQL container config
