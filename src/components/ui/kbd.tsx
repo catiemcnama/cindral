@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils"
 
+// https://ui.shadcn.com/docs/components/kbd
 function Kbd({ className, ...props }: React.ComponentProps<"kbd">) {
   return (
     <kbd
