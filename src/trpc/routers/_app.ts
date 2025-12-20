@@ -2,7 +2,25 @@ import { user } from '@/db/schema'
 import { z } from 'zod'
 import { orgProcedure, protectedProcedure, publicProcedure, router } from '../init'
 
+// Domain routers
+import { regulationsRouter } from './regulations'
+import { articlesRouter } from './articles'
+import { alertsRouter } from './alerts'
+import { obligationsRouter } from './obligations'
+import { systemsRouter } from './systems'
+import { evidencePacksRouter } from './evidence-packs'
+import { dashboardRouter } from './dashboard'
+
 export const appRouter = router({
+  // Domain routers
+  regulations: regulationsRouter,
+  articles: articlesRouter,
+  alerts: alertsRouter,
+  obligations: obligationsRouter,
+  systems: systemsRouter,
+  evidencePacks: evidencePacksRouter,
+  dashboard: dashboardRouter,
+
   // Public procedures
   hello: publicProcedure
     .input(
