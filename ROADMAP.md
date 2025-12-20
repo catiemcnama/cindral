@@ -28,10 +28,118 @@
 | Screenshots     | ✅ Real product images                                |
 | Tech Stack      | ✅ Next.js 16, tRPC, Better Auth, Drizzle, PostgreSQL |
 | Database Schema | ✅ Full schema defined                                |
-| Database Seed   | ✅ Complete with DORA, GDPR, AI Act, Basel III, NIS2  |
+| Database Seed   | ⚠️ Demo data - needs real regulation content          |
 | tRPC API Layer  | ✅ 7 routers with 40+ endpoints                       |
 | Dashboard UI    | ⏳ Static mockups - connecting to live data next      |
 | Authentication  | ✅ Sign in/up pages (needs testing)                   |
+| Regulation Data | ⏳ Need comprehensive EUR-Lex ingestion               |
+
+---
+
+## 🗄️ DATA STRATEGY: Regulatory Intelligence Platform
+
+> **Core Value Prop:** Cindral IS the regulatory database. Users don't upload PDFs - we cover EVERY regulation.
+
+### The Model
+
+Users sign up → Select industry/jurisdiction → Instantly see ALL applicable regulations → Get alerts on changes → Never touch a PDF.
+
+### Master Regulation Database (Maintained by Cindral)
+
+| Regulation | Jurisdiction | Articles     | Priority | Status                         |
+| ---------- | ------------ | ------------ | -------- | ------------------------------ |
+| DORA       | EU           | 64           | 🔴 HIGH  | ⏳ Need full text from EUR-Lex |
+| GDPR       | EU/Global    | 99           | 🔴 HIGH  | ⏳ Need full text from EUR-Lex |
+| AI Act     | EU           | 85           | 🔴 HIGH  | ⏳ Need full text from EUR-Lex |
+| MiCA       | EU           | 149          | 🟡 MED   | ⏳ To add                      |
+| NIS2       | EU           | 46           | 🟡 MED   | ⏳ To add                      |
+| Basel III  | Global       | ~1000 pages  | 🟡 MED   | ⏳ To add                      |
+| PSD2/PSD3  | EU           | 117          | 🟡 MED   | ⏳ To add                      |
+| eIDAS 2.0  | EU           | 55           | 🟢 LOW   | ⏳ To add                      |
+| FCA Rules  | UK           | 1000s        | 🟡 MED   | ⏳ To add                      |
+| SOX        | US           | 11 titles    | 🟢 LOW   | ⏳ To add                      |
+| CCPA/CPRA  | US-CA        | 30+ sections | 🟢 LOW   | ⏳ To add                      |
+| HIPAA      | US           | 5 titles     | 🟢 LOW   | ⏳ To add                      |
+
+### Data Sources (Tier System)
+
+**Tier 1: Official Sources (FREE, Authoritative)**
+
+- EUR-Lex (EU regulations) - DORA, GDPR, AI Act, MiCA, NIS2, PSD2
+- BIS (Basel Committee) - Basel III/IV
+- FCA Handbook (UK)
+- US Federal Register (SOX, HIPAA)
+
+**Tier 2: AI-Powered Extraction**
+
+- Parse regulation PDFs from official sources
+- GPT-4/Claude for structuring and summarizing
+- Human compliance expert review before publishing
+
+**Tier 3: Premium Data Partners (PAID, for scale)**
+
+- Thomson Reuters Regulatory Intelligence
+- Wolters Kluwer
+- CUBE
+- Corlytics
+
+### Ingestion Pipeline
+
+```
+EUR-Lex/BIS → PDF/HTML Download → AI Parsing → Human Review → Database → User Dashboard
+                                       ↓
+                              Change Detection (RSS/Polling)
+                                       ↓
+                              Push Alerts to Users
+```
+
+### Data Quality Requirements
+
+| Dimension      | Requirement                                 |
+| -------------- | ------------------------------------------- |
+| Accuracy       | Matches official regulation text exactly    |
+| Completeness   | All articles, not just highlights           |
+| Currency       | Updated within 24-48 hours of changes       |
+| Provenance     | Link back to official source                |
+| Interpretation | Plain English summary + risk classification |
+| Actionability  | Mapped to specific controls/systems         |
+
+### Onboarding Flow (Industry/Jurisdiction Filtering)
+
+```
+Step 1: What's your industry?
+→ Banking & Finance, Insurance, Payment Services, Healthcare, Technology, Crypto/DeFi
+
+Step 2: Where do you operate?
+→ European Union, United Kingdom, United States, Switzerland, Singapore, Global
+
+Step 3: What systems do you have?
+→ Core Banking, Payment Processing, Customer Data, Cloud Infrastructure, Mobile Apps, AI/ML Systems
+
+Result: "Based on your profile, 12 regulations and 847 obligations apply to you"
+```
+
+### Phased Implementation
+
+**Phase 1: MVP (Week 1)**
+
+- [ ] Build EUR-Lex ingestion script for DORA, GDPR, AI Act
+- [ ] Use Claude/GPT-4 to structure articles with summaries
+- [ ] Human review layer for accuracy
+- [ ] Replace demo seed data with real content
+
+**Phase 2: Beta (Weeks 2-4)**
+
+- [ ] Add MiCA, NIS2, PSD2
+- [ ] Build change detection pipeline (EUR-Lex RSS)
+- [ ] Automated alerts on regulatory updates
+- [ ] Industry/jurisdiction filtering in onboarding
+
+**Phase 3: Scale (With Revenue)**
+
+- [ ] Partner with Thomson Reuters or CUBE for broader coverage
+- [ ] Multi-jurisdiction (UK, US, APAC)
+- [ ] Real-time monitoring with <24hr update SLA
 
 ---
 
@@ -43,6 +151,7 @@
 | 2        | tRPC API layer (all 22 endpoints) | 8 hrs     | ✅ DONE |
 | 3        | Dashboard connected to APIs       | 4 hrs     | 🔜 NEXT |
 | 4        | Auth testing + forgot password    | 2 hrs     | ⏳      |
+| 5        | EUR-Lex ingestion (DORA/GDPR/AI)  | 6 hrs     | ⏳ NEW  |
 
 ---
 
