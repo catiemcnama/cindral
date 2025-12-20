@@ -1,7 +1,7 @@
-import { regulations, obligations } from '@/db/schema'
+import { obligations, regulations } from '@/db/schema'
+import { and, asc, desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { orgProcedure, router } from '../init'
-import { eq, and, desc, asc, sql } from 'drizzle-orm'
 
 export const regulationsRouter = router({
   /**
@@ -9,21 +9,23 @@ export const regulationsRouter = router({
    */
   list: orgProcedure
     .input(
-      z.object({
-        limit: z.number().min(1).max(100).default(20),
-        offset: z.number().min(0).default(0),
-        jurisdiction: z.string().optional(),
-        search: z.string().optional(),
-        sortBy: z.enum(['name', 'effectiveDate', 'lastUpdated']).default('name'),
-        sortOrder: z.enum(['asc', 'desc']).default('asc'),
-      }).optional()
+      z
+        .object({
+          limit: z.number().min(1).max(100).default(20),
+          offset: z.number().min(0).default(0),
+          jurisdiction: z.string().optional(),
+          search: z.string().optional(),
+          sortBy: z.enum(['name', 'effectiveDate', 'lastUpdated']).default('name'),
+          sortOrder: z.enum(['asc', 'desc']).default('asc'),
+        })
+        .optional()
     )
     .query(async ({ ctx, input }) => {
       const { limit = 20, offset = 0, jurisdiction, search, sortBy = 'name', sortOrder = 'asc' } = input ?? {}
 
       // Build where conditions
       const conditions = []
-      
+
       // Filter by organization (regulations can be global or org-specific)
       conditions.push(
         sql`(${regulations.organizationId} IS NULL OR ${regulations.organizationId} = ${ctx.activeOrganizationId})`
@@ -44,9 +46,10 @@ export const regulationsRouter = router({
         where: conditions.length > 0 ? and(...conditions) : undefined,
         limit,
         offset,
-        orderBy: sortOrder === 'asc' 
-          ? asc(regulations[sortBy as keyof typeof regulations.$inferSelect])
-          : desc(regulations[sortBy as keyof typeof regulations.$inferSelect]),
+        orderBy:
+          sortOrder === 'asc'
+            ? asc(regulations[sortBy as keyof typeof regulations.$inferSelect])
+            : desc(regulations[sortBy as keyof typeof regulations.$inferSelect]),
         with: {
           articles: {
             columns: { id: true },
@@ -57,8 +60,8 @@ export const regulationsRouter = router({
       // Get obligation compliance stats per regulation
       const regulationsWithStats = await Promise.all(
         regs.map(async (reg) => {
-          const articleIds = reg.articles.map(a => a.id)
-          
+          const articleIds = reg.articles.map((a) => a.id)
+
           if (articleIds.length === 0) {
             return {
               ...reg,
@@ -69,22 +72,21 @@ export const regulationsRouter = router({
           }
 
           const obls = await ctx.db.query.obligations.findMany({
-            where: (obl, { and: andOp, inArray }) => andOp(
-              inArray(obl.articleId, articleIds),
-              sql`(${obl.organizationId} IS NULL OR ${obl.organizationId} = ${ctx.activeOrganizationId})`
-            ),
+            where: (obl, { and: andOp, inArray }) =>
+              andOp(
+                inArray(obl.articleId, articleIds),
+                sql`(${obl.organizationId} IS NULL OR ${obl.organizationId} = ${ctx.activeOrganizationId})`
+              ),
           })
 
           const stats = {
-            compliant: obls.filter(o => o.status === 'compliant').length,
-            pending: obls.filter(o => o.status === 'pending').length,
-            nonCompliant: obls.filter(o => o.status === 'non_compliant').length,
+            compliant: obls.filter((o) => o.status === 'compliant').length,
+            pending: obls.filter((o) => o.status === 'pending').length,
+            nonCompliant: obls.filter((o) => o.status === 'non_compliant').length,
             total: obls.length,
           }
 
-          const compliancePercent = stats.total > 0 
-            ? Math.round((stats.compliant / stats.total) * 100) 
-            : 100
+          const compliancePercent = stats.total > 0 ? Math.round((stats.compliant / stats.total) * 100) : 100
 
           return {
             ...reg,
@@ -112,69 +114,67 @@ export const regulationsRouter = router({
   /**
    * Get a single regulation by ID with all related data
    */
-  getById: orgProcedure
-    .input(z.object({ id: z.string() }))
-    .query(async ({ ctx, input }) => {
-      const reg = await ctx.db.query.regulations.findFirst({
-        where: eq(regulations.id, input.id),
-        with: {
-          articles: {
-            with: {
-              obligations: {
-                where: sql`(${obligations.organizationId} IS NULL OR ${obligations.organizationId} = ${ctx.activeOrganizationId})`,
-              },
-              systemImpacts: {
-                with: {
-                  system: true,
-                },
+  getById: orgProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
+    const reg = await ctx.db.query.regulations.findFirst({
+      where: eq(regulations.id, input.id),
+      with: {
+        articles: {
+          with: {
+            obligations: {
+              where: sql`(${obligations.organizationId} IS NULL OR ${obligations.organizationId} = ${ctx.activeOrganizationId})`,
+            },
+            systemImpacts: {
+              with: {
+                system: true,
               },
             },
           },
-          regulatoryChanges: {
-            orderBy: (rc, { desc }) => desc(rc.publishedAt),
-            limit: 10,
-          },
-          evidencePacks: {
-            where: eq(sql`${ctx.activeOrganizationId}`, sql`organization_id`),
-            orderBy: (ep, { desc }) => desc(ep.generatedAt),
-            limit: 5,
-          },
         },
+        regulatoryChanges: {
+          orderBy: (rc, { desc }) => desc(rc.publishedAt),
+          limit: 10,
+        },
+        evidencePacks: {
+          where: eq(sql`${ctx.activeOrganizationId}`, sql`organization_id`),
+          orderBy: (ep, { desc }) => desc(ep.generatedAt),
+          limit: 5,
+        },
+      },
+    })
+
+    if (!reg) {
+      throw new Error('Regulation not found')
+    }
+
+    // Calculate compliance stats
+    const allObligations = reg.articles.flatMap((a) => a.obligations)
+    const stats = {
+      compliant: allObligations.filter((o) => o.status === 'compliant').length,
+      pending: allObligations.filter((o) => o.status === 'pending').length,
+      nonCompliant: allObligations.filter((o) => o.status === 'non_compliant').length,
+      total: allObligations.length,
+    }
+
+    // Get unique impacted systems
+    const impactedSystems = new Map()
+    reg.articles.forEach((article) => {
+      article.systemImpacts.forEach((impact) => {
+        if (impact.system && !impactedSystems.has(impact.system.id)) {
+          impactedSystems.set(impact.system.id, {
+            ...impact.system,
+            impactLevel: impact.impactLevel,
+          })
+        }
       })
+    })
 
-      if (!reg) {
-        throw new Error('Regulation not found')
-      }
-
-      // Calculate compliance stats
-      const allObligations = reg.articles.flatMap(a => a.obligations)
-      const stats = {
-        compliant: allObligations.filter(o => o.status === 'compliant').length,
-        pending: allObligations.filter(o => o.status === 'pending').length,
-        nonCompliant: allObligations.filter(o => o.status === 'non_compliant').length,
-        total: allObligations.length,
-      }
-
-      // Get unique impacted systems
-      const impactedSystems = new Map()
-      reg.articles.forEach(article => {
-        article.systemImpacts.forEach(impact => {
-          if (impact.system && !impactedSystems.has(impact.system.id)) {
-            impactedSystems.set(impact.system.id, {
-              ...impact.system,
-              impactLevel: impact.impactLevel,
-            })
-          }
-        })
-      })
-
-      return {
-        ...reg,
-        compliancePercent: stats.total > 0 ? Math.round((stats.compliant / stats.total) * 100) : 100,
-        obligationStats: stats,
-        impactedSystems: Array.from(impactedSystems.values()),
-      }
-    }),
+    return {
+      ...reg,
+      compliancePercent: stats.total > 0 ? Math.round((stats.compliant / stats.total) * 100) : 100,
+      obligationStats: stats,
+      impactedSystems: Array.from(impactedSystems.values()),
+    }
+  }),
 
   /**
    * Create a new regulation (admin only)
@@ -229,10 +229,7 @@ export const regulationsRouter = router({
       const [reg] = await ctx.db
         .update(regulations)
         .set({ ...updates, lastUpdated: new Date() })
-        .where(and(
-          eq(regulations.id, id),
-          eq(regulations.organizationId, ctx.activeOrganizationId)
-        ))
+        .where(and(eq(regulations.id, id), eq(regulations.organizationId, ctx.activeOrganizationId)))
         .returning()
 
       return reg
@@ -241,22 +238,17 @@ export const regulationsRouter = router({
   /**
    * Delete a regulation
    */
-  delete: orgProcedure
-    .input(z.object({ id: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      if (ctx.member.role !== 'owner') {
-        throw new Error('Only owners can delete regulations')
-      }
+  delete: orgProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
+    if (ctx.member.role !== 'owner') {
+      throw new Error('Only owners can delete regulations')
+    }
 
-      await ctx.db
-        .delete(regulations)
-        .where(and(
-          eq(regulations.id, input.id),
-          eq(regulations.organizationId, ctx.activeOrganizationId)
-        ))
+    await ctx.db
+      .delete(regulations)
+      .where(and(eq(regulations.id, input.id), eq(regulations.organizationId, ctx.activeOrganizationId)))
 
-      return { success: true }
-    }),
+    return { success: true }
+  }),
 
   /**
    * Get all unique jurisdictions for filtering
@@ -267,6 +259,6 @@ export const regulationsRouter = router({
       .from(regulations)
       .where(sql`${regulations.jurisdiction} IS NOT NULL`)
 
-    return result.map(r => r.jurisdiction).filter(Boolean) as string[]
+    return result.map((r) => r.jurisdiction).filter(Boolean) as string[]
   }),
 })

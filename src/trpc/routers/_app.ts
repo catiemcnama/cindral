@@ -3,13 +3,13 @@ import { z } from 'zod'
 import { orgProcedure, protectedProcedure, publicProcedure, router } from '../init'
 
 // Domain routers
-import { regulationsRouter } from './regulations'
-import { articlesRouter } from './articles'
 import { alertsRouter } from './alerts'
-import { obligationsRouter } from './obligations'
-import { systemsRouter } from './systems'
-import { evidencePacksRouter } from './evidence-packs'
+import { articlesRouter } from './articles'
 import { dashboardRouter } from './dashboard'
+import { evidencePacksRouter } from './evidence-packs'
+import { obligationsRouter } from './obligations'
+import { regulationsRouter } from './regulations'
+import { systemsRouter } from './systems'
 
 export const appRouter = router({
   // Domain routers

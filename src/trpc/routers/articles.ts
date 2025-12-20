@@ -1,7 +1,7 @@
 import { articles, obligations } from '@/db/schema'
+import { and, desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { orgProcedure, router } from '../init'
-import { eq, and, sql, desc } from 'drizzle-orm'
 
 export const articlesRouter = router({
   /**
@@ -9,12 +9,14 @@ export const articlesRouter = router({
    */
   list: orgProcedure
     .input(
-      z.object({
-        regulationId: z.string().optional(),
-        riskLevel: z.enum(['critical', 'high', 'medium', 'low']).optional(),
-        limit: z.number().min(1).max(100).default(50),
-        offset: z.number().min(0).default(0),
-      }).optional()
+      z
+        .object({
+          regulationId: z.string().optional(),
+          riskLevel: z.enum(['critical', 'high', 'medium', 'low']).optional(),
+          limit: z.number().min(1).max(100).default(50),
+          offset: z.number().min(0).default(0),
+        })
+        .optional()
     )
     .query(async ({ ctx, input }) => {
       const { regulationId, riskLevel, limit = 50, offset = 0 } = input ?? {}
@@ -47,30 +49,28 @@ export const articlesRouter = router({
   /**
    * Get a single article by ID with all related data
    */
-  getById: orgProcedure
-    .input(z.object({ id: z.string() }))
-    .query(async ({ ctx, input }) => {
-      const article = await ctx.db.query.articles.findFirst({
-        where: eq(articles.id, input.id),
-        with: {
-          regulation: true,
-          obligations: {
-            where: sql`(${obligations.organizationId} IS NULL OR ${obligations.organizationId} = ${ctx.activeOrganizationId})`,
-          },
-          systemImpacts: {
-            with: {
-              system: true,
-            },
+  getById: orgProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
+    const article = await ctx.db.query.articles.findFirst({
+      where: eq(articles.id, input.id),
+      with: {
+        regulation: true,
+        obligations: {
+          where: sql`(${obligations.organizationId} IS NULL OR ${obligations.organizationId} = ${ctx.activeOrganizationId})`,
+        },
+        systemImpacts: {
+          with: {
+            system: true,
           },
         },
-      })
+      },
+    })
 
-      if (!article) {
-        throw new Error('Article not found')
-      }
+    if (!article) {
+      throw new Error('Article not found')
+    }
 
-      return article
-    }),
+    return article
+  }),
 
   /**
    * Create a new article
@@ -93,10 +93,7 @@ export const articlesRouter = router({
         throw new Error('Only admins can create articles')
       }
 
-      const [article] = await ctx.db
-        .insert(articles)
-        .values(input)
-        .returning()
+      const [article] = await ctx.db.insert(articles).values(input).returning()
 
       return article
     }),
@@ -123,11 +120,7 @@ export const articlesRouter = router({
 
       const { id, ...updates } = input
 
-      const [article] = await ctx.db
-        .update(articles)
-        .set(updates)
-        .where(eq(articles.id, id))
-        .returning()
+      const [article] = await ctx.db.update(articles).set(updates).where(eq(articles.id, id)).returning()
 
       return article
     }),
@@ -135,15 +128,13 @@ export const articlesRouter = router({
   /**
    * Delete an article
    */
-  delete: orgProcedure
-    .input(z.object({ id: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      if (ctx.member.role !== 'owner') {
-        throw new Error('Only owners can delete articles')
-      }
+  delete: orgProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
+    if (ctx.member.role !== 'owner') {
+      throw new Error('Only owners can delete articles')
+    }
 
-      await ctx.db.delete(articles).where(eq(articles.id, input.id))
+    await ctx.db.delete(articles).where(eq(articles.id, input.id))
 
-      return { success: true }
-    }),
+    return { success: true }
+  }),
 })

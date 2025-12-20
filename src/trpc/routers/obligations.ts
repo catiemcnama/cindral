@@ -1,7 +1,7 @@
-import { obligations, articles } from '@/db/schema'
+import { articles, obligations } from '@/db/schema'
+import { and, desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { orgProcedure, router } from '../init'
-import { eq, and, sql, desc } from 'drizzle-orm'
 
 export const obligationsRouter = router({
   /**
@@ -9,13 +9,15 @@ export const obligationsRouter = router({
    */
   list: orgProcedure
     .input(
-      z.object({
-        articleId: z.string().optional(),
-        regulationId: z.string().optional(),
-        status: z.enum(['pending', 'compliant', 'non_compliant']).optional(),
-        limit: z.number().min(1).max(100).default(50),
-        offset: z.number().min(0).default(0),
-      }).optional()
+      z
+        .object({
+          articleId: z.string().optional(),
+          regulationId: z.string().optional(),
+          status: z.enum(['pending', 'compliant', 'non_compliant']).optional(),
+          limit: z.number().min(1).max(100).default(50),
+          offset: z.number().min(0).default(0),
+        })
+        .optional()
     )
     .query(async ({ ctx, input }) => {
       const { articleId, regulationId, status, limit = 50, offset = 0 } = input ?? {}
@@ -29,7 +31,7 @@ export const obligationsRouter = router({
           where: eq(articles.regulationId, regulationId),
           columns: { id: true },
         })
-        const articleIds = arts.map(a => a.id)
+        const articleIds = arts.map((a) => a.id)
 
         if (articleIds.length === 0) {
           return {
@@ -42,7 +44,10 @@ export const obligationsRouter = router({
         }
 
         const conditions = [
-          sql`${obligations.articleId} IN (${sql.join(articleIds.map(id => sql`${id}`), sql`, `)})`,
+          sql`${obligations.articleId} IN (${sql.join(
+            articleIds.map((id) => sql`${id}`),
+            sql`, `
+          )})`,
           sql`(${obligations.organizationId} IS NULL OR ${obligations.organizationId} = ${ctx.activeOrganizationId})`,
         ]
 
@@ -102,9 +107,9 @@ export const obligationsRouter = router({
       })
 
       const stats = {
-        compliant: allObls.filter(o => o.status === 'compliant').length,
-        pending: allObls.filter(o => o.status === 'pending').length,
-        nonCompliant: allObls.filter(o => o.status === 'non_compliant').length,
+        compliant: allObls.filter((o) => o.status === 'compliant').length,
+        pending: allObls.filter((o) => o.status === 'pending').length,
+        nonCompliant: allObls.filter((o) => o.status === 'non_compliant').length,
         total: allObls.length,
       }
 
@@ -121,34 +126,32 @@ export const obligationsRouter = router({
   /**
    * Get a single obligation by ID
    */
-  getById: orgProcedure
-    .input(z.object({ id: z.string() }))
-    .query(async ({ ctx, input }) => {
-      const obligation = await ctx.db.query.obligations.findFirst({
-        where: and(
-          eq(obligations.id, input.id),
-          sql`(${obligations.organizationId} IS NULL OR ${obligations.organizationId} = ${ctx.activeOrganizationId})`
-        ),
-        with: {
-          article: {
-            with: {
-              regulation: true,
-              systemImpacts: {
-                with: {
-                  system: true,
-                },
+  getById: orgProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
+    const obligation = await ctx.db.query.obligations.findFirst({
+      where: and(
+        eq(obligations.id, input.id),
+        sql`(${obligations.organizationId} IS NULL OR ${obligations.organizationId} = ${ctx.activeOrganizationId})`
+      ),
+      with: {
+        article: {
+          with: {
+            regulation: true,
+            systemImpacts: {
+              with: {
+                system: true,
               },
             },
           },
         },
-      })
+      },
+    })
 
-      if (!obligation) {
-        throw new Error('Obligation not found')
-      }
+    if (!obligation) {
+      throw new Error('Obligation not found')
+    }
 
-      return obligation
-    }),
+    return obligation
+  }),
 
   /**
    * Update obligation status
@@ -195,10 +198,7 @@ export const obligationsRouter = router({
           status: input.status,
           lastReviewedAt: new Date(),
         })
-        .where(and(
-          eq(obligations.id, input.id),
-          eq(obligations.organizationId, ctx.activeOrganizationId)
-        ))
+        .where(and(eq(obligations.id, input.id), eq(obligations.organizationId, ctx.activeOrganizationId)))
         .returning()
 
       return updated
@@ -245,10 +245,7 @@ export const obligationsRouter = router({
               status: input.status,
               lastReviewedAt: new Date(),
             })
-            .where(and(
-              eq(obligations.id, id),
-              eq(obligations.organizationId, ctx.activeOrganizationId)
-            ))
+            .where(and(eq(obligations.id, id), eq(obligations.organizationId, ctx.activeOrganizationId)))
             .returning()
         })
       )
@@ -270,12 +267,10 @@ export const obligationsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       // Generate obligation ID
-      const countResult = await ctx.db
-        .select({ count: sql<number>`count(*)` })
-        .from(obligations)
+      const countResult = await ctx.db.select({ count: sql<number>`count(*)` }).from(obligations)
 
       const count = Number(countResult[0]?.count ?? 0)
-      
+
       // Get article for ID prefix
       const article = await ctx.db.query.articles.findFirst({
         where: eq(articles.id, input.articleId),
@@ -322,10 +317,7 @@ export const obligationsRouter = router({
           ...updates,
           lastReviewedAt: updates.status ? new Date() : undefined,
         })
-        .where(and(
-          eq(obligations.id, id),
-          eq(obligations.organizationId, ctx.activeOrganizationId)
-        ))
+        .where(and(eq(obligations.id, id), eq(obligations.organizationId, ctx.activeOrganizationId)))
         .returning()
 
       return obligation
@@ -334,16 +326,11 @@ export const obligationsRouter = router({
   /**
    * Delete an obligation
    */
-  delete: orgProcedure
-    .input(z.object({ id: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      await ctx.db
-        .delete(obligations)
-        .where(and(
-          eq(obligations.id, input.id),
-          eq(obligations.organizationId, ctx.activeOrganizationId)
-        ))
+  delete: orgProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
+    await ctx.db
+      .delete(obligations)
+      .where(and(eq(obligations.id, input.id), eq(obligations.organizationId, ctx.activeOrganizationId)))
 
-      return { success: true }
-    }),
+    return { success: true }
+  }),
 })

@@ -1,14 +1,7 @@
-import { 
-  obligations, 
-  alerts, 
-  systems, 
-  articleSystemImpacts,
-  regulatoryChanges,
-  evidencePacks,
-} from '@/db/schema'
+import { alerts, articleSystemImpacts, evidencePacks, obligations, regulatoryChanges, systems } from '@/db/schema'
+import { and, count, desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { orgProcedure, router } from '../init'
-import { eq, and, sql, desc, count } from 'drizzle-orm'
 
 export const dashboardRouter = router({
   /**
@@ -23,9 +16,9 @@ export const dashboardRouter = router({
 
     const obligationStats = {
       total: orgObligations.length,
-      compliant: orgObligations.filter(o => o.status === 'compliant').length,
-      pending: orgObligations.filter(o => o.status === 'pending').length,
-      nonCompliant: orgObligations.filter(o => o.status === 'non_compliant').length,
+      compliant: orgObligations.filter((o) => o.status === 'compliant').length,
+      pending: orgObligations.filter((o) => o.status === 'pending').length,
+      nonCompliant: orgObligations.filter((o) => o.status === 'non_compliant').length,
     }
 
     // Calculate controls at risk (non-compliant + pending)
@@ -43,22 +36,18 @@ export const dashboardRouter = router({
       columns: { systemId: true },
     })
 
-    const impactedSystemIds = new Set(criticalImpacts.map(i => i.systemId))
-    const systemsImpacted = systemsList.filter(s => impactedSystemIds.has(s.id)).length
+    const impactedSystemIds = new Set(criticalImpacts.map((i) => i.systemId))
+    const systemsImpacted = systemsList.filter((s) => impactedSystemIds.has(s.id)).length
 
     // Get active alerts count
     const activeAlerts = await ctx.db
       .select({ count: count() })
       .from(alerts)
-      .where(and(
-        eq(alerts.organizationId, ctx.activeOrganizationId),
-        sql`${alerts.status} IN ('open', 'in_progress')`
-      ))
+      .where(and(eq(alerts.organizationId, ctx.activeOrganizationId), sql`${alerts.status} IN ('open', 'in_progress')`))
 
     // Calculate overall compliance rate
-    const complianceRate = obligationStats.total > 0
-      ? Math.round((obligationStats.compliant / obligationStats.total) * 100)
-      : 0
+    const complianceRate =
+      obligationStats.total > 0 ? Math.round((obligationStats.compliant / obligationStats.total) * 100) : 0
 
     // Evidence packs count
     const evidencePacksResult = await ctx.db
@@ -95,29 +84,29 @@ export const dashboardRouter = router({
       },
     })
 
-    return regs.map(reg => {
-      const allObligations = reg.articles.flatMap(a => a.obligations)
-      const total = allObligations.length
-      const compliant = allObligations.filter(o => o.status === 'compliant').length
-      const pending = allObligations.filter(o => o.status === 'pending').length
-      const nonCompliant = allObligations.filter(o => o.status === 'non_compliant').length
+    return regs
+      .map((reg) => {
+        const allObligations = reg.articles.flatMap((a) => a.obligations)
+        const total = allObligations.length
+        const compliant = allObligations.filter((o) => o.status === 'compliant').length
+        const pending = allObligations.filter((o) => o.status === 'pending').length
+        const nonCompliant = allObligations.filter((o) => o.status === 'non_compliant').length
 
-      const complianceRate = total > 0
-        ? Math.round((compliant / total) * 100)
-        : 100
+        const complianceRate = total > 0 ? Math.round((compliant / total) * 100) : 100
 
-      return {
-        id: reg.id,
-        name: reg.name,
-        jurisdiction: reg.jurisdiction,
-        effectiveDate: reg.effectiveDate,
-        total,
-        compliant,
-        pending,
-        nonCompliant,
-        complianceRate,
-      }
-    }).sort((a, b) => a.complianceRate - b.complianceRate) // Worst compliance first
+        return {
+          id: reg.id,
+          name: reg.name,
+          jurisdiction: reg.jurisdiction,
+          effectiveDate: reg.effectiveDate,
+          total,
+          compliant,
+          pending,
+          nonCompliant,
+          complianceRate,
+        }
+      })
+      .sort((a, b) => a.complianceRate - b.complianceRate) // Worst compliance first
   }),
 
   /**
@@ -184,43 +173,45 @@ export const dashboardRouter = router({
       },
     })
 
-    return systemsList.map(system => {
-      const impactCounts = {
-        critical: 0,
-        high: 0,
-        medium: 0,
-        low: 0,
-      }
+    return systemsList
+      .map((system) => {
+        const impactCounts = {
+          critical: 0,
+          high: 0,
+          medium: 0,
+          low: 0,
+        }
 
-      const regs = new Set<string>()
+        const regs = new Set<string>()
 
-      system.articleImpacts.forEach(impact => {
-        impactCounts[impact.impactLevel]++
-        if (impact.article?.regulation) {
-          regs.add(impact.article.regulation.name)
+        system.articleImpacts.forEach((impact) => {
+          impactCounts[impact.impactLevel]++
+          if (impact.article?.regulation) {
+            regs.add(impact.article.regulation.name)
+          }
+        })
+
+        // Determine overall risk level
+        let riskLevel: 'critical' | 'high' | 'medium' | 'low' = 'low'
+        if (impactCounts.critical > 0) riskLevel = 'critical'
+        else if (impactCounts.high > 0) riskLevel = 'high'
+        else if (impactCounts.medium > 0) riskLevel = 'medium'
+
+        return {
+          id: system.id,
+          name: system.name,
+          criticality: system.criticality,
+          impactCounts,
+          totalImpacts: system.articleImpacts.length,
+          regulationsAffected: Array.from(regs),
+          riskLevel,
         }
       })
-
-      // Determine overall risk level
-      let riskLevel: 'critical' | 'high' | 'medium' | 'low' = 'low'
-      if (impactCounts.critical > 0) riskLevel = 'critical'
-      else if (impactCounts.high > 0) riskLevel = 'high'
-      else if (impactCounts.medium > 0) riskLevel = 'medium'
-
-      return {
-        id: system.id,
-        name: system.name,
-        criticality: system.criticality,
-        impactCounts,
-        totalImpacts: system.articleImpacts.length,
-        regulationsAffected: Array.from(regs),
-        riskLevel,
-      }
-    }).sort((a, b) => {
-      // Sort by risk level
-      const levels = ['critical', 'high', 'medium', 'low']
-      return levels.indexOf(a.riskLevel) - levels.indexOf(b.riskLevel)
-    })
+      .sort((a, b) => {
+        // Sort by risk level
+        const levels = ['critical', 'high', 'medium', 'low']
+        return levels.indexOf(a.riskLevel) - levels.indexOf(b.riskLevel)
+      })
   }),
 
   /**
@@ -239,7 +230,7 @@ export const dashboardRouter = router({
 
     const byFormat: Record<string, number> = {}
 
-    packs.forEach(p => {
+    packs.forEach((p) => {
       const format = p.exportFormat ?? 'unknown'
       byFormat[format] = (byFormat[format] ?? 0) + 1
     })

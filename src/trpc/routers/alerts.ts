@@ -1,7 +1,7 @@
 import { alerts } from '@/db/schema'
+import { and, asc, desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { orgProcedure, router } from '../init'
-import { eq, and, sql, desc, asc } from 'drizzle-orm'
 
 export const alertsRouter = router({
   /**
@@ -9,32 +9,32 @@ export const alertsRouter = router({
    */
   list: orgProcedure
     .input(
-      z.object({
-        severity: z.enum(['critical', 'high', 'medium', 'low']).optional(),
-        status: z.enum(['open', 'in_progress', 'resolved']).optional(),
-        regulationId: z.string().optional(),
-        ownerId: z.string().optional(),
-        limit: z.number().min(1).max(100).default(20),
-        offset: z.number().min(0).default(0),
-        sortBy: z.enum(['createdAt', 'severity', 'status']).default('createdAt'),
-        sortOrder: z.enum(['asc', 'desc']).default('desc'),
-      }).optional()
+      z
+        .object({
+          severity: z.enum(['critical', 'high', 'medium', 'low']).optional(),
+          status: z.enum(['open', 'in_progress', 'resolved']).optional(),
+          regulationId: z.string().optional(),
+          ownerId: z.string().optional(),
+          limit: z.number().min(1).max(100).default(20),
+          offset: z.number().min(0).default(0),
+          sortBy: z.enum(['createdAt', 'severity', 'status']).default('createdAt'),
+          sortOrder: z.enum(['asc', 'desc']).default('desc'),
+        })
+        .optional()
     )
     .query(async ({ ctx, input }) => {
-      const { 
-        severity, 
-        status, 
-        regulationId, 
+      const {
+        severity,
+        status,
+        regulationId,
         ownerId,
-        limit = 20, 
+        limit = 20,
         offset = 0,
         sortBy = 'createdAt',
         sortOrder = 'desc',
       } = input ?? {}
 
-      const conditions = [
-        eq(alerts.organizationId, ctx.activeOrganizationId),
-      ]
+      const conditions = [eq(alerts.organizationId, ctx.activeOrganizationId)]
 
       if (severity) {
         conditions.push(eq(alerts.severity, severity))
@@ -56,9 +56,10 @@ export const alertsRouter = router({
         where: and(...conditions),
         limit,
         offset,
-        orderBy: sortOrder === 'asc'
-          ? asc(alerts[sortBy as keyof typeof alerts.$inferSelect])
-          : desc(alerts[sortBy as keyof typeof alerts.$inferSelect]),
+        orderBy:
+          sortOrder === 'asc'
+            ? asc(alerts[sortBy as keyof typeof alerts.$inferSelect])
+            : desc(alerts[sortBy as keyof typeof alerts.$inferSelect]),
         with: {
           regulation: {
             columns: { id: true, name: true },
@@ -82,27 +83,23 @@ export const alertsRouter = router({
       const openCount = await ctx.db
         .select({ count: sql<number>`count(*)` })
         .from(alerts)
-        .where(and(
-          eq(alerts.organizationId, ctx.activeOrganizationId),
-          eq(alerts.status, 'open')
-        ))
+        .where(and(eq(alerts.organizationId, ctx.activeOrganizationId), eq(alerts.status, 'open')))
 
       const inProgressCount = await ctx.db
         .select({ count: sql<number>`count(*)` })
         .from(alerts)
-        .where(and(
-          eq(alerts.organizationId, ctx.activeOrganizationId),
-          eq(alerts.status, 'in_progress')
-        ))
+        .where(and(eq(alerts.organizationId, ctx.activeOrganizationId), eq(alerts.status, 'in_progress')))
 
       const criticalCount = await ctx.db
         .select({ count: sql<number>`count(*)` })
         .from(alerts)
-        .where(and(
-          eq(alerts.organizationId, ctx.activeOrganizationId),
-          eq(alerts.severity, 'critical'),
-          sql`${alerts.status} != 'resolved'`
-        ))
+        .where(
+          and(
+            eq(alerts.organizationId, ctx.activeOrganizationId),
+            eq(alerts.severity, 'critical'),
+            sql`${alerts.status} != 'resolved'`
+          )
+        )
 
       return {
         items: alertsList,
@@ -120,38 +117,33 @@ export const alertsRouter = router({
   /**
    * Get a single alert by ID with full details
    */
-  getById: orgProcedure
-    .input(z.object({ id: z.string() }))
-    .query(async ({ ctx, input }) => {
-      const alert = await ctx.db.query.alerts.findFirst({
-        where: and(
-          eq(alerts.id, input.id),
-          eq(alerts.organizationId, ctx.activeOrganizationId)
-        ),
-        with: {
-          regulation: true,
-          article: {
-            with: {
-              obligations: true,
-              systemImpacts: {
-                with: {
-                  system: true,
-                },
+  getById: orgProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
+    const alert = await ctx.db.query.alerts.findFirst({
+      where: and(eq(alerts.id, input.id), eq(alerts.organizationId, ctx.activeOrganizationId)),
+      with: {
+        regulation: true,
+        article: {
+          with: {
+            obligations: true,
+            systemImpacts: {
+              with: {
+                system: true,
               },
             },
           },
-          owner: {
-            columns: { id: true, name: true, email: true, image: true },
-          },
         },
-      })
+        owner: {
+          columns: { id: true, name: true, email: true, image: true },
+        },
+      },
+    })
 
-      if (!alert) {
-        throw new Error('Alert not found')
-      }
+    if (!alert) {
+      throw new Error('Alert not found')
+    }
 
-      return alert
-    }),
+    return alert
+  }),
 
   /**
    * Create a new alert
@@ -204,10 +196,7 @@ export const alertsRouter = router({
       const [alert] = await ctx.db
         .update(alerts)
         .set({ status: input.status })
-        .where(and(
-          eq(alerts.id, input.id),
-          eq(alerts.organizationId, ctx.activeOrganizationId)
-        ))
+        .where(and(eq(alerts.id, input.id), eq(alerts.organizationId, ctx.activeOrganizationId)))
         .returning()
 
       return alert
@@ -227,10 +216,7 @@ export const alertsRouter = router({
       const [alert] = await ctx.db
         .update(alerts)
         .set({ ownerId: input.ownerId })
-        .where(and(
-          eq(alerts.id, input.id),
-          eq(alerts.organizationId, ctx.activeOrganizationId)
-        ))
+        .where(and(eq(alerts.id, input.id), eq(alerts.organizationId, ctx.activeOrganizationId)))
         .returning()
 
       return alert
@@ -256,10 +242,7 @@ export const alertsRouter = router({
       const [alert] = await ctx.db
         .update(alerts)
         .set(updates)
-        .where(and(
-          eq(alerts.id, id),
-          eq(alerts.organizationId, ctx.activeOrganizationId)
-        ))
+        .where(and(eq(alerts.id, id), eq(alerts.organizationId, ctx.activeOrganizationId)))
         .returning()
 
       return alert
@@ -268,18 +251,11 @@ export const alertsRouter = router({
   /**
    * Delete an alert
    */
-  delete: orgProcedure
-    .input(z.object({ id: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      await ctx.db
-        .delete(alerts)
-        .where(and(
-          eq(alerts.id, input.id),
-          eq(alerts.organizationId, ctx.activeOrganizationId)
-        ))
+  delete: orgProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
+    await ctx.db.delete(alerts).where(and(eq(alerts.id, input.id), eq(alerts.organizationId, ctx.activeOrganizationId)))
 
-      return { success: true }
-    }),
+    return { success: true }
+  }),
 
   /**
    * Bulk update alert status
@@ -293,14 +269,11 @@ export const alertsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const updated = await Promise.all(
-        input.ids.map(id =>
+        input.ids.map((id) =>
           ctx.db
             .update(alerts)
             .set({ status: input.status })
-            .where(and(
-              eq(alerts.id, id),
-              eq(alerts.organizationId, ctx.activeOrganizationId)
-            ))
+            .where(and(eq(alerts.id, id), eq(alerts.organizationId, ctx.activeOrganizationId)))
             .returning()
         )
       )
@@ -320,14 +293,11 @@ export const alertsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const updated = await Promise.all(
-        input.ids.map(id =>
+        input.ids.map((id) =>
           ctx.db
             .update(alerts)
             .set({ ownerId: input.ownerId })
-            .where(and(
-              eq(alerts.id, id),
-              eq(alerts.organizationId, ctx.activeOrganizationId)
-            ))
+            .where(and(eq(alerts.id, id), eq(alerts.organizationId, ctx.activeOrganizationId)))
             .returning()
         )
       )
