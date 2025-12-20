@@ -103,12 +103,14 @@ export default function SignUpPage() {
               <p className="text-sm text-muted-foreground">Enter your details below to create your account</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" autoComplete="on">
               <div className="space-y-2">
                 <Input
                   id="name"
+                  name="name"
                   type="text"
                   placeholder="Your name"
+                  autoComplete="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -118,8 +120,10 @@ export default function SignUpPage() {
               <div className="space-y-2">
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="name@example.com"
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -129,8 +133,10 @@ export default function SignUpPage() {
               <div className="space-y-2">
                 <Input
                   id="password"
+                  name="password"
                   type="password"
                   placeholder="Password"
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required

@@ -101,12 +101,14 @@ export default function SignInPage() {
               <p className="text-sm text-muted-foreground">Enter your credentials to sign in to your account</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" autoComplete="on">
               <div className="space-y-2">
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="name@example.com"
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -116,8 +118,10 @@ export default function SignInPage() {
               <div className="space-y-2">
                 <Input
                   id="password"
+                  name="password"
                   type="password"
                   placeholder="Password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
