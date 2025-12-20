@@ -37,8 +37,8 @@
 
 ## 🔴 Critical Path (Do First)
 
-| Priority | Task                              | Est. Time | Status |
-| -------- | --------------------------------- | --------- | ------ |
+| Priority | Task                              | Est. Time | Status  |
+| -------- | --------------------------------- | --------- | ------- |
 | 1        | Database seed script              | 4 hrs     | ✅ DONE |
 | 2        | tRPC API layer (all 22 endpoints) | 8 hrs     | ✅ DONE |
 | 3        | Dashboard connected to APIs       | 4 hrs     | 🔜 NEXT |
@@ -71,16 +71,19 @@
 > Build every endpoint needed for full product
 
 **Regulations** ✅
+
 - [x] `regulations.list` - paginated, filterable by jurisdiction/status
 - [x] `regulations.getById` - with articles, obligations, impacted systems
 - [x] `regulations.create/update/delete` (admin only)
 - [x] `regulations.getJurisdictions` - list unique jurisdictions
 
 **Articles** ✅
+
 - [x] `articles.list` - by regulation, risk level
 - [x] `articles.getById` - with obligations, system impacts
 
 **Alerts** ✅
+
 - [x] `alerts.list` - filterable by severity/status/regulation/owner
 - [x] `alerts.getById` - full detail with linked regulation/article
 - [x] `alerts.create` - from regulatory changes
@@ -91,12 +94,14 @@
 - [x] `alerts.getStats` - counts by status/severity
 
 **Obligations** ✅
+
 - [x] `obligations.list` - by article, status, with stats
 - [x] `obligations.getById` - with article and system impacts
 - [x] `obligations.updateStatus` - pending→compliant→non_compliant
 - [x] `obligations.bulkUpdateStatus` - bulk status changes
 
 **Systems** ✅
+
 - [x] `systems.list` - all org systems with criticality and impact counts
 - [x] `systems.getById` - with all impacted articles grouped by regulation
 - [x] `systems.create/update/delete`
@@ -105,6 +110,7 @@
 - [x] `systems.getArticlesForSystem` - what articles impact this system
 
 **Evidence Packs** ✅
+
 - [x] `evidencePacks.list` - history of generated packs
 - [x] `evidencePacks.getById` - with related obligations
 - [x] `evidencePacks.generate` - create new pack for regulation/article
@@ -112,6 +118,7 @@
 - [x] `evidencePacks.getStats` - counts by format
 
 **Dashboard** ✅
+
 - [x] `dashboard.getStats` - controls at risk, systems impacted, compliance rate
 - [x] `dashboard.getComplianceByRegulation` - breakdown per regulation
 - [x] `dashboard.getRecentAlerts` - latest alerts
