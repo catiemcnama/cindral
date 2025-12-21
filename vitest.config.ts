@@ -31,10 +31,16 @@ export default defineConfig({
       DATABASE_URL: process.env.DATABASE_URL ?? '',
       NODE_ENV: 'test',
     },
+    // Don't process CSS in unit tests
+    css: false,
   },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+  },
+  // Disable CSS processing entirely for tests
+  css: {
+    postcss: '',
   },
 })
