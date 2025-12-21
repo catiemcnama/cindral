@@ -39,8 +39,11 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  // Disable CSS processing entirely for tests
+  // Disable CSS processing entirely for tests by providing inline empty config
+  // This prevents Vite from loading postcss.config.mjs which requires lightningcss native binaries
   css: {
-    postcss: '',
+    postcss: {
+      plugins: [],
+    },
   },
 })

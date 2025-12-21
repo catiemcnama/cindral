@@ -34,11 +34,12 @@ function progressBar(current: number, total: number, width = 30): string {
 /**
  * Ingest a single regulation
  */
-async function ingestRegulation(key: EurLexRegulationKey): Promise<IngestionStats> {
+async function ingestRegulation(key: EurLexRegulationKey, organizationId: string): Promise<IngestionStats> {
   const startTime = Date.now()
 
   console.log('\n' + '='.repeat(60))
   console.log(`🚀 Starting ingestion for: ${EUR_LEX_SOURCES[key].name}`)
+  console.log(`   Organization: ${organizationId}`)
   console.log('='.repeat(60))
 
   // Step 1: Fetch from EUR-Lex
@@ -59,7 +60,7 @@ async function ingestRegulation(key: EurLexRegulationKey): Promise<IngestionStat
   }
 
   // Step 2: Save regulation to database
-  await upsertRegulation(regulation)
+  await upsertRegulation(regulation, { organizationId })
 
   // Step 3: Process articles with Claude
   console.log(`\n🤖 Analyzing ${articles.length} articles with Claude...`)
@@ -85,7 +86,7 @@ async function ingestRegulation(key: EurLexRegulationKey): Promise<IngestionStat
 
   // Step 4: Save enriched articles to database
   console.log(`\n💾 Saving to database...`)
-  const dbResult = await batchUpsertArticles(enriched, (completed, total) => {
+  const dbResult = await batchUpsertArticles(enriched, { organizationId }, (completed, total) => {
     process.stdout.write(`\r   ${progressBar(completed, total)}`)
   })
   console.log()
@@ -126,6 +127,22 @@ async function ingestRegulation(key: EurLexRegulationKey): Promise<IngestionStat
 }
 
 /**
+ * Parse --org argument from CLI args
+ */
+function parseOrgId(args: string[]): string | undefined {
+  const orgIndex = args.findIndex((a) => a === '--org')
+  if (orgIndex !== -1 && args[orgIndex + 1]) {
+    return args[orgIndex + 1]
+  }
+  // Also check for --org=value format
+  const orgArg = args.find((a) => a.startsWith('--org='))
+  if (orgArg) {
+    return orgArg.split('=')[1]
+  }
+  return undefined
+}
+
+/**
  * Main CLI handler
  */
 async function main() {
@@ -137,7 +154,7 @@ async function main() {
 Cindral Regulatory Ingestion Pipeline
 
 Usage:
-  npx dotenv -e .env.local -- tsx scripts/ingest/main.ts <command>
+  npx dotenv -e .env.local -- tsx scripts/ingest/main.ts <command> --org <organization-id>
 
 Commands:
   dora, gdpr, ai-act, mica, nis2, psd2   Ingest specific regulation
@@ -146,9 +163,12 @@ Commands:
   --status                                Show database status
   --help                                  Show this help message
 
+Options:
+  --org <id>                              Organization ID (required for ingest)
+
 Examples:
-  npx dotenv -e .env.local -- tsx scripts/ingest/main.ts dora
-  npx dotenv -e .env.local -- tsx scripts/ingest/main.ts --all
+  npx dotenv -e .env.local -- tsx scripts/ingest/main.ts dora --org org_123
+  npx dotenv -e .env.local -- tsx scripts/ingest/main.ts --all --org org_123
 `)
     return
   }
@@ -176,12 +196,18 @@ Examples:
 
   // Ingest all regulations
   if (args.includes('--all')) {
+    const organizationId = parseOrgId(args)
+    if (!organizationId) {
+      console.error('❌ --org <organization-id> is required for ingestion')
+      process.exit(1)
+    }
+
     console.log('\n🌍 Ingesting ALL EUR-Lex regulations...\n')
     const keys = Object.keys(EUR_LEX_SOURCES) as EurLexRegulationKey[]
     const allStats: IngestionStats[] = []
 
     for (const key of keys) {
-      const stats = await ingestRegulation(key)
+      const stats = await ingestRegulation(key, organizationId)
       allStats.push(stats)
     }
 
@@ -201,6 +227,12 @@ Examples:
   }
 
   // Ingest specific regulation
+  const organizationId = parseOrgId(args)
+  if (!organizationId) {
+    console.error('❌ --org <organization-id> is required for ingestion')
+    process.exit(1)
+  }
+
   // Handle kebab-case to camelCase conversion
   const keyMap: Record<string, EurLexRegulationKey> = {
     dora: 'dora',
@@ -212,15 +244,23 @@ Examples:
     psd2: 'psd2',
   }
 
-  const normalizedKey = keyMap[args[0].toLowerCase()]
-
-  if (!normalizedKey || !EUR_LEX_SOURCES[normalizedKey]) {
-    console.error(`❌ Unknown regulation: ${args[0]}`)
+  // Find the regulation key (first non-flag argument)
+  const regArg = args.find((a) => !a.startsWith('--') && keyMap[a.toLowerCase()])
+  if (!regArg) {
+    console.error(`❌ Unknown or missing regulation`)
     console.error(`   Available: ${Object.keys(keyMap).join(', ')}`)
     process.exit(1)
   }
 
-  await ingestRegulation(normalizedKey)
+  const normalizedKey = keyMap[regArg.toLowerCase()]
+
+  if (!normalizedKey || !EUR_LEX_SOURCES[normalizedKey]) {
+    console.error(`❌ Unknown regulation: ${regArg}`)
+    console.error(`   Available: ${Object.keys(keyMap).join(', ')}`)
+    process.exit(1)
+  }
+
+  await ingestRegulation(normalizedKey, organizationId)
 }
 
 // Run

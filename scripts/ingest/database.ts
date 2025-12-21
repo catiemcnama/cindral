@@ -17,7 +17,7 @@ import type { EnrichedArticle, RawRegulation } from './types'
  */
 export async function upsertRegulation(
   regulation: RawRegulation,
-  opts?: { ingestJobId?: string; organizationId?: string }
+  opts: { ingestJobId?: string; organizationId: string }
 ): Promise<void> {
   const existing = await db.query.regulations.findFirst({
     where: eq(regulations.id, regulation.id),
@@ -35,7 +35,7 @@ export async function upsertRegulation(
         jurisdiction: regulation.jurisdiction,
         effectiveDate: regulation.effectiveDate,
         lastUpdated: new Date(),
-        ingestJobId: opts?.ingestJobId ?? null,
+        ingestJobId: opts.ingestJobId ?? null,
         ingestTimestamp: new Date(),
       })
       .where(eq(regulations.id, regulation.id))
@@ -50,8 +50,8 @@ export async function upsertRegulation(
       fullTitle: regulation.fullTitle,
       jurisdiction: regulation.jurisdiction,
       effectiveDate: regulation.effectiveDate,
-      organizationId: opts?.organizationId ?? null,
-      ingestJobId: opts?.ingestJobId ?? null,
+      organizationId: opts.organizationId,
+      ingestJobId: opts.ingestJobId ?? null,
       ingestTimestamp: new Date(),
     })
     console.log(`➕ Inserted regulation: ${regulation.name}`)
@@ -63,7 +63,7 @@ export async function upsertRegulation(
  */
 export async function upsertArticle(
   article: EnrichedArticle,
-  opts?: { ingestJobId?: string; organizationId?: string }
+  opts: { ingestJobId?: string; organizationId: string }
 ): Promise<{
   articleInserted: boolean
   obligationsInserted: number
@@ -90,10 +90,10 @@ export async function upsertArticle(
         rawText: article.rawText ?? article.fullText,
         normalizedText: article.normalizedText ?? null,
         aiSummary: article.aiSummary,
-        ingestJobId: opts?.ingestJobId ?? null,
+        ingestJobId: opts.ingestJobId ?? null,
         ingestTimestamp: new Date(),
         checksum,
-        organizationId: opts?.organizationId ?? existing.organizationId,
+        organizationId: opts.organizationId,
       })
       .where(eq(articles.id, article.id))
   } else {
@@ -101,7 +101,7 @@ export async function upsertArticle(
     await db.insert(articles).values({
       id: article.id,
       regulationId: article.regulationId,
-      organizationId: opts?.organizationId ?? null,
+      organizationId: opts.organizationId,
       articleNumber: article.articleNumber,
       sectionTitle: article.sectionTitle,
       title: article.title ?? article.sectionTitle,
@@ -109,7 +109,7 @@ export async function upsertArticle(
       normalizedText: article.normalizedText ?? null,
       description: article.aiSummary,
       aiSummary: article.aiSummary,
-      ingestJobId: opts?.ingestJobId ?? null,
+      ingestJobId: opts.ingestJobId ?? null,
       ingestTimestamp: new Date(),
       checksum,
     })
@@ -135,10 +135,10 @@ export async function upsertArticle(
       await db.insert(obligations).values({
         id: oblId,
         articleId: article.id,
+        organizationId: opts.organizationId,
         title: obl.title,
         summary: obl.description,
-        status: 'pending',
-        // No organizationId for global obligations - they're templates
+        status: 'not_started',
       })
       obligationsInserted++
     }
@@ -155,6 +155,7 @@ export async function upsertArticle(
  */
 export async function batchUpsertArticles(
   enrichedArticles: EnrichedArticle[],
+  opts: { ingestJobId?: string; organizationId: string },
   onProgress?: (completed: number, total: number) => void
 ): Promise<{
   articlesInserted: number
@@ -167,7 +168,7 @@ export async function batchUpsertArticles(
 
   for (let i = 0; i < enrichedArticles.length; i++) {
     const art = enrichedArticles[i]
-    const res = await upsertArticle(art)
+    const res = await upsertArticle(art, opts)
     if (res.articleInserted) articlesInserted++
     else articlesUpdated++
     totalObligationsInserted += res.obligationsInserted
