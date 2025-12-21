@@ -22,17 +22,17 @@
 
 ## 📊 Current State
 
-| Area            | Status                                                |
-| --------------- | ----------------------------------------------------- |
-| Marketing Site  | ✅ Live at trycindral.com                             |
-| Screenshots     | ✅ Real product images                                |
-| Tech Stack      | ✅ Next.js 16, tRPC, Better Auth, Drizzle, PostgreSQL |
-| Database Schema | ✅ Full schema defined                                |
-| Database Seed   | ⚠️ Demo data - needs real regulation content          |
-| tRPC API Layer  | ✅ 7 routers with 40+ endpoints                       |
-| Dashboard UI    | ⏳ Static mockups - connecting to live data next      |
-| Authentication  | ✅ Sign in/up pages (needs testing)                   |
-| Regulation Data | ⏳ Need comprehensive EUR-Lex ingestion               |
+| Area            | Status                                                 |
+| --------------- | ------------------------------------------------------ |
+| Marketing Site  | ✅ Live at trycindral.com                              |
+| Screenshots     | ✅ Real product images                                 |
+| Tech Stack      | ✅ Next.js 16, tRPC, Better Auth, Drizzle, PostgreSQL  |
+| Database Schema | ✅ Full schema defined                                 |
+| Database Seed   | ✅ Real DORA data ingested from EUR-Lex                |
+| tRPC API Layer  | ✅ 7 routers with 40+ endpoints                        |
+| Dashboard UI    | ⏳ Static mockups - connecting to live data next       |
+| Authentication  | ✅ Sign in/up pages (needs testing)                    |
+| Regulation Data | ✅ DORA fully ingested, pipeline live (others pending) |
 
 ---
 
@@ -48,7 +48,7 @@ Users sign up → Select industry/jurisdiction → Instantly see ALL applicable 
 
 | Regulation | Jurisdiction | Articles     | Priority | Status                         |
 | ---------- | ------------ | ------------ | -------- | ------------------------------ |
-| DORA       | EU           | 64           | 🔴 HIGH  | ⏳ Need full text from EUR-Lex |
+| DORA       | EU           | 64           | 🔴 HIGH  | ✅ Ingested from EUR-Lex       |
 | GDPR       | EU/Global    | 99           | 🔴 HIGH  | ⏳ Need full text from EUR-Lex |
 | AI Act     | EU           | 85           | 🔴 HIGH  | ⏳ Need full text from EUR-Lex |
 | MiCA       | EU           | 149          | 🟡 MED   | ⏳ To add                      |

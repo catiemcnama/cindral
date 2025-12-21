@@ -100,7 +100,7 @@ export function OrganizationDemo() {
         </div>
 
         {/* Create Organization Form */}
-        <form onSubmit={handleCreateOrg} className="space-y-4 border-t pt-4">
+        <form onSubmit={handleCreateOrg} className="space-y-4 border-t xccapt-4">
           <p className="text-sm font-medium">Create New Organization</p>
           <Input
             type="text"

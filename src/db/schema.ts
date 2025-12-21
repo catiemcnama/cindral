@@ -59,8 +59,8 @@ export const articles = pgTable('articles', {
   regulationId: text('regulation_id')
     .notNull()
     .references(() => regulations.id, { onDelete: 'cascade' }),
-  articleNumber: varchar('article_number', { length: 50 }).notNull(), // e.g., 'Article 11(1)'
-  sectionTitle: varchar('section_title', { length: 255 }),
+  articleNumber: varchar('article_number', { length: 100 }).notNull(), // e.g., 'Article 11(1)'
+  sectionTitle: text('section_title'), // Can be very long in EU regulations
   description: text('description'),
   fullText: text('full_text'),
   riskLevel: severityEnum('risk_level'),

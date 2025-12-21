@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 
 import { ComplianceStatus } from './_components/compliance-status'
+import { OnboardingCta } from './_components/onboarding-cta'
 import { RegulatoryFeed } from './_components/regulatory-feed'
 import { SystemImpactOverview } from './_components/system-impact-overview'
 
@@ -11,7 +12,8 @@ export const metadata: Metadata = {
 
 export default function DashboardPage() {
   return (
-    <div className="p-6">
+    <div className="space-y-6 p-6">
+      <OnboardingCta />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left column - Regulatory Change Feed */}
         <div className="lg:col-span-2">

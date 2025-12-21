@@ -1,9 +1,5 @@
 import { Metadata } from 'next'
-import Link from 'next/link'
-
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
+import { RegulationsList } from './_components/regulations-list'
 
 export const metadata: Metadata = {
   title: 'Regulations - Cindral',
@@ -64,12 +60,6 @@ const regulations = [
   },
 ]
 
-function getComplianceColor(score: number) {
-  if (score >= 80) return 'text-emerald-400'
-  if (score >= 60) return 'text-yellow-400'
-  return 'text-red-400'
-}
-
 export default function RegulationsPage() {
   return (
     <div className="p-6">
@@ -78,44 +68,7 @@ export default function RegulationsPage() {
         <p className="text-muted-foreground">Browse and manage regulatory frameworks affecting your organization</p>
       </div>
 
-      <div className="grid gap-4">
-        {regulations.map((regulation) => (
-          <Link key={regulation.id} href={`/dashboard/regulations/${regulation.id}`}>
-            <Card className="cursor-pointer bg-card/50 transition-colors hover:bg-card/80">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between gap-6">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-3">
-                      <h2 className="text-lg font-semibold">{regulation.name}</h2>
-                      <Badge variant="outline" className="text-xs">
-                        {regulation.jurisdiction}
-                      </Badge>
-                      {regulation.alertsCount > 0 && (
-                        <Badge variant="destructive" className="text-xs">
-                          {regulation.alertsCount} alerts
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">{regulation.fullTitle}</p>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span>Effective: {regulation.effectiveDate}</span>
-                      <span>•</span>
-                      <span>{regulation.articlesCount} articles</span>
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <div className="mb-1 text-xs text-muted-foreground">Compliance</div>
-                    <div className={cn('text-2xl font-bold', getComplianceColor(regulation.complianceScore))}>
-                      {regulation.complianceScore}%
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
+      <RegulationsList regulations={regulations} />
     </div>
   )
 }
