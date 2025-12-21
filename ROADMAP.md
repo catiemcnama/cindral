@@ -1,6 +1,6 @@
 # Cindral Product Roadmap
 
-> **Last Updated:** December 20, 2025  
+> **Last Updated:** December 21, 2025  
 > **Status:** Active Development  
 > **Current Phase:** Dashboard - Live Data (Workstream 3)
 > **Goal:** Production-ready regulatory compliance platform
@@ -17,22 +17,6 @@
 - Alerts compliance teams to regulatory changes
 
 **Why customers pay:** Fear of fines (DORA = up to €10M or 5% revenue), audit stress, compliance team burnout, lack of visibility across systems.
-
----
-
-## 📊 Current State
-
-| Area            | Status                                                 |
-| --------------- | ------------------------------------------------------ |
-| Marketing Site  | ✅ Live at trycindral.com                              |
-| Screenshots     | ✅ Real product images                                 |
-| Tech Stack      | ✅ Next.js 16, tRPC, Better Auth, Drizzle, PostgreSQL  |
-| Database Schema | ✅ Full schema defined                                 |
-| Database Seed   | ✅ Real DORA data ingested from EUR-Lex                |
-| tRPC API Layer  | ✅ 7 routers with 40+ endpoints                        |
-| Dashboard UI    | ⏳ Static mockups - connecting to live data next       |
-| Authentication  | ✅ Sign in/up pages (needs testing)                    |
-| Regulation Data | ✅ DORA fully ingested, pipeline live (others pending) |
 
 ---
 
@@ -708,20 +692,6 @@ If you'd like, I can (pick one):
 | **Instant Gratification** | Generate evidence pack in <30 seconds                                |
 | **Gamification**          | "Complete your setup" checklist, streaks for daily reviews           |
 
----
-
-## 📅 Execution Timeline
-
-| Phase                        | Workstreams   | Duration   |
-| ---------------------------- | ------------- | ---------- |
-| **Phase 1: Foundation**      | 1, 2, 10      | Week 1-2   |
-| **Phase 2: Core Product**    | 3, 4, 5, 8    | Week 3-5   |
-| **Phase 3: Differentiators** | 6, 7          | Week 6-8   |
-| **Phase 4: Growth**          | 9, 11, 12, 13 | Week 9-10  |
-| **Phase 5: Polish**          | 14, 15        | Week 11-12 |
-
----
-
 ## ✅ Definition of Done
 
 A feature is "done" when:
@@ -733,6 +703,21 @@ A feature is "done" when:
 5. Has proper auth checks
 6. Is deployed to production
 7. Has been tested by a real user
+
+# ROADMAP Addendum — Cross-cutting Concerns
+
+- **Testing & QA:** Add unit, integration, and E2E tests (Playwright/Cypress) for critical flows (auth, onboarding, evidence pack generation). Implement CI test runs and test coverage thresholds.
+- **Security & Auth Hardening:** Penetration testing, secrets management, stricter session controls, RBAC/SSO (SAML/SCIM) for enterprise, and monthly security reviews.
+- **Data Quality & Provenance:** Add fields and UI to show source/provenance for every regulation/article (official link, ingest timestamp), verification status, and human review audit trail.
+- **Monitoring & SLOs:** Integrate Sentry, add structured logging, health checks, define SLOs (uptime, data freshness), and set alerting for regression in ingestion and API latency.
+- **Accessibility (A11y):** WCAG 2.1 AA audits, keyboard navigation, screen-reader summaries for charts and evidence packs, and automated a11y checks in CI.
+- **Analytics & Instrumentation:** Track product events (onboarding completion, evidence pack generation), funnel metrics, and retention cohorts; wire to Amplitude/Segment.
+- **Release & Rollout Strategy:** Staged rollouts, feature flags, migration plans for DB changes, rollback playbooks, and a changelog/release notes process.
+- **Legal & Compliance Docs:** Data processing agreement (DPA), privacy policy updates, GDPR data export/delete flows, and contract templates for enterprise customers.
+- **Support & Onboarding Docs:** Create user-facing docs (docs.trycindral.com), onboarding checklists, and internal runbooks for support and operations.
+- **Localization & Content Strategy:** Plan for translations, localized regulation sources, and content ownership for jurisdiction-specific nuances.
+
+Each of these items should be broken into specific tickets with owners, estimates, and acceptance criteria before shipping the product to production customers.
 
 ---
 

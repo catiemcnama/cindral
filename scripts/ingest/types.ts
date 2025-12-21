@@ -20,6 +20,12 @@ export interface RawRegulation {
   sourceUrl: string
   /** EUR-Lex CELEX number for official reference */
   celexNumber?: string
+  /** Optional slug for display/URLs */
+  slug?: string
+  /** Optional framework short name */
+  framework?: string
+  /** Optional version string */
+  version?: string
 }
 
 /**
@@ -55,6 +61,12 @@ export interface EnrichedArticle extends RawArticle {
   }[]
   /** Suggested system types this applies to */
   systemTypes: string[]
+  /** Optional human-friendly title for the article */
+  title?: string
+  /** Original raw text (if different from fullText) */
+  rawText?: string
+  /** Normalized text used for embeddings/search */
+  normalizedText?: string | null
 }
 
 /**

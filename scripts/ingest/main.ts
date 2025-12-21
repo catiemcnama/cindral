@@ -201,8 +201,6 @@ Examples:
   }
 
   // Ingest specific regulation
-  const regKey = args[0].toLowerCase().replace('-', '') as EurLexRegulationKey
-
   // Handle kebab-case to camelCase conversion
   const keyMap: Record<string, EurLexRegulationKey> = {
     dora: 'dora',

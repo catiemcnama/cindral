@@ -355,15 +355,19 @@ export function OnboardingWizard() {
   useEffect(() => {
     const stored = readOnboardingState()
     if (stored) {
-      setIndustryId(stored.industryId)
-      setSelectedRegulations(stored.regulations)
-      setRegulationsCustomized(stored.regulationsCustomized)
-      setSelectedSystems(stored.systems.templates)
-      setCustomSystems(stored.systems.custom)
-      setSystemsCustomized(stored.systemsCustomized)
-      setInvites(stored.invites)
+      setTimeout(() => {
+        setIndustryId(stored.industryId)
+        setSelectedRegulations(stored.regulations)
+        setRegulationsCustomized(stored.regulationsCustomized)
+        setSelectedSystems(stored.systems.templates)
+        setCustomSystems(stored.systems.custom)
+        setSystemsCustomized(stored.systemsCustomized)
+        setInvites(stored.invites)
+        setHasLoadedState(true)
+      }, 0)
+    } else {
+      setTimeout(() => setHasLoadedState(true), 0)
     }
-    setHasLoadedState(true)
   }, [])
 
   useEffect(() => {
@@ -391,20 +395,17 @@ export function OnboardingWizard() {
     hasLoadedState,
   ])
 
-  // `recommendedRegulations` is derived from `industryId` via useMemo.
-  // Use `industryId` in the dependency array to avoid unnecessary re-runs.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Keep recommendedRegulations in deps to satisfy exhaustive-deps rule
   useEffect(() => {
     if (!industryId || regulationsCustomized || !hasLoadedState) return
-    setSelectedRegulations(recommendedRegulations)
-  }, [industryId, regulationsCustomized, hasLoadedState])
+    setTimeout(() => setSelectedRegulations(recommendedRegulations), 0)
+  }, [industryId, regulationsCustomized, hasLoadedState, recommendedRegulations])
 
-  // `recommendedSystems` is derived from `industryId` via useMemo.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Keep recommendedSystems in deps to satisfy exhaustive-deps rule
   useEffect(() => {
     if (!industryId || systemsCustomized || !hasLoadedState) return
-    setSelectedSystems(recommendedSystems)
-  }, [industryId, systemsCustomized, hasLoadedState])
+    setTimeout(() => setSelectedSystems(recommendedSystems), 0)
+  }, [industryId, systemsCustomized, hasLoadedState, recommendedSystems])
 
   const handleToggleRegulation = (id: string) => {
     setSelectedRegulations((prev) => {
@@ -812,7 +813,7 @@ export function OnboardingWizard() {
                           value={customSystemDescription}
                           onChange={(event) => setCustomSystemDescription(event.target.value)}
                           placeholder="Describe what the system does and who owns it."
-                          className="min-h-[88px]"
+                          className="min-h-22"
                         />
                       </div>
                     </div>

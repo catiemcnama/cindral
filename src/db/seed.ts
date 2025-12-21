@@ -5,8 +5,22 @@
  * Run with: npm run db:seed
  */
 
+import { and, eq } from 'drizzle-orm'
 import { db } from './index'
-import { alerts, articles, articleSystemImpacts, obligations, regulations, regulatoryChanges, systems } from './schema'
+import type { Member, Organization, User } from './schema'
+import {
+  alerts,
+  articles,
+  articleSystemImpacts,
+  member,
+  obligations,
+  obligationSystemMappings,
+  organization,
+  regulations,
+  regulatoryChanges,
+  systems,
+  user,
+} from './schema'
 
 // ============================================================================
 // REGULATIONS
@@ -15,6 +29,9 @@ import { alerts, articles, articleSystemImpacts, obligations, regulations, regul
 const regulationsData = [
   {
     id: 'dora',
+    slug: 'dora',
+    framework: 'DORA',
+    version: '1',
     name: 'DORA',
     fullTitle: 'Digital Operational Resilience Act (EU) 2022/2554',
     jurisdiction: 'European Union',
@@ -23,6 +40,9 @@ const regulationsData = [
   },
   {
     id: 'gdpr',
+    slug: 'gdpr',
+    framework: 'GDPR',
+    version: '1',
     name: 'GDPR',
     fullTitle: 'General Data Protection Regulation (EU) 2016/679',
     jurisdiction: 'European Union',
@@ -31,6 +51,9 @@ const regulationsData = [
   },
   {
     id: 'ai-act',
+    slug: 'ai-act',
+    framework: 'AI Act',
+    version: '1',
     name: 'AI Act',
     fullTitle: 'Artificial Intelligence Act (EU) 2024/1689',
     jurisdiction: 'European Union',
@@ -39,6 +62,9 @@ const regulationsData = [
   },
   {
     id: 'basel-iii',
+    slug: 'basel-iii',
+    framework: 'Basel III',
+    version: '1',
     name: 'Basel III',
     fullTitle: 'Basel III: International Regulatory Framework for Banks',
     jurisdiction: 'International',
@@ -47,11 +73,108 @@ const regulationsData = [
   },
   {
     id: 'nis2',
+    slug: 'nis2',
+    framework: 'NIS2',
+    version: '1',
     name: 'NIS2',
     fullTitle: 'Network and Information Security Directive (EU) 2022/2555',
     jurisdiction: 'European Union',
     effectiveDate: new Date('2024-10-17'),
     lastUpdated: new Date('2024-12-01'),
+  },
+]
+
+// ============================================================================
+// ORGANIZATIONS + USERS + MEMBERSHIPS
+// ============================================================================
+
+import fs from 'fs'
+import path from 'path'
+
+const organizationsSeed = [
+  {
+    id: 'finbank-eu',
+    name: 'FinBank EU',
+    slug: 'finbank-eu',
+    metadata: JSON.stringify({ primary_jurisdiction: 'EU', industry: 'banking', frameworks: ['DORA', 'PSD2'] }),
+    createdAt: new Date(),
+  },
+  {
+    id: 'paytech-uk',
+    name: 'PayTech UK',
+    slug: 'paytech-uk',
+    metadata: JSON.stringify({ primary_jurisdiction: 'UK', industry: 'payments', frameworks: ['DORA', 'GDPR'] }),
+    createdAt: new Date(),
+  },
+]
+
+const usersSeed = [
+  { id: 'finbank-admin', name: 'FinBank Admin', email: 'admin+finbank@cindral.dev', createdAt: new Date() },
+  { id: 'finbank-comp', name: 'FinBank Compliance', email: 'compliance+finbank@cindral.dev', createdAt: new Date() },
+  { id: 'finbank-auditor', name: 'FinBank Auditor', email: 'auditor+finbank@cindral.dev', createdAt: new Date() },
+  { id: 'finbank-viewer', name: 'FinBank Viewer', email: 'viewer+finbank@cindral.dev', createdAt: new Date() },
+  { id: 'paytech-admin', name: 'PayTech Admin', email: 'admin+paytech@cindral.dev', createdAt: new Date() },
+  { id: 'paytech-comp', name: 'PayTech Compliance', email: 'compliance+paytech@cindral.dev', createdAt: new Date() },
+  { id: 'paytech-auditor', name: 'PayTech Auditor', email: 'auditor+paytech@cindral.dev', createdAt: new Date() },
+  { id: 'paytech-viewer', name: 'PayTech Viewer', email: 'viewer+paytech@cindral.dev', createdAt: new Date() },
+]
+
+const membershipsSeed = [
+  {
+    id: 'm-finbank-admin',
+    organizationId: 'finbank-eu',
+    userId: 'finbank-admin',
+    role: 'OrgAdmin',
+    createdAt: new Date(),
+  },
+  {
+    id: 'm-finbank-comp',
+    organizationId: 'finbank-eu',
+    userId: 'finbank-comp',
+    role: 'ComplianceManager',
+    createdAt: new Date(),
+  },
+  {
+    id: 'm-finbank-aud',
+    organizationId: 'finbank-eu',
+    userId: 'finbank-auditor',
+    role: 'Auditor',
+    createdAt: new Date(),
+  },
+  {
+    id: 'm-finbank-view',
+    organizationId: 'finbank-eu',
+    userId: 'finbank-viewer',
+    role: 'Viewer',
+    createdAt: new Date(),
+  },
+  {
+    id: 'm-paytech-admin',
+    organizationId: 'paytech-uk',
+    userId: 'paytech-admin',
+    role: 'OrgAdmin',
+    createdAt: new Date(),
+  },
+  {
+    id: 'm-paytech-comp',
+    organizationId: 'paytech-uk',
+    userId: 'paytech-comp',
+    role: 'ComplianceManager',
+    createdAt: new Date(),
+  },
+  {
+    id: 'm-paytech-aud',
+    organizationId: 'paytech-uk',
+    userId: 'paytech-auditor',
+    role: 'Auditor',
+    createdAt: new Date(),
+  },
+  {
+    id: 'm-paytech-view',
+    organizationId: 'paytech-uk',
+    userId: 'paytech-viewer',
+    role: 'Viewer',
+    createdAt: new Date(),
   },
 ]
 
@@ -1003,6 +1126,32 @@ async function seed() {
     await db.delete(regulations)
     console.log('   ✓ Cleared existing data\n')
 
+    // Seed organizations, users, memberships
+    console.log('🏢 Seeding organizations and users...')
+    // Upsert organizations/users/memberships to be idempotent
+    for (const org of organizationsSeed) {
+      const existing = (await db.select().from(organization).where(eq(organization.id, org.id))) as Organization[]
+      if (existing.length === 0) {
+        await db.insert(organization).values(org)
+      }
+    }
+    for (const u of usersSeed) {
+      const existing = (await db.select().from(user).where(eq(user.id, u.id))) as User[]
+      if (existing.length === 0) {
+        await db.insert(user).values(u)
+      }
+    }
+    for (const m of membershipsSeed) {
+      const existing = (await db
+        .select()
+        .from(member)
+        .where(and(eq(member.organizationId, m.organizationId), eq(member.userId, m.userId)))) as Member[]
+      if (existing.length === 0) {
+        await db.insert(member).values(m)
+      }
+    }
+    console.log(`   ✓ Ensured ${organizationsSeed.length} organizations and ${usersSeed.length} users\n`)
+
     // Seed regulations
     console.log('📜 Seeding regulations...')
     await db.insert(regulations).values(regulationsData)
@@ -1038,6 +1187,132 @@ async function seed() {
     await db.insert(regulatoryChanges).values(regulatoryChangesData)
     console.log(`   ✓ Inserted ${regulatoryChangesData.length} regulatory changes\n`)
 
+    // Seed organization-specific systems and clone some obligations per org
+    console.log('🔧 Seeding org-specific systems and obligations...')
+
+    const finbankSystems = [
+      {
+        id: 'finbank-core-banking',
+        name: 'CoreBanking',
+        description: 'Core banking for FinBank',
+        criticality: 'critical' as const,
+        organizationId: 'finbank-eu',
+        createdAt: new Date(),
+      },
+      {
+        id: 'finbank-payments-switch',
+        name: 'PaymentsSwitch',
+        description: 'Payments switch',
+        criticality: 'critical' as const,
+        organizationId: 'finbank-eu',
+        createdAt: new Date(),
+      },
+      {
+        id: 'finbank-customer-portal',
+        name: 'CustomerPortal',
+        description: 'Customer portal',
+        criticality: 'high' as const,
+        organizationId: 'finbank-eu',
+        createdAt: new Date(),
+      },
+      {
+        id: 'finbank-cloud-data-lake',
+        name: 'CloudDataLake',
+        description: 'Cloud data lake',
+        criticality: 'high' as const,
+        organizationId: 'finbank-eu',
+        createdAt: new Date(),
+      },
+    ]
+
+    const paytechSystems = [
+      {
+        id: 'paytech-checkout-api',
+        name: 'CheckoutAPI',
+        description: 'Checkout API',
+        criticality: 'critical' as const,
+        organizationId: 'paytech-uk',
+        createdAt: new Date(),
+      },
+      {
+        id: 'paytech-fraud-engine',
+        name: 'FraudEngine',
+        description: 'Fraud engine',
+        criticality: 'critical' as const,
+        organizationId: 'paytech-uk',
+        createdAt: new Date(),
+      },
+      {
+        id: 'paytech-support-desk',
+        name: 'SupportDesk',
+        description: 'Support',
+        criticality: 'high' as const,
+        organizationId: 'paytech-uk',
+        createdAt: new Date(),
+      },
+      {
+        id: 'paytech-compliance-grc',
+        name: 'ComplianceGRC',
+        description: 'GRC tooling',
+        criticality: 'high' as const,
+        organizationId: 'paytech-uk',
+        createdAt: new Date(),
+      },
+    ]
+
+    await db.insert(systems).values([...finbankSystems, ...paytechSystems])
+
+    // Clone a sample of obligations into each org and create mappings
+    const sampleObligations = obligationsData.slice(0, 12)
+
+    const finbankObls = sampleObligations.map((o) => ({
+      ...o,
+      id: `finbank-${o.id}`,
+      organizationId: 'finbank-eu',
+    }))
+
+    const paytechObls = sampleObligations.map((o) => ({
+      ...o,
+      id: `paytech-${o.id}`,
+      organizationId: 'paytech-uk',
+    }))
+
+    await db.insert(obligations).values([...finbankObls, ...paytechObls])
+
+    // Create simple obligation -> system mappings
+    const mappings = []
+    for (let i = 0; i < finbankObls.length; i++) {
+      const obl = finbankObls[i]
+      const sys = finbankSystems[i % finbankSystems.length]
+      mappings.push({
+        organizationId: 'finbank-eu',
+        obligationId: obl.id,
+        systemId: sys.id,
+        mappingConfidence: 'high',
+        mappedBy: 'human',
+        reason: 'seeded mapping',
+        createdAt: new Date(),
+      })
+    }
+    for (let i = 0; i < paytechObls.length; i++) {
+      const obl = paytechObls[i]
+      const sys = paytechSystems[i % paytechSystems.length]
+      mappings.push({
+        organizationId: 'paytech-uk',
+        obligationId: obl.id,
+        systemId: sys.id,
+        mappingConfidence: 'medium',
+        mappedBy: 'human',
+        reason: 'seeded mapping',
+        createdAt: new Date(),
+      })
+    }
+
+    // Leave some obligations intentionally unmapped to trigger alerts
+    await db.insert(obligationSystemMappings).values(mappings)
+
+    console.log('   ✓ Seeded org systems, obligations and mappings\n')
+
     // Summary
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
     console.log('✅ Database seeded successfully!')
@@ -1067,6 +1342,28 @@ Compliance Status:
 seed()
   .then(() => {
     console.log('🎉 Seed complete!')
+    // Generate seed snapshot
+    try {
+      const snapshotLines = []
+      snapshotLines.push('# Seed snapshot')
+      snapshotLines.push('')
+      snapshotLines.push('Example logins:')
+      snapshotLines.push('')
+      snapshotLines.push('- admin+finbank@cindral.dev / (use magic link or seed password)')
+      snapshotLines.push('- admin+paytech@cindral.dev / (use magic link or seed password)')
+      snapshotLines.push('')
+      snapshotLines.push('Organizations seeded:')
+      for (const org of organizationsSeed) {
+        snapshotLines.push(`- ${org.name} (${org.id})`)
+      }
+
+      const outPath = path.join(process.cwd(), 'scripts', 'seed-snapshot.md')
+      fs.writeFileSync(outPath, snapshotLines.join('\n'))
+      console.log(`📝 Wrote seed snapshot to ${outPath}`)
+    } catch (e) {
+      console.warn('⚠️  Failed to write seed snapshot', e)
+    }
+
     process.exit(0)
   })
   .catch((error) => {

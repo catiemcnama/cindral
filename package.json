@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --noEmit -p tsconfig.src.json",
     "format": "prettier --write .",
     "dev": "next dev",
     "build": "next build",
@@ -14,7 +14,11 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "dotenv -e .env.local -- tsx src/db/seed.ts",
-    "ingest": "dotenv -e .env.local -- tsx scripts/ingest/main.ts"
+    "ingest": "dotenv -e .env.local -- tsx scripts/ingest/main.ts",
+    "ingest:demo:finbank": "dotenv -e .env.local -- tsx scripts/ingest/run-demo-finbank.ts",
+    "ingest:demo:paytech": "dotenv -e .env.local -- tsx scripts/ingest/run-demo-paytech.ts"
+    ,
+    "test:day1": "dotenv -e .env.local -- tsx scripts/run-day1-tests.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",

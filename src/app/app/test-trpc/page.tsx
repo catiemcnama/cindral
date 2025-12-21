@@ -50,11 +50,11 @@ export default function TestTrpcPage() {
             <Button type="submit">Update</Button>
           </form>
 
-          <div className="flex min-h-[100px] items-center justify-center rounded-lg bg-muted p-4">
+          <div className="flex min-h-25 items-center justify-center rounded-lg bg-muted p-4">
             {hello.isLoading ? (
               <div className="w-full space-y-2">
-                <Skeleton className="h-4 w-[250px]" />
-                <Skeleton className="h-4 w-[200px]" />
+                <Skeleton className="h-4 w-62.5" />
+                <Skeleton className="h-4 w-50" />
               </div>
             ) : hello.error ? (
               <p className="text-destructive">Error: {hello.error.message}</p>

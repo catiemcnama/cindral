@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm'
-import { integer, pgEnum, pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core'
+import { boolean, integer, index, json, pgEnum, pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core'
 
 /**
  * Better-Auth Tables
@@ -39,11 +39,21 @@ export const impactLevelEnum = pgEnum('impact_level', ['critical', 'high', 'medi
 export const regulations = pgTable('regulations', {
   id: text('id').primaryKey(), // e.g., 'dora', 'gdpr', 'ai-act'
   name: varchar('name', { length: 255 }).notNull(),
+  slug: varchar('slug', { length: 255 }).notNull(),
+  framework: varchar('framework', { length: 100 }),
+  version: varchar('version', { length: 50 }),
+  status: varchar('status', { length: 50 }).default('active'),
   fullTitle: text('full_title').notNull(),
   jurisdiction: varchar('jurisdiction', { length: 100 }), // e.g., 'European Union'
   effectiveDate: timestamp('effective_date'),
   lastUpdated: timestamp('last_updated'),
   organizationId: text('organization_id').references(() => organization.id, { onDelete: 'cascade' }),
+  // Provenance
+  sourceUrl: text('source_url'),
+  sourceType: varchar('source_type', { length: 100 }),
+  ingestJobId: text('ingest_job_id'),
+  ingestTimestamp: timestamp('ingest_timestamp'),
+  checksum: text('checksum'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at')
     .notNull()
@@ -59,12 +69,23 @@ export const articles = pgTable('articles', {
   regulationId: text('regulation_id')
     .notNull()
     .references(() => regulations.id, { onDelete: 'cascade' }),
+  organizationId: text('organization_id').references(() => organization.id, { onDelete: 'cascade' }),
   articleNumber: varchar('article_number', { length: 100 }).notNull(), // e.g., 'Article 11(1)'
   sectionTitle: text('section_title'), // Can be very long in EU regulations
+  title: text('title'),
+  rawText: text('raw_text'),
+  normalizedText: text('normalized_text'),
   description: text('description'),
-  fullText: text('full_text'),
-  riskLevel: severityEnum('risk_level'),
-  aiSummary: text('ai_summary'), // Plain English AI interpretation
+  // Provenance
+  sourceUrl: text('source_url'),
+  ingestJobId: text('ingest_job_id'),
+  ingestTimestamp: timestamp('ingest_timestamp'),
+  checksum: text('checksum'),
+  // Review workflow
+  humanReviewedBy: text('human_reviewed_by'),
+  humanReviewedAt: timestamp('human_reviewed_at'),
+  reviewStatus: varchar('review_status', { length: 50 }).default('pending'),
+  aiSummary: text('ai_summary'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at')
     .notNull()
@@ -81,6 +102,11 @@ export const systems = pgTable('systems', {
   description: text('description'),
   criticality: severityEnum('criticality'),
   organizationId: text('organization_id').references(() => organization.id, { onDelete: 'cascade' }),
+  slug: varchar('slug', { length: 255 }),
+  category: varchar('category', { length: 100 }),
+  dataClassification: varchar('data_classification', { length: 100 }),
+  ownerTeam: varchar('owner_team', { length: 200 }),
+  ownerUserId: text('owner_user_id'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at')
     .notNull()
@@ -106,6 +132,24 @@ export const articleSystemImpacts = pgTable('article_system_impacts', {
 })
 
 /**
+ * Obligation <-> System mappings (explicit)
+ */
+export const obligationSystemMappings = pgTable('obligation_system_mappings', {
+  id: serial('id').primaryKey(),
+  organizationId: text('organization_id').notNull().references(() => organization.id, { onDelete: 'cascade' }),
+  obligationId: text('obligation_id').notNull().references(() => obligations.id, { onDelete: 'cascade' }),
+  systemId: text('system_id').notNull().references(() => systems.id, { onDelete: 'cascade' }),
+  mappingConfidence: varchar('mapping_confidence', { length: 50 }).default('medium'),
+  mappedBy: varchar('mapped_by', { length: 50 }).default('human'),
+  reason: text('reason'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at')
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+})
+
+/**
  * Alerts - Regulatory change alerts
  */
 export const alerts = pgTable('alerts', {
@@ -118,6 +162,8 @@ export const alerts = pgTable('alerts', {
   articleId: text('article_id').references(() => articles.id, { onDelete: 'set null' }),
   ownerId: text('owner_id').references(() => user.id, { onDelete: 'set null' }),
   organizationId: text('organization_id').references(() => organization.id, { onDelete: 'cascade' }),
+  // generic context column for additional metadata
+  context: json('context'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at')
     .notNull()
@@ -133,11 +179,25 @@ export const obligations = pgTable('obligations', {
   articleId: text('article_id')
     .notNull()
     .references(() => articles.id, { onDelete: 'cascade' }),
-  title: varchar('title', { length: 500 }).notNull(),
-  description: text('description'),
-  status: obligationStatusEnum('status').notNull().default('pending'),
-  lastReviewedAt: timestamp('last_reviewed_at'),
   organizationId: text('organization_id').references(() => organization.id, { onDelete: 'cascade' }),
+  regulationId: text('regulation_id').references(() => regulations.id, { onDelete: 'cascade' }),
+  referenceCode: varchar('reference_code', { length: 255 }),
+  title: varchar('title', { length: 500 }).notNull(),
+  summary: text('summary'),
+  requirementType: varchar('requirement_type', { length: 100 }),
+  riskLevel: varchar('risk_level', { length: 50 }),
+  status: obligationStatusEnum('status').notNull().default('pending'),
+  // Provenance
+  sourceType: varchar('source_type', { length: 50 }),
+  ingestJobId: text('ingest_job_id'),
+  ingestTimestamp: timestamp('ingest_timestamp'),
+  checksum: text('checksum'),
+  // Review
+  humanReviewedBy: text('human_reviewed_by'),
+  humanReviewedAt: timestamp('human_reviewed_at'),
+  dueDate: timestamp('due_date'),
+  ownerTeam: varchar('owner_team', { length: 200 }),
+  ownerUserId: text('owner_user_id'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at')
     .notNull()
@@ -158,8 +218,47 @@ export const evidencePacks = pgTable('evidence_packs', {
   exportFormat: varchar('export_format', { length: 50 }), // 'pdf', 'confluence', 'jira'
   organizationId: text('organization_id').references(() => organization.id, { onDelete: 'cascade' }),
   createdById: text('created_by_id').references(() => user.id, { onDelete: 'set null' }),
+  title: varchar('title', { length: 255 }),
+  status: varchar('status', { length: 50 }).default('draft'),
+  jobId: text('job_id'),
+  lastGeneratedAt: timestamp('last_generated_at'),
+  downloadUrl: text('download_url'),
+  storageLocation: text('storage_location'),
+  intendedAudience: varchar('intended_audience', { length: 50 }),
+  requestedByUserId: text('requested_by_user_id'),
 })
 
+
+/**
+ * Audit log - records all critical mutations
+ */
+export const auditLog = pgTable('audit_log', {
+  id: serial('id').primaryKey(),
+  organizationId: text('organization_id').references(() => organization.id, { onDelete: 'cascade' }),
+  actorUserId: text('actor_user_id').references(() => user.id, { onDelete: 'set null' }),
+  action: varchar('action', { length: 200 }).notNull(),
+  entityType: varchar('entity_type', { length: 100 }).notNull(),
+  entityId: text('entity_id'),
+  diff: json('diff'),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+})
+
+/**
+ * Ingest jobs - track ingestion work
+ */
+export const ingestJobs = pgTable('ingest_jobs', {
+  id: text('id').primaryKey(),
+  organizationId: text('organization_id').references(() => organization.id, { onDelete: 'cascade' }),
+  source: varchar('source', { length: 100 }),
+  sourceUrl: text('source_url'),
+  status: varchar('status', { length: 50 }).default('pending'),
+  startedAt: timestamp('started_at'),
+  finishedAt: timestamp('finished_at'),
+  log: text('log'),
+  errorMessage: text('error_message'),
+})
 /**
  * Regulatory Change Feed - Timeline of regulatory updates
  */

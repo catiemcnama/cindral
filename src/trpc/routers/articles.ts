@@ -12,14 +12,14 @@ export const articlesRouter = router({
       z
         .object({
           regulationId: z.string().optional(),
-          riskLevel: z.enum(['critical', 'high', 'medium', 'low']).optional(),
+          // `riskLevel` is not a persisted column on `articles` table; remove filter
           limit: z.number().min(1).max(100).default(50),
           offset: z.number().min(0).default(0),
         })
         .optional()
     )
     .query(async ({ ctx, input }) => {
-      const { regulationId, riskLevel, limit = 50, offset = 0 } = input ?? {}
+      const { regulationId, limit = 50, offset = 0 } = input ?? {}
 
       const conditions = []
 
@@ -27,15 +27,11 @@ export const articlesRouter = router({
         conditions.push(eq(articles.regulationId, regulationId))
       }
 
-      if (riskLevel) {
-        conditions.push(eq(articles.riskLevel, riskLevel))
-      }
-
       const arts = await ctx.db.query.articles.findMany({
         where: conditions.length > 0 ? and(...conditions) : undefined,
         limit,
         offset,
-        orderBy: [desc(articles.riskLevel), desc(articles.createdAt)],
+        orderBy: desc(articles.createdAt),
         with: {
           regulation: {
             columns: { id: true, name: true },

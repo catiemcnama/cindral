@@ -53,7 +53,6 @@ function parseEurLexArticles(html: string, regulationId: string): RawArticle[] {
   // EUR-Lex uses various structures. We'll look for common patterns.
   // Pattern 1: Look for article headings (most common)
   const articlePattern = /^Article\s+(\d+[a-z]?)$/i
-  const articleWithParaPattern = /^Article\s+(\d+[a-z]?)\s*\((\d+)\)$/i
 
   // Find all potential article containers
   // EUR-Lex typically uses .eli-subdivision or specific class patterns

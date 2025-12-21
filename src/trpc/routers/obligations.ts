@@ -181,9 +181,9 @@ export const obligationsRouter = router({
             id: `${input.id}-${ctx.activeOrganizationId}`,
             articleId: existing.articleId,
             title: existing.title,
-            description: existing.description,
+            summary: existing.summary,
             status: input.status,
-            lastReviewedAt: new Date(),
+            humanReviewedAt: new Date(),
             organizationId: ctx.activeOrganizationId,
           })
           .returning()
@@ -196,7 +196,7 @@ export const obligationsRouter = router({
         .update(obligations)
         .set({
           status: input.status,
-          lastReviewedAt: new Date(),
+          humanReviewedAt: new Date(),
         })
         .where(and(eq(obligations.id, input.id), eq(obligations.organizationId, ctx.activeOrganizationId)))
         .returning()
@@ -231,9 +231,9 @@ export const obligationsRouter = router({
                 id: `${id}-${ctx.activeOrganizationId}`,
                 articleId: existing.articleId,
                 title: existing.title,
-                description: existing.description,
+                summary: existing.summary,
                 status: input.status,
-                lastReviewedAt: new Date(),
+                humanReviewedAt: new Date(),
                 organizationId: ctx.activeOrganizationId,
               })
               .returning()
@@ -243,7 +243,7 @@ export const obligationsRouter = router({
             .update(obligations)
             .set({
               status: input.status,
-              lastReviewedAt: new Date(),
+              humanReviewedAt: new Date(),
             })
             .where(and(eq(obligations.id, id), eq(obligations.organizationId, ctx.activeOrganizationId)))
             .returning()
@@ -289,6 +289,7 @@ export const obligationsRouter = router({
         .values({
           ...input,
           id,
+          summary: input.description ?? null,
           organizationId: ctx.activeOrganizationId,
         })
         .returning()
@@ -315,7 +316,7 @@ export const obligationsRouter = router({
         .update(obligations)
         .set({
           ...updates,
-          lastReviewedAt: updates.status ? new Date() : undefined,
+          humanReviewedAt: updates.status ? new Date() : undefined,
         })
         .where(and(eq(obligations.id, id), eq(obligations.organizationId, ctx.activeOrganizationId)))
         .returning()

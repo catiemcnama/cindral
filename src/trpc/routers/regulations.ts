@@ -195,10 +195,13 @@ export const regulationsRouter = router({
         throw new Error('Only admins can create regulations')
       }
 
+      const slug = input.id
+
       const [reg] = await ctx.db
         .insert(regulations)
         .values({
           ...input,
+          slug,
           organizationId: ctx.activeOrganizationId,
         })
         .returning()
