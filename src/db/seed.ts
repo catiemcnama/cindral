@@ -1,9 +1,17 @@
 /**
  * Database Seed Script
- * Populates the database with realistic demo data for Cindral
- * Ensures proper organization isolation and multi-tenancy
+ * Populates the database with deterministic, realistic demo data
  *
- * Run with: npm run db:seed
+ * Usage:
+ *   npm run db:seed          # Full demo seed
+ *   npm run db:seed:dev      # Minimal dev seed (fast)
+ *   npm run db:seed -- --org finbank-eu  # Single org only
+ *
+ * Features:
+ * - Deterministic data (no random generation)
+ * - Realistic regulatory content from DORA/GDPR
+ * - Proper organization isolation
+ * - Fixed due dates relative to seed date
  */
 
 import { and, eq } from 'drizzle-orm'
@@ -22,668 +30,563 @@ import {
   obligationSystemMappings,
   organization,
   regulations,
-  regulatoryChanges,
   systems,
   user,
 } from './schema'
+import {
+  ALERTS,
+  getArticlesForFramework,
+  getObligationsForFramework,
+  ORGANIZATIONS,
+  REGULATIONS,
+  SYSTEMS,
+  USERS,
+} from './seed-data'
 
-// ============================================================================
-// DEMO ORGANIZATIONS
-// ============================================================================
+// =============================================================================
+// Configuration
+// =============================================================================
 
-const organizationsSeed = [
-  {
-    id: 'finbank-eu',
-    name: 'FinBank EU',
-    slug: 'finbank-eu',
-    metadata: JSON.stringify({
-      primary_jurisdiction: 'EU',
-      industry: 'banking',
-      size_band: 'large',
-      risk_appetite: 'moderate',
-      frameworks: ['DORA', 'PSD2', 'GDPR'],
-    }),
-    createdAt: new Date(),
-  },
-  {
-    id: 'paytech-uk',
-    name: 'PayTech UK',
-    slug: 'paytech-uk',
-    metadata: JSON.stringify({
-      primary_jurisdiction: 'UK',
-      industry: 'payments',
-      size_band: 'medium',
-      risk_appetite: 'conservative',
-      frameworks: ['DORA', 'GDPR'],
-    }),
-    createdAt: new Date(),
-  },
-]
-
-// ============================================================================
-// DEMO USERS & MEMBERSHIPS
-// ============================================================================
-
-const usersSeed = [
-  // FinBank EU users
-  { id: 'finbank-admin', name: 'FinBank Admin', email: 'admin+finbank@cindral.dev', createdAt: new Date() },
-  { id: 'finbank-comp', name: 'FinBank Compliance', email: 'compliance+finbank@cindral.dev', createdAt: new Date() },
-  { id: 'finbank-auditor', name: 'FinBank Auditor', email: 'auditor+finbank@cindral.dev', createdAt: new Date() },
-  { id: 'finbank-viewer', name: 'FinBank Viewer', email: 'viewer+finbank@cindral.dev', createdAt: new Date() },
-  // PayTech UK users
-  { id: 'paytech-admin', name: 'PayTech Admin', email: 'admin+paytech@cindral.dev', createdAt: new Date() },
-  { id: 'paytech-comp', name: 'PayTech Compliance', email: 'compliance+paytech@cindral.dev', createdAt: new Date() },
-  { id: 'paytech-auditor', name: 'PayTech Auditor', email: 'auditor+paytech@cindral.dev', createdAt: new Date() },
-  { id: 'paytech-viewer', name: 'PayTech Viewer', email: 'viewer+paytech@cindral.dev', createdAt: new Date() },
-]
-
-const membershipsSeed = [
-  // FinBank EU memberships
-  {
-    id: 'm-finbank-admin',
-    organizationId: 'finbank-eu',
-    userId: 'finbank-admin',
-    role: 'OrgAdmin',
-    createdAt: new Date(),
-  },
-  {
-    id: 'm-finbank-comp',
-    organizationId: 'finbank-eu',
-    userId: 'finbank-comp',
-    role: 'ComplianceManager',
-    createdAt: new Date(),
-  },
-  {
-    id: 'm-finbank-aud',
-    organizationId: 'finbank-eu',
-    userId: 'finbank-auditor',
-    role: 'Auditor',
-    createdAt: new Date(),
-  },
-  {
-    id: 'm-finbank-view',
-    organizationId: 'finbank-eu',
-    userId: 'finbank-viewer',
-    role: 'Viewer',
-    createdAt: new Date(),
-  },
-  // PayTech UK memberships
-  {
-    id: 'm-paytech-admin',
-    organizationId: 'paytech-uk',
-    userId: 'paytech-admin',
-    role: 'OrgAdmin',
-    createdAt: new Date(),
-  },
-  {
-    id: 'm-paytech-comp',
-    organizationId: 'paytech-uk',
-    userId: 'paytech-comp',
-    role: 'ComplianceManager',
-    createdAt: new Date(),
-  },
-  {
-    id: 'm-paytech-aud',
-    organizationId: 'paytech-uk',
-    userId: 'paytech-auditor',
-    role: 'Auditor',
-    createdAt: new Date(),
-  },
-  {
-    id: 'm-paytech-view',
-    organizationId: 'paytech-uk',
-    userId: 'paytech-viewer',
-    role: 'Viewer',
-    createdAt: new Date(),
-  },
-]
-
-// ============================================================================
-// REGULATIONS (Per-org, not global)
-// ============================================================================
-
-const regulationsPerOrg = {
-  'finbank-eu': [
-    {
-      id: 'finbank-dora',
-      slug: 'dora',
-      framework: 'DORA',
-      version: '1.0',
-      name: 'DORA',
-      fullTitle: 'Digital Operational Resilience Act (EU) 2022/2554',
-      jurisdiction: 'European Union',
-      effectiveDate: new Date('2025-01-17'),
-      status: 'active' as const,
-      sourceType: 'eur-lex' as const,
-    },
-    {
-      id: 'finbank-gdpr',
-      slug: 'gdpr',
-      framework: 'GDPR',
-      version: '1.0',
-      name: 'GDPR',
-      fullTitle: 'General Data Protection Regulation (EU) 2016/679',
-      jurisdiction: 'European Union',
-      effectiveDate: new Date('2018-05-25'),
-      status: 'active' as const,
-      sourceType: 'eur-lex' as const,
-    },
-  ],
-  'paytech-uk': [
-    {
-      id: 'paytech-dora',
-      slug: 'dora',
-      framework: 'DORA',
-      version: '1.0',
-      name: 'DORA',
-      fullTitle: 'Digital Operational Resilience Act (EU) 2022/2554',
-      jurisdiction: 'European Union',
-      effectiveDate: new Date('2025-01-17'),
-      status: 'active' as const,
-      sourceType: 'eur-lex' as const,
-    },
-    {
-      id: 'paytech-gdpr',
-      slug: 'gdpr',
-      framework: 'GDPR',
-      version: '1.0',
-      name: 'GDPR',
-      fullTitle: 'General Data Protection Regulation (EU) 2016/679',
-      jurisdiction: 'European Union',
-      effectiveDate: new Date('2018-05-25'),
-      status: 'active' as const,
-      sourceType: 'eur-lex' as const,
-    },
-  ],
+interface SeedConfig {
+  mode: 'dev' | 'demo'
+  organizations?: string[] // Filter to specific orgs
+  clearExisting: boolean
+  verbose: boolean
 }
 
-// ============================================================================
-// ARTICLES (Per-org)
-// ============================================================================
+function parseArgs(): SeedConfig {
+  const args = process.argv.slice(2)
+  const config: SeedConfig = {
+    mode: 'demo',
+    clearExisting: true,
+    verbose: true,
+  }
 
-function generateArticles(orgId: string, regulationId: string, prefix: string) {
-  const doraArticles = [
-    { num: 'Article 5', title: 'ICT Risk Management Framework', riskLevel: 'critical' },
-    { num: 'Article 6', title: 'ICT Systems and Tools', riskLevel: 'high' },
-    { num: 'Article 11', title: 'ICT Third-Party Risk', riskLevel: 'critical' },
-    { num: 'Article 17', title: 'ICT Incident Classification', riskLevel: 'high' },
-    { num: 'Article 19', title: 'Incident Reporting', riskLevel: 'critical' },
-    { num: 'Article 24', title: 'Digital Operational Resilience Testing', riskLevel: 'high' },
-    { num: 'Article 28', title: 'ICT Third-Party Service Providers', riskLevel: 'critical' },
-  ]
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--dev') config.mode = 'dev'
+    if (args[i] === '--org' && args[i + 1]) {
+      config.organizations = config.organizations || []
+      config.organizations.push(args[++i])
+    }
+    if (args[i] === '--no-clear') config.clearExisting = false
+    if (args[i] === '--quiet') config.verbose = false
+  }
 
-  const gdprArticles = [
-    { num: 'Article 5', title: 'Principles of Processing', riskLevel: 'critical' },
-    { num: 'Article 6', title: 'Lawfulness of Processing', riskLevel: 'critical' },
-    { num: 'Article 17', title: 'Right to Erasure', riskLevel: 'high' },
-    { num: 'Article 25', title: 'Data Protection by Design', riskLevel: 'high' },
-    { num: 'Article 32', title: 'Security of Processing', riskLevel: 'critical' },
-    { num: 'Article 33', title: 'Breach Notification', riskLevel: 'critical' },
-    { num: 'Article 35', title: 'Data Protection Impact Assessment', riskLevel: 'high' },
-  ]
-
-  const articles = regulationId.includes('dora') ? doraArticles : gdprArticles
-
-  return articles.map((art, i) => ({
-    id: `${prefix}-art-${i + 1}`,
-    organizationId: orgId,
-    regulationId,
-    articleNumber: art.num,
-    sectionTitle: art.title,
-    title: art.title,
-    rawText: `Full text of ${art.num} - ${art.title}`,
-    reviewStatus: 'pending' as const,
-    createdAt: new Date(),
-  }))
+  return config
 }
 
-// ============================================================================
-// OBLIGATIONS (Per-org)
-// ============================================================================
+// =============================================================================
+// Seed Functions
+// =============================================================================
 
-function generateObligations(orgId: string, regulationId: string, articleIds: string[], prefix: string) {
-  const statuses = ['not_started', 'in_progress', 'implemented', 'under_review', 'verified'] as const
-  const riskLevels = ['low', 'medium', 'high', 'critical'] as const
-  const reqTypes = ['process', 'technical', 'reporting'] as const
+async function clearDatabase(verbose: boolean) {
+  if (verbose) console.log('🗑️  Clearing existing data...')
 
-  const obls = []
-  let oblCounter = 1
+  // Clear in reverse dependency order
+  await db.delete(auditLog)
+  await db.delete(evidencePacks)
+  await db.delete(alerts)
+  await db.delete(obligationSystemMappings)
+  await db.delete(articleSystemImpacts)
+  await db.delete(obligations)
+  await db.delete(articles)
+  await db.delete(regulations)
+  await db.delete(ingestJobs)
+  await db.delete(systems)
+  // Don't clear users/orgs/memberships - they may be created via auth
 
-  for (const articleId of articleIds) {
-    // Generate 3-5 obligations per article
-    const count = 3 + Math.floor(Math.random() * 3)
-    for (let i = 0; i < count; i++) {
-      obls.push({
-        id: `${prefix}-OBL-${String(oblCounter++).padStart(3, '0')}`,
-        organizationId: orgId,
-        regulationId,
-        articleId,
-        referenceCode: `${prefix.toUpperCase()}-${articleId.split('-').pop()}-${i + 1}`,
-        title: `Obligation ${oblCounter - 1} for ${articleId}`,
-        summary: `Compliance requirement derived from article`,
-        status: statuses[Math.floor(Math.random() * statuses.length)],
-        riskLevel: riskLevels[Math.floor(Math.random() * riskLevels.length)],
-        requirementType: reqTypes[Math.floor(Math.random() * reqTypes.length)],
-        sourceType: 'llm' as const,
+  if (verbose) console.log('   ✓ Cleared compliance data\n')
+}
+
+async function ensureOrganizations(orgs: typeof ORGANIZATIONS, verbose: boolean) {
+  if (verbose) console.log('🏢 Seeding organizations...')
+
+  for (const org of orgs) {
+    const existing = await db.select().from(organization).where(eq(organization.id, org.id))
+    if (existing.length === 0) {
+      await db.insert(organization).values({
+        id: org.id,
+        name: org.name,
+        slug: org.slug,
+        metadata: JSON.stringify(org.metadata),
         createdAt: new Date(),
       })
     }
   }
 
-  return obls
+  if (verbose) console.log(`   ✓ Ensured ${orgs.length} organizations\n`)
 }
 
-// ============================================================================
-// SYSTEMS (Per-org)
-// ============================================================================
+async function ensureUsers(users: typeof USERS, verbose: boolean) {
+  if (verbose) console.log('👤 Seeding users...')
 
-const systemsPerOrg = {
-  'finbank-eu': [
-    { id: 'finbank-core-banking', name: 'CoreBanking', category: 'core banking', criticality: 'critical' as const },
-    { id: 'finbank-payments-switch', name: 'PaymentsSwitch', category: 'payments', criticality: 'critical' as const },
-    {
-      id: 'finbank-customer-portal',
-      name: 'CustomerPortal',
-      category: 'customer facing',
-      criticality: 'high' as const,
-    },
-    { id: 'finbank-cloud-data-lake', name: 'CloudDataLake', category: 'data', criticality: 'high' as const },
-  ],
-  'paytech-uk': [
-    { id: 'paytech-checkout-api', name: 'CheckoutAPI', category: 'payments', criticality: 'critical' as const },
-    { id: 'paytech-fraud-engine', name: 'FraudEngine', category: 'security', criticality: 'critical' as const },
-    { id: 'paytech-support-desk', name: 'SupportDesk', category: 'support', criticality: 'medium' as const },
-    { id: 'paytech-compliance-grc', name: 'ComplianceGRC', category: 'compliance', criticality: 'high' as const },
-  ],
+  for (const u of users) {
+    const existing = await db.select().from(user).where(eq(user.id, u.id))
+    if (existing.length === 0) {
+      await db.insert(user).values({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        createdAt: new Date(),
+      })
+    }
+  }
+
+  if (verbose) console.log(`   ✓ Ensured ${users.length} users\n`)
 }
 
-// ============================================================================
-// ALERTS (Per-org)
-// ============================================================================
+async function ensureMemberships(users: typeof USERS, verbose: boolean) {
+  if (verbose) console.log('🔗 Seeding memberships...')
 
-function generateAlerts(orgId: string, regulationIds: string[]) {
-  const types = ['obligation_overdue', 'regulation_changed', 'evidence_pack_failed', 'system_unmapped'] as const
-  const severities = ['info', 'low', 'medium', 'high', 'critical'] as const
-  const statuses = ['open', 'in_triage', 'in_progress', 'resolved', 'wont_fix'] as const
+  let count = 0
+  for (const u of users) {
+    const existing = await db
+      .select()
+      .from(member)
+      .where(and(eq(member.organizationId, u.organizationId), eq(member.userId, u.id)))
+    if (existing.length === 0) {
+      await db.insert(member).values({
+        id: `m-${u.id}`,
+        organizationId: u.organizationId,
+        userId: u.id,
+        role: u.role,
+        createdAt: new Date(),
+      })
+      count++
+    }
+  }
 
-  return [
-    {
-      id: `${orgId}-ALT-001`,
-      organizationId: orgId,
-      type: 'obligation_overdue' as const,
-      severity: 'critical' as const,
-      status: 'open' as const,
-      title: 'Monthly third-party risk assessments overdue',
-      description: 'DORA Article 11 requires monthly assessments. Last assessment was 45 days ago.',
-      regulationId: regulationIds[0],
-    },
-    {
-      id: `${orgId}-ALT-002`,
-      organizationId: orgId,
-      type: 'regulation_changed' as const,
-      severity: 'high' as const,
-      status: 'in_triage' as const,
-      title: 'New technical standards published for DORA',
-      description: 'ESAs published final technical standards affecting incident reporting.',
-      regulationId: regulationIds[0],
-    },
-    {
-      id: `${orgId}-ALT-003`,
-      organizationId: orgId,
-      type: 'system_unmapped' as const,
-      severity: 'medium' as const,
-      status: 'open' as const,
-      title: 'System not mapped to any obligations',
-      description: 'CloudDataLake has no obligation mappings.',
-    },
-    {
-      id: `${orgId}-ALT-004`,
-      organizationId: orgId,
-      type: 'evidence_pack_failed' as const,
-      severity: 'low' as const,
-      status: 'resolved' as const,
-      title: 'Evidence pack generation failed',
-      description: 'GDPR evidence pack generation failed due to timeout.',
-      regulationId: regulationIds[1],
-      resolvedAt: new Date(),
-    },
-  ]
+  if (verbose) console.log(`   ✓ Ensured ${count} memberships\n`)
 }
 
-// ============================================================================
-// EVIDENCE PACKS (Per-org)
-// ============================================================================
+async function seedOrganizationData(
+  orgId: string,
+  mode: 'dev' | 'demo',
+  verbose: boolean
+): Promise<{
+  regs: number
+  arts: number
+  obls: number
+  systems: number
+  alerts: number
+  mappings: number
+}> {
+  const stats = { regs: 0, arts: 0, obls: 0, systems: 0, alerts: 0, mappings: 0 }
 
-function generateEvidencePacks(orgId: string, regulationIds: string[]) {
-  const statuses = ['draft', 'generating', 'ready', 'failed', 'archived'] as const
-  const audiences = ['internal', 'auditor', 'regulator'] as const
+  if (verbose) console.log(`\n📦 Seeding data for ${orgId}...`)
 
-  return [
-    {
+  // Create ingest job for provenance
+  const ingestJobId = `${orgId}-seed-${Date.now()}`
+  const ingestTimestamp = new Date()
+  await db.insert(ingestJobs).values({
+    id: ingestJobId,
+    organizationId: orgId,
+    source: 'seed',
+    status: 'succeeded',
+    startedAt: ingestTimestamp,
+    finishedAt: ingestTimestamp,
+    log: JSON.stringify({ mode, seedVersion: '2.0' }),
+  })
+
+  // Seed regulations
+  const orgRegs = REGULATIONS[orgId] || []
+  const regulationMap: Record<string, string> = {} // framework -> regulationId
+
+  for (const reg of orgRegs) {
+    await db.insert(regulations).values({
+      id: reg.id,
       organizationId: orgId,
+      slug: reg.slug,
+      framework: reg.framework,
+      version: reg.version,
+      name: reg.name,
+      fullTitle: reg.fullTitle,
+      jurisdiction: reg.jurisdiction,
+      effectiveDate: reg.effectiveDate,
+      status: reg.status,
+      sourceType: reg.sourceType,
+      sourceUrl: reg.sourceUrl,
+      ingestJobId,
+      ingestTimestamp,
+    })
+    regulationMap[reg.framework] = reg.id
+    stats.regs++
+  }
+
+  if (verbose) console.log(`   ✓ ${stats.regs} regulations`)
+
+  // Seed articles with realistic content
+  const articleMap: Record<string, string> = {} // "framework:articleNumber" -> articleId
+
+  for (const reg of orgRegs) {
+    const frameworkArticles = getArticlesForFramework(reg.framework)
+    // In dev mode, only seed first 2 articles per regulation
+    const articlesToSeed = mode === 'dev' ? frameworkArticles.slice(0, 2) : frameworkArticles
+
+    for (const art of articlesToSeed) {
+      const articleId = `${reg.id}-${art.articleNumber.toLowerCase().replace(/\s+/g, '-')}`
+      await db.insert(articles).values({
+        id: articleId,
+        organizationId: orgId,
+        regulationId: reg.id,
+        articleNumber: art.articleNumber,
+        sectionTitle: art.sectionTitle,
+        title: art.title,
+        rawText: art.rawText,
+        normalizedText: art.normalizedText,
+        reviewStatus: 'pending',
+        ingestJobId,
+        ingestTimestamp,
+        createdAt: ingestTimestamp,
+      })
+      articleMap[`${reg.framework}:${art.articleNumber}`] = articleId
+      stats.arts++
+    }
+  }
+
+  if (verbose) console.log(`   ✓ ${stats.arts} articles`)
+
+  // Seed obligations with deterministic due dates
+  const seedDate = new Date()
+  const obligationMap: Record<string, string> = {} // referenceCode -> obligationId
+
+  for (const reg of orgRegs) {
+    const frameworkObligations = getObligationsForFramework(reg.framework)
+    // In dev mode, only seed first 3 obligations per regulation
+    const oblsToSeed = mode === 'dev' ? frameworkObligations.slice(0, 3) : frameworkObligations
+
+    for (const obl of oblsToSeed) {
+      const articleId = articleMap[`${reg.framework}:${obl.articleRef}`]
+      if (!articleId) continue // Skip if article not seeded
+
+      const obligationId = `${orgId}-${obl.referenceCode}`
+      const dueDate = new Date(seedDate)
+      dueDate.setDate(dueDate.getDate() + obl.dueInDays)
+
+      await db.insert(obligations).values({
+        id: obligationId,
+        organizationId: orgId,
+        regulationId: reg.id,
+        articleId,
+        referenceCode: obl.referenceCode,
+        title: obl.title,
+        summary: obl.summary,
+        status: obl.status,
+        riskLevel: obl.riskLevel,
+        requirementType: obl.requirementType,
+        dueDate,
+        sourceType: 'llm',
+        ingestJobId,
+        ingestTimestamp,
+        createdAt: ingestTimestamp,
+      })
+      obligationMap[obl.referenceCode] = obligationId
+      stats.obls++
+    }
+  }
+
+  if (verbose) console.log(`   ✓ ${stats.obls} obligations`)
+
+  // Seed systems
+  const orgSystems = SYSTEMS[orgId] || []
+  const systemsToSeed = mode === 'dev' ? orgSystems.slice(0, 2) : orgSystems
+
+  for (const sys of systemsToSeed) {
+    await db.insert(systems).values({
+      id: sys.id,
+      organizationId: orgId,
+      slug: sys.id,
+      name: sys.name,
+      description: sys.description,
+      category: sys.category,
+      criticality: sys.criticality,
+      dataClassification: sys.metadata?.dataClassification,
+      tags: sys.tags,
+      externalId: sys.externalId,
+      externalSource: sys.metadata?.cloudProvider,
+      createdAt: ingestTimestamp,
+    })
+    stats.systems++
+  }
+
+  if (verbose) console.log(`   ✓ ${stats.systems} systems`)
+
+  // Seed obligation-system mappings (deterministic pattern)
+  const allObls = await db.query.obligations.findMany({
+    where: eq(obligations.organizationId, orgId),
+  })
+
+  for (let i = 0; i < allObls.length; i++) {
+    // Map each obligation to system based on index (deterministic)
+    const sysIndex = i % systemsToSeed.length
+    const sys = systemsToSeed[sysIndex]
+
+    // Determine confidence based on obligation risk level
+    const obl = allObls[i]
+    const confidence = obl.riskLevel === 'critical' ? 'high' : obl.riskLevel === 'high' ? 'medium' : 'low'
+
+    await db.insert(obligationSystemMappings).values({
+      organizationId: orgId,
+      obligationId: obl.id,
+      systemId: sys.id,
+      mappingConfidence: confidence as 'low' | 'medium' | 'high',
+      mappedBy: 'human',
+      reason: `Mapped to ${sys.name} based on requirement type and system category`,
+    })
+    stats.mappings++
+  }
+
+  if (verbose) console.log(`   ✓ ${stats.mappings} obligation-system mappings`)
+
+  // Seed article-system impacts (deterministic)
+  const allArts = await db.query.articles.findMany({
+    where: eq(articles.organizationId, orgId),
+  })
+
+  for (let i = 0; i < allArts.length; i++) {
+    // Create impact for each article to specific system
+    const sysIndex = i % systemsToSeed.length
+    const sys = systemsToSeed[sysIndex]
+    const impactLevels = ['low', 'medium', 'high', 'critical'] as const
+    const impactLevel = impactLevels[Math.min(3, Math.floor(i / 2))]
+
+    await db.insert(articleSystemImpacts).values({
+      organizationId: orgId,
+      articleId: allArts[i].id,
+      systemId: sys.id,
+      impactLevel,
+    })
+  }
+
+  if (verbose) console.log(`   ✓ ${allArts.length} article-system impacts`)
+
+  // Seed alerts
+  const orgAlerts = ALERTS.filter((a) => a.organizationId === orgId)
+  const alertsToSeed = mode === 'dev' ? orgAlerts.slice(0, 2) : orgAlerts
+
+  for (const alert of alertsToSeed) {
+    const createdAt = new Date(seedDate)
+    createdAt.setDate(createdAt.getDate() - alert.createdDaysAgo)
+
+    await db.insert(alerts).values({
+      id: alert.id,
+      organizationId: orgId,
+      type: alert.type,
+      severity: alert.severity,
+      status: alert.status,
+      title: alert.title,
+      description: alert.description,
+      regulationId: alert.regulationRef ? regulationMap[alert.regulationRef] : null,
+      obligationId: alert.obligationRef ? obligationMap[alert.obligationRef] : null,
+      assignedToUserId: alert.assignedTo,
+      resolvedAt: alert.resolvedAt,
+      createdAt,
+    })
+    stats.alerts++
+  }
+
+  if (verbose) console.log(`   ✓ ${stats.alerts} alerts`)
+
+  // Seed evidence packs
+  const evidencePacksData = [
+    {
       title: 'DORA Compliance Evidence Q4 2024',
-      description: 'Evidence pack for DORA compliance',
+      description: 'Evidence pack demonstrating compliance with DORA ICT risk management requirements.',
       framework: 'DORA',
       jurisdiction: 'EU',
       status: 'ready' as const,
-      regulationId: regulationIds[0],
+      regulationRef: 'DORA',
       intendedAudience: 'auditor',
       exportFormat: 'pdf',
-      generatedAt: new Date(),
     },
     {
-      organizationId: orgId,
-      title: 'GDPR Article 32 Security Measures',
-      description: 'Technical security measures documentation',
+      title: 'GDPR Article 32 Security Controls',
+      description: 'Technical and organizational security measures documentation for GDPR compliance.',
       framework: 'GDPR',
       jurisdiction: 'EU',
       status: 'draft' as const,
-      regulationId: regulationIds[1],
+      regulationRef: 'GDPR',
       intendedAudience: 'internal',
       exportFormat: 'json',
-      generatedAt: new Date(),
-    },
-    {
-      organizationId: orgId,
-      title: 'Incident Response Evidence',
-      description: 'DORA incident reporting compliance evidence',
-      framework: 'DORA',
-      jurisdiction: 'EU',
-      status: 'generating' as const,
-      regulationId: regulationIds[0],
-      intendedAudience: 'regulator',
-      exportFormat: 'pdf',
-      generatedAt: new Date(),
     },
   ]
+
+  const packsToSeed = mode === 'dev' ? evidencePacksData.slice(0, 1) : evidencePacksData
+
+  for (const pack of packsToSeed) {
+    await db.insert(evidencePacks).values({
+      organizationId: orgId,
+      title: pack.title,
+      description: pack.description,
+      framework: pack.framework,
+      jurisdiction: pack.jurisdiction,
+      status: pack.status,
+      regulationId: regulationMap[pack.regulationRef],
+      intendedAudience: pack.intendedAudience,
+      exportFormat: pack.exportFormat,
+      generatedAt: pack.status === 'ready' ? ingestTimestamp : undefined,
+    })
+  }
+
+  if (verbose) console.log(`   ✓ ${packsToSeed.length} evidence packs`)
+
+  // Seed audit log entry
+  const adminUser = USERS.find((u) => u.organizationId === orgId && u.role === 'OrgAdmin')
+  if (adminUser) {
+    await db.insert(auditLog).values({
+      organizationId: orgId,
+      actorUserId: adminUser.id,
+      action: 'seed_database',
+      entityType: 'organization',
+      entityId: orgId,
+      diff: { mode, timestamp: ingestTimestamp.toISOString() },
+    })
+  }
+
+  return stats
 }
 
-// ============================================================================
-// MAIN SEED FUNCTION
-// ============================================================================
+// =============================================================================
+// Main Seed Function
+// =============================================================================
 
 async function seed() {
-  console.log('🌱 Starting database seed...\n')
+  const config = parseArgs()
+  const startTime = Date.now()
+
+  console.log('🌱 Starting database seed...')
+  console.log(`   Mode: ${config.mode}`)
+  if (config.organizations) {
+    console.log(`   Organizations: ${config.organizations.join(', ')}`)
+  }
+  console.log('')
 
   try {
-    // Clear existing data (in reverse order of dependencies)
-    console.log('🗑️  Clearing existing data...')
-    await db.delete(auditLog)
-    await db.delete(regulatoryChanges)
-    await db.delete(evidencePacks)
-    await db.delete(alerts)
-    await db.delete(obligationSystemMappings)
-    await db.delete(articleSystemImpacts)
-    await db.delete(obligations)
-    await db.delete(articles)
-    await db.delete(regulations)
-    await db.delete(ingestJobs)
-    await db.delete(systems)
-    console.log('   ✓ Cleared existing data\n')
-
-    // Seed organizations
-    console.log('🏢 Seeding organizations...')
-    for (const org of organizationsSeed) {
-      const existing = await db.select().from(organization).where(eq(organization.id, org.id))
-      if (existing.length === 0) {
-        await db.insert(organization).values(org)
-      }
+    if (config.clearExisting) {
+      await clearDatabase(config.verbose)
     }
-    console.log(`   ✓ Ensured ${organizationsSeed.length} organizations\n`)
 
-    // Seed users
-    console.log('👤 Seeding users...')
-    for (const u of usersSeed) {
-      const existing = await db.select().from(user).where(eq(user.id, u.id))
-      if (existing.length === 0) {
-        await db.insert(user).values(u)
-      }
+    // Filter organizations if specified
+    const orgsToSeed = config.organizations
+      ? ORGANIZATIONS.filter((o) => config.organizations!.includes(o.id))
+      : ORGANIZATIONS
+
+    const usersToSeed = config.organizations
+      ? USERS.filter((u) => config.organizations!.includes(u.organizationId))
+      : USERS
+
+    await ensureOrganizations(orgsToSeed, config.verbose)
+    await ensureUsers(usersToSeed, config.verbose)
+    await ensureMemberships(usersToSeed, config.verbose)
+
+    // Aggregate stats
+    const totals = { regs: 0, arts: 0, obls: 0, systems: 0, alerts: 0, mappings: 0 }
+
+    for (const org of orgsToSeed) {
+      const stats = await seedOrganizationData(org.id, config.mode, config.verbose)
+      totals.regs += stats.regs
+      totals.arts += stats.arts
+      totals.obls += stats.obls
+      totals.systems += stats.systems
+      totals.alerts += stats.alerts
+      totals.mappings += stats.mappings
     }
-    console.log(`   ✓ Ensured ${usersSeed.length} users\n`)
 
-    // Seed memberships
-    console.log('🔗 Seeding memberships...')
-    for (const m of membershipsSeed) {
-      const existing = await db
-        .select()
-        .from(member)
-        .where(and(eq(member.organizationId, m.organizationId), eq(member.userId, m.userId)))
-      if (existing.length === 0) {
-        await db.insert(member).values(m)
-      }
-    }
-    console.log(`   ✓ Ensured ${membershipsSeed.length} memberships\n`)
-
-    // Track totals for summary
-    let totalRegs = 0
-    let totalArts = 0
-    let totalObls = 0
-    let totalSystems = 0
-    let totalAlerts = 0
-    let totalEvidencePacks = 0
-    let totalMappings = 0
-
-    // Seed per-org data
-    for (const orgId of ['finbank-eu', 'paytech-uk'] as const) {
-      console.log(`\n📦 Seeding data for ${orgId}...`)
-
-      // Create ingest job for provenance
-      const ingestJobId = `${orgId}-seed-job`
-      await db.insert(ingestJobs).values({
-        id: ingestJobId,
-        organizationId: orgId,
-        source: 'seed',
-        status: 'succeeded',
-        startedAt: new Date(),
-        finishedAt: new Date(),
-      })
-
-      // Seed regulations
-      const orgRegs = regulationsPerOrg[orgId]
-      for (const reg of orgRegs) {
-        await db.insert(regulations).values({
-          ...reg,
-          organizationId: orgId,
-          ingestJobId,
-          ingestTimestamp: new Date(),
-        })
-      }
-      totalRegs += orgRegs.length
-      console.log(`   ✓ ${orgRegs.length} regulations`)
-
-      // Seed articles and obligations per regulation
-      for (const reg of orgRegs) {
-        const prefix = reg.id
-        const arts = generateArticles(orgId, reg.id, prefix)
-
-        for (const art of arts) {
-          await db.insert(articles).values({
-            ...art,
-            ingestJobId,
-            ingestTimestamp: new Date(),
-          })
-        }
-        totalArts += arts.length
-
-        const obls = generateObligations(
-          orgId,
-          reg.id,
-          arts.map((a) => a.id),
-          prefix
-        )
-        for (const obl of obls) {
-          await db.insert(obligations).values({
-            ...obl,
-            ingestJobId,
-            ingestTimestamp: new Date(),
-          })
-        }
-        totalObls += obls.length
-      }
-      console.log(`   ✓ ${totalArts} articles (cumulative)`)
-      console.log(`   ✓ ${totalObls} obligations (cumulative)`)
-
-      // Seed systems
-      const orgSystems = systemsPerOrg[orgId]
-      for (const sys of orgSystems) {
-        await db.insert(systems).values({
-          ...sys,
-          slug: sys.id,
-          organizationId: orgId,
-          description: `${sys.name} system for ${orgId}`,
-        })
-      }
-      totalSystems += orgSystems.length
-      console.log(`   ✓ ${orgSystems.length} systems`)
-
-      // Seed obligation-system mappings
-      const allObls = await db.query.obligations.findMany({
-        where: eq(obligations.organizationId, orgId),
-      })
-
-      let mappingCount = 0
-      for (let i = 0; i < allObls.length; i++) {
-        // Map ~70% of obligations to systems
-        if (Math.random() < 0.7) {
-          const sys = orgSystems[i % orgSystems.length]
-          await db.insert(obligationSystemMappings).values({
-            organizationId: orgId,
-            obligationId: allObls[i].id,
-            systemId: sys.id,
-            mappingConfidence: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)] as 'low' | 'medium' | 'high',
-            mappedBy: 'human',
-            reason: 'Seeded mapping',
-          })
-          mappingCount++
-        }
-      }
-      totalMappings += mappingCount
-      console.log(`   ✓ ${mappingCount} obligation-system mappings`)
-
-      // Seed alerts
-      const regIds = orgRegs.map((r) => r.id)
-      const orgAlerts = generateAlerts(orgId, regIds)
-      for (const alert of orgAlerts) {
-        await db.insert(alerts).values(alert)
-      }
-      totalAlerts += orgAlerts.length
-      console.log(`   ✓ ${orgAlerts.length} alerts`)
-
-      // Seed evidence packs
-      const orgPacks = generateEvidencePacks(orgId, regIds)
-      for (const pack of orgPacks) {
-        await db.insert(evidencePacks).values(pack)
-      }
-      totalEvidencePacks += orgPacks.length
-      console.log(`   ✓ ${orgPacks.length} evidence packs`)
-
-      // Seed article-system impacts
-      const orgArts = await db.query.articles.findMany({
-        where: eq(articles.organizationId, orgId),
-      })
-
-      let impactCount = 0
-      for (const art of orgArts) {
-        // Create 1-2 impacts per article
-        const numImpacts = 1 + Math.floor(Math.random() * 2)
-        for (let i = 0; i < numImpacts; i++) {
-          const sys = orgSystems[Math.floor(Math.random() * orgSystems.length)]
-          await db.insert(articleSystemImpacts).values({
-            organizationId: orgId,
-            articleId: art.id,
-            systemId: sys.id,
-            impactLevel: ['low', 'medium', 'high', 'critical'][Math.floor(Math.random() * 4)] as
-              | 'low'
-              | 'medium'
-              | 'high'
-              | 'critical',
-          })
-          impactCount++
-        }
-      }
-      console.log(`   ✓ ${impactCount} article-system impacts`)
-
-      // Seed some audit log entries
-      await db.insert(auditLog).values({
-        organizationId: orgId,
-        actorUserId: orgId === 'finbank-eu' ? 'finbank-admin' : 'paytech-admin',
-        action: 'create_regulation',
-        entityType: 'regulation',
-        entityId: regIds[0],
-        diff: { before: null, after: { id: regIds[0], status: 'active' } },
-      })
-    }
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2)
 
     // Summary
     console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
     console.log('✅ Database seeded successfully!')
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
     console.log(`
-Summary:
-  • ${organizationsSeed.length} organizations
-  • ${usersSeed.length} users
-  • ${membershipsSeed.length} memberships
-  • ${totalRegs} regulations
-  • ${totalArts} articles
-  • ${totalObls} obligations
-  • ${totalSystems} systems
-  • ${totalMappings} obligation-system mappings
-  • ${totalAlerts} alerts
-  • ${totalEvidencePacks} evidence packs
+Summary (${config.mode} mode):
+  • ${orgsToSeed.length} organizations
+  • ${usersToSeed.length} users
+  • ${totals.regs} regulations
+  • ${totals.arts} articles (with real regulatory text)
+  • ${totals.obls} obligations (deterministic due dates)
+  • ${totals.systems} systems
+  • ${totals.mappings} obligation-system mappings
+  • ${totals.alerts} alerts
+
+Duration: ${duration}s
 `)
+
+    return { totals, orgsToSeed, usersToSeed }
   } catch (error) {
     console.error('❌ Seed failed:', error)
     throw error
   }
 }
 
-// Run the seed
+// =============================================================================
+// Snapshot Generation
+// =============================================================================
+
+function generateSnapshot(orgs: typeof ORGANIZATIONS, users: typeof USERS) {
+  const lines: string[] = []
+
+  lines.push('# Seed Snapshot')
+  lines.push('')
+  lines.push(`Generated: ${new Date().toISOString()}`)
+  lines.push('')
+  lines.push('## Organizations')
+  lines.push('')
+  for (const org of orgs) {
+    lines.push(`- **${org.name}** (\`${org.id}\`)`)
+    lines.push(`  - Jurisdiction: ${org.metadata.primary_jurisdiction}`)
+    lines.push(`  - Industry: ${org.metadata.industry}`)
+    lines.push(`  - Frameworks: ${org.metadata.frameworks.join(', ')}`)
+  }
+
+  lines.push('')
+  lines.push('## Demo Logins')
+  lines.push('')
+  lines.push('| Email | Organization | Role |')
+  lines.push('|-------|--------------|------|')
+  for (const u of users) {
+    const org = orgs.find((o) => o.id === u.organizationId)
+    lines.push(`| ${u.email} | ${org?.name} | ${u.role} |`)
+  }
+
+  lines.push('')
+  lines.push('## Data Hierarchy Example')
+  lines.push('')
+  lines.push('```')
+  lines.push('Regulation: DORA (finbank-dora)')
+  lines.push('  └── Article: Article 5 - Governance')
+  lines.push('      └── Obligation: DORA-5-001 - Establish ICT Risk Governance Framework')
+  lines.push('          └── System: CoreBanking Platform')
+  lines.push('              └── Alert: Third-party risk assessments overdue')
+  lines.push('```')
+
+  lines.push('')
+  lines.push('## Role Permissions')
+  lines.push('')
+  lines.push('| Role | Permissions |')
+  lines.push('|------|-------------|')
+  lines.push('| OrgAdmin | Full access, manage users, delete data |')
+  lines.push('| ComplianceManager | Create/edit compliance data, manage alerts |')
+  lines.push('| Auditor | Read-only access, view evidence packs |')
+  lines.push('| Viewer | Read-only dashboard access |')
+  lines.push('| BillingAdmin | Billing and subscription management |')
+
+  return lines.join('\n')
+}
+
+// =============================================================================
+// Entry Point
+// =============================================================================
+
 seed()
-  .then(() => {
+  .then(({ orgsToSeed, usersToSeed }) => {
     console.log('🎉 Seed complete!')
 
     // Generate seed snapshot
     try {
-      const snapshotLines = []
-      snapshotLines.push('# Seed Snapshot')
-      snapshotLines.push('')
-      snapshotLines.push('## Organizations')
-      snapshotLines.push('')
-      for (const org of organizationsSeed) {
-        snapshotLines.push(`- **${org.name}** (${org.id})`)
-      }
-      snapshotLines.push('')
-      snapshotLines.push('## Example Logins')
-      snapshotLines.push('')
-      snapshotLines.push('| Email | Org | Role |')
-      snapshotLines.push('|-------|-----|------|')
-      snapshotLines.push('| admin+finbank@cindral.dev | FinBank EU | OrgAdmin |')
-      snapshotLines.push('| compliance+finbank@cindral.dev | FinBank EU | ComplianceManager |')
-      snapshotLines.push('| auditor+finbank@cindral.dev | FinBank EU | Auditor |')
-      snapshotLines.push('| viewer+finbank@cindral.dev | FinBank EU | Viewer |')
-      snapshotLines.push('| admin+paytech@cindral.dev | PayTech UK | OrgAdmin |')
-      snapshotLines.push('| compliance+paytech@cindral.dev | PayTech UK | ComplianceManager |')
-      snapshotLines.push('')
-      snapshotLines.push('## Hero Chain Example (FinBank EU)')
-      snapshotLines.push('')
-      snapshotLines.push('```')
-      snapshotLines.push('Regulation: finbank-dora')
-      snapshotLines.push('  └── Article: finbank-dora-art-1')
-      snapshotLines.push('      └── Obligation: finbank-dora-OBL-001')
-      snapshotLines.push('          └── System: finbank-core-banking')
-      snapshotLines.push('              └── Alert: finbank-eu-ALT-001')
-      snapshotLines.push('```')
-      snapshotLines.push('')
-      snapshotLines.push('## Role Permissions')
-      snapshotLines.push('')
-      snapshotLines.push('- **OrgAdmin**: Full access, can delete regulations')
-      snapshotLines.push('- **ComplianceManager**: Can mutate compliance data')
-      snapshotLines.push('- **Auditor**: Read-only access')
-      snapshotLines.push('- **Viewer**: Read-only access')
-      snapshotLines.push('- **BillingAdmin**: Billing management')
-
+      const snapshot = generateSnapshot(orgsToSeed, usersToSeed)
       const outPath = path.join(process.cwd(), 'scripts', 'seed-snapshot.md')
-      fs.writeFileSync(outPath, snapshotLines.join('\n'))
+      fs.writeFileSync(outPath, snapshot)
       console.log(`📝 Wrote seed snapshot to ${outPath}`)
     } catch (e) {
       console.warn('⚠️  Failed to write seed snapshot', e)

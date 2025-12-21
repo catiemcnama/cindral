@@ -1,5 +1,16 @@
-import { relations } from 'drizzle-orm'
-import { index, json, pgEnum, pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core'
+import { relations, sql } from 'drizzle-orm'
+import {
+  index,
+  integer,
+  json,
+  pgEnum,
+  pgTable,
+  serial,
+  text,
+  timestamp,
+  uniqueIndex,
+  varchar,
+} from 'drizzle-orm/pg-core'
 
 /**
  * Better-Auth Tables
@@ -132,6 +143,10 @@ export const regulations = pgTable(
     ingestJobId: text('ingest_job_id').references(() => ingestJobs.id, { onDelete: 'set null' }),
     ingestTimestamp: timestamp('ingest_timestamp'),
     checksum: text('checksum'),
+    // Optimistic locking
+    lockVersion: integer('lock_version').notNull().default(1),
+    // Soft delete
+    deletedAt: timestamp('deleted_at'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at')
       .notNull()
@@ -141,6 +156,7 @@ export const regulations = pgTable(
   (table) => [
     index('regulations_org_id_idx').on(table.organizationId, table.id),
     index('regulations_org_framework_idx').on(table.organizationId, table.framework),
+    uniqueIndex('regulations_org_slug_idx').on(table.organizationId, table.slug),
   ]
 )
 
@@ -173,6 +189,8 @@ export const articles = pgTable(
     humanReviewedAt: timestamp('human_reviewed_at'),
     reviewStatus: reviewStatusEnum('review_status').default('pending'),
     aiSummary: text('ai_summary'),
+    // Soft delete
+    deletedAt: timestamp('deleted_at'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at')
       .notNull()
@@ -203,13 +221,25 @@ export const systems = pgTable(
     description: text('description'),
     ownerTeam: varchar('owner_team', { length: 200 }),
     ownerUserId: text('owner_user_id').references(() => user.id, { onDelete: 'set null' }),
+    // Tags for filtering
+    tags: text('tags')
+      .array()
+      .default(sql`'{}'::text[]`),
+    // External system integration (CMDB, ServiceNow, etc.)
+    externalId: varchar('external_id', { length: 255 }),
+    externalSource: varchar('external_source', { length: 100 }),
+    // Soft delete
+    deletedAt: timestamp('deleted_at'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at')
       .notNull()
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (table) => [index('systems_org_id_idx').on(table.organizationId, table.id)]
+  (table) => [
+    index('systems_org_id_idx').on(table.organizationId, table.id),
+    uniqueIndex('systems_org_slug_idx').on(table.organizationId, table.slug),
+  ]
 )
 
 /**
@@ -243,6 +273,8 @@ export const obligations = pgTable(
     dueDate: timestamp('due_date'),
     ownerTeam: varchar('owner_team', { length: 200 }),
     ownerUserId: text('owner_user_id').references(() => user.id, { onDelete: 'set null' }),
+    // Soft delete
+    deletedAt: timestamp('deleted_at'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at')
       .notNull()
@@ -254,6 +286,7 @@ export const obligations = pgTable(
     index('obligations_org_risk_idx').on(table.organizationId, table.riskLevel),
     index('obligations_org_reg_idx').on(table.organizationId, table.regulationId),
     index('obligations_org_id_idx').on(table.organizationId, table.id),
+    index('obligations_due_date_idx').on(table.organizationId, table.dueDate),
   ]
 )
 
@@ -282,7 +315,10 @@ export const articleSystemImpacts = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (table) => [index('article_system_impacts_org_idx').on(table.organizationId)]
+  (table) => [
+    index('article_system_impacts_org_idx').on(table.organizationId),
+    uniqueIndex('article_system_impacts_unique_idx').on(table.organizationId, table.articleId, table.systemId),
+  ]
 )
 
 /**
@@ -310,7 +346,10 @@ export const obligationSystemMappings = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (table) => [index('obligation_system_mappings_org_idx').on(table.organizationId)]
+  (table) => [
+    index('obligation_system_mappings_org_idx').on(table.organizationId),
+    uniqueIndex('obligation_system_mappings_unique_idx').on(table.organizationId, table.obligationId, table.systemId),
+  ]
 )
 
 /**
@@ -339,6 +378,8 @@ export const evidencePacks = pgTable(
     storageLocation: text('storage_location'),
     exportFormat: varchar('export_format', { length: 50 }),
     generatedAt: timestamp('generated_at').notNull().defaultNow(),
+    // Soft delete
+    deletedAt: timestamp('deleted_at'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at')
       .notNull()
@@ -348,6 +389,7 @@ export const evidencePacks = pgTable(
   (table) => [
     index('evidence_packs_org_status_idx').on(table.organizationId, table.status),
     index('evidence_packs_org_id_idx').on(table.organizationId, table.id),
+    index('evidence_packs_regulation_idx').on(table.organizationId, table.regulationId),
   ]
 )
 
@@ -379,6 +421,10 @@ export const alerts = pgTable(
     resolvedAt: timestamp('resolved_at'),
     resolvedByUserId: text('resolved_by_user_id').references(() => user.id, { onDelete: 'set null' }),
     resolutionNotes: text('resolution_notes'),
+    // Priority for custom ordering (lower = higher priority)
+    priority: integer('priority').default(0),
+    // Soft delete
+    deletedAt: timestamp('deleted_at'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at')
       .notNull()
@@ -390,11 +436,12 @@ export const alerts = pgTable(
     index('alerts_org_severity_idx').on(table.organizationId, table.severity),
     index('alerts_org_created_idx').on(table.organizationId, table.createdAt),
     index('alerts_org_id_idx').on(table.organizationId, table.id),
+    index('alerts_priority_idx').on(table.organizationId, table.priority, table.createdAt),
+    index('alerts_assigned_idx').on(table.assignedToUserId, table.status),
   ]
 )
 
-// Import integer for evidencePackId reference
-import { integer } from 'drizzle-orm/pg-core'
+// Note: integer imported at top for evidencePackId reference
 
 /**
  * Audit log - records all critical mutations
@@ -413,12 +460,17 @@ export const auditLog = pgTable(
     diff: json('diff'),
     ipAddress: text('ip_address'),
     userAgent: text('user_agent'),
+    // Session correlation
+    sessionId: text('session_id'),
+    requestId: text('request_id'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [
     index('audit_log_org_idx').on(table.organizationId),
     index('audit_log_entity_idx').on(table.entityType, table.entityId),
     index('audit_log_actor_idx').on(table.actorUserId),
+    index('audit_log_created_idx').on(table.organizationId, table.createdAt),
+    index('audit_log_session_idx').on(table.sessionId),
   ]
 )
 
