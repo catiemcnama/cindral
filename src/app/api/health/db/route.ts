@@ -1,4 +1,4 @@
-import { db } from '@/db'
+import { checkHealth, db, dbConfig } from '@/db'
 import {
   alerts,
   articles,
@@ -51,11 +51,15 @@ interface HealthResponse {
   database: {
     connected: boolean
     latencyMs: number
+    poolSize: number
+    queryTimeout: number
+    slowQueryThreshold: number
   }
   migration: {
     latest: string | null
     appliedAt: string | null
     totalMigrations: number
+    pending: string[]
   }
   organizations: OrgSnapshot[]
   totals: {
@@ -82,15 +86,18 @@ export async function GET() {
   const startTime = Date.now()
 
   try {
-    // Test DB connectivity with simple query
-    await db.select().from(regulations).limit(1)
-    const latencyMs = Date.now() - startTime
+    // Test DB connectivity
+    const healthCheck = await checkHealth()
+    if (!healthCheck.connected) {
+      throw new Error(healthCheck.error || 'Database connection failed')
+    }
 
-    // Get migration info from drizzle folder
+    // Get migration info from drizzle folder and DB
     const migrationInfo = {
       latest: null as string | null,
       appliedAt: null as string | null,
       totalMigrations: 0,
+      pending: [] as string[],
     }
 
     try {
@@ -108,6 +115,18 @@ export async function GET() {
 
           const stats = fs.statSync(path.join(drizzlePath, latestFile))
           migrationInfo.appliedAt = stats.mtime.toISOString()
+        }
+
+        // Check for pending migrations by comparing with __drizzle_migrations table
+        try {
+          const applied = await db.execute(sql`
+            SELECT name FROM "__drizzle_migrations" ORDER BY created_at
+          `)
+          const appliedNames = new Set((applied as unknown as { name: string }[]).map((r) => r.name))
+
+          migrationInfo.pending = files.map((f) => f.replace('.sql', '')).filter((name) => !appliedNames.has(name))
+        } catch {
+          // Migration table might not exist yet
         }
       }
     } catch {
@@ -221,7 +240,10 @@ export async function GET() {
       timestamp: new Date().toISOString(),
       database: {
         connected: true,
-        latencyMs,
+        latencyMs: healthCheck.latencyMs,
+        poolSize: dbConfig.poolSize,
+        queryTimeout: dbConfig.queryTimeout,
+        slowQueryThreshold: dbConfig.slowQueryThreshold,
       },
       migration: migrationInfo,
       organizations: orgSnapshots,
