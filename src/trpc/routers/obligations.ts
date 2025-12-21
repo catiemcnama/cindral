@@ -1,4 +1,6 @@
-import { articles, obligations } from '@/db/schema'
+import { articles, auditLog, obligations } from '@/db/schema'
+import { withAudit, withCreateAudit, withDeleteAudit } from '@/lib/audit'
+import { requireMutatePermission, scopedAnd } from '@/lib/tenancy'
 import { and, desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { orgProcedure, router } from '../init'
@@ -13,111 +15,84 @@ export const obligationsRouter = router({
         .object({
           articleId: z.string().optional(),
           regulationId: z.string().optional(),
-          status: z.enum(['pending', 'compliant', 'non_compliant']).optional(),
+          status: z.enum(['not_started', 'in_progress', 'implemented', 'under_review', 'verified']).optional(),
+          riskLevel: z.enum(['low', 'medium', 'high', 'critical']).optional(),
           limit: z.number().min(1).max(100).default(50),
           offset: z.number().min(0).default(0),
         })
         .optional()
     )
     .query(async ({ ctx, input }) => {
-      const { articleId, regulationId, status, limit = 50, offset = 0 } = input ?? {}
+      const { articleId, regulationId, status, riskLevel, limit = 50, offset = 0 } = input ?? {}
 
-      // Build query based on filters
-      let obligationsList
+      // Start with strict org scoping
+      const conditions = [eq(obligations.organizationId, ctx.activeOrganizationId)]
 
       if (regulationId) {
-        // First get all articles for this regulation
-        const arts = await ctx.db.query.articles.findMany({
-          where: eq(articles.regulationId, regulationId),
-          columns: { id: true },
-        })
-        const articleIds = arts.map((a) => a.id)
-
-        if (articleIds.length === 0) {
-          return {
-            items: [],
-            total: 0,
-            stats: { compliant: 0, pending: 0, nonCompliant: 0, total: 0 },
-            limit,
-            offset,
-          }
-        }
-
-        const conditions = [
-          sql`${obligations.articleId} IN (${sql.join(
-            articleIds.map((id) => sql`${id}`),
-            sql`, `
-          )})`,
-          sql`(${obligations.organizationId} IS NULL OR ${obligations.organizationId} = ${ctx.activeOrganizationId})`,
-        ]
-
-        if (status) {
-          conditions.push(eq(obligations.status, status))
-        }
-
-        obligationsList = await ctx.db.query.obligations.findMany({
-          where: and(...conditions),
-          limit,
-          offset,
-          orderBy: desc(obligations.updatedAt),
-          with: {
-            article: {
-              with: {
-                regulation: {
-                  columns: { id: true, name: true },
-                },
-              },
-            },
-          },
-        })
-      } else {
-        const conditions = [
-          sql`(${obligations.organizationId} IS NULL OR ${obligations.organizationId} = ${ctx.activeOrganizationId})`,
-        ]
-
-        if (articleId) {
-          conditions.push(eq(obligations.articleId, articleId))
-        }
-
-        if (status) {
-          conditions.push(eq(obligations.status, status))
-        }
-
-        obligationsList = await ctx.db.query.obligations.findMany({
-          where: and(...conditions),
-          limit,
-          offset,
-          orderBy: desc(obligations.updatedAt),
-          with: {
-            article: {
-              with: {
-                regulation: {
-                  columns: { id: true, name: true },
-                },
-              },
-            },
-          },
-        })
+        conditions.push(eq(obligations.regulationId, regulationId))
       }
 
-      // Get stats
+      if (articleId) {
+        conditions.push(eq(obligations.articleId, articleId))
+      }
+
+      if (status) {
+        conditions.push(eq(obligations.status, status))
+      }
+
+      if (riskLevel) {
+        conditions.push(eq(obligations.riskLevel, riskLevel))
+      }
+
+      const obligationsList = await ctx.db.query.obligations.findMany({
+        where: and(...conditions),
+        limit,
+        offset,
+        orderBy: desc(obligations.updatedAt),
+        with: {
+          article: {
+            with: {
+              regulation: {
+                columns: { id: true, name: true },
+              },
+            },
+          },
+          owner: {
+            columns: { id: true, name: true, email: true },
+          },
+          systemMappings: {
+            with: {
+              system: {
+                columns: { id: true, name: true, criticality: true },
+              },
+            },
+          },
+        },
+      })
+
+      // Get stats for all org obligations
       const allObls = await ctx.db.query.obligations.findMany({
-        where: sql`(${obligations.organizationId} IS NULL OR ${obligations.organizationId} = ${ctx.activeOrganizationId})`,
+        where: eq(obligations.organizationId, ctx.activeOrganizationId),
         columns: { status: true },
       })
 
       const stats = {
-        compliant: allObls.filter((o) => o.status === 'compliant').length,
-        pending: allObls.filter((o) => o.status === 'pending').length,
-        nonCompliant: allObls.filter((o) => o.status === 'non_compliant').length,
+        notStarted: allObls.filter((o) => o.status === 'not_started').length,
+        inProgress: allObls.filter((o) => o.status === 'in_progress').length,
+        implemented: allObls.filter((o) => o.status === 'implemented').length,
+        underReview: allObls.filter((o) => o.status === 'under_review').length,
+        verified: allObls.filter((o) => o.status === 'verified').length,
         total: allObls.length,
       }
+
+      const compliant = stats.verified + stats.implemented
+      const compliancePercent = stats.total > 0 ? Math.round((compliant / stats.total) * 100) : 100
 
       return {
         items: obligationsList,
         total: obligationsList.length,
         stats,
-        compliancePercent: stats.total > 0 ? Math.round((stats.compliant / stats.total) * 100) : 100,
+        compliancePercent,
         limit,
         offset,
       }
@@ -128,10 +103,7 @@ export const obligationsRouter = router({
    */
   getById: orgProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
     const obligation = await ctx.db.query.obligations.findFirst({
-      where: and(
-        eq(obligations.id, input.id),
-        sql`(${obligations.organizationId} IS NULL OR ${obligations.organizationId} = ${ctx.activeOrganizationId})`
-      ),
+      where: scopedAnd(obligations, ctx, eq(obligations.id, input.id)),
       with: {
         article: {
           with: {
@@ -141,6 +113,15 @@ export const obligationsRouter = router({
                 system: true,
               },
             },
+          },
+        },
+        regulation: true,
+        owner: {
+          columns: { id: true, name: true, email: true },
+        },
+        systemMappings: {
+          with: {
+            system: true,
           },
         },
       },
@@ -160,48 +141,33 @@ export const obligationsRouter = router({
     .input(
       z.object({
         id: z.string(),
-        status: z.enum(['pending', 'compliant', 'non_compliant']),
+        status: z.enum(['not_started', 'in_progress', 'implemented', 'under_review', 'verified']),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // First check if obligation exists and belongs to org
-      const existing = await ctx.db.query.obligations.findFirst({
-        where: eq(obligations.id, input.id),
-      })
+      requireMutatePermission(ctx)
 
-      if (!existing) {
-        throw new Error('Obligation not found')
-      }
+      return withAudit(ctx, 'update_obligation_status', 'obligation', input.id, async () => {
+        const before = await ctx.db.query.obligations.findFirst({
+          where: scopedAnd(obligations, ctx, eq(obligations.id, input.id)),
+        })
 
-      // If it's a global obligation, create an org-specific override
-      if (!existing.organizationId) {
-        const [newObl] = await ctx.db
-          .insert(obligations)
-          .values({
-            id: `${input.id}-${ctx.activeOrganizationId}`,
-            articleId: existing.articleId,
-            title: existing.title,
-            summary: existing.summary,
+        if (!before) {
+          throw new Error('Obligation not found')
+        }
+
+        const [after] = await ctx.db
+          .update(obligations)
+          .set({
             status: input.status,
             humanReviewedAt: new Date(),
-            organizationId: ctx.activeOrganizationId,
+            humanReviewedBy: ctx.user.id,
           })
+          .where(scopedAnd(obligations, ctx, eq(obligations.id, input.id)))
           .returning()
 
-        return newObl
-      }
-
-      // Update existing org-specific obligation
-      const [updated] = await ctx.db
-        .update(obligations)
-        .set({
-          status: input.status,
-          humanReviewedAt: new Date(),
-        })
-        .where(and(eq(obligations.id, input.id), eq(obligations.organizationId, ctx.activeOrganizationId)))
-        .returning()
-
-      return updated
+        return { before, after, result: after }
+      })
     }),
 
   /**
@@ -211,42 +177,43 @@ export const obligationsRouter = router({
     .input(
       z.object({
         ids: z.array(z.string()),
-        status: z.enum(['pending', 'compliant', 'non_compliant']),
+        status: z.enum(['not_started', 'in_progress', 'implemented', 'under_review', 'verified']),
       })
     )
     .mutation(async ({ ctx, input }) => {
+      requireMutatePermission(ctx)
+
       const results = await Promise.all(
         input.ids.map(async (id) => {
-          const existing = await ctx.db.query.obligations.findFirst({
-            where: eq(obligations.id, id),
+          const before = await ctx.db.query.obligations.findFirst({
+            where: scopedAnd(obligations, ctx, eq(obligations.id, id)),
           })
 
-          if (!existing) return null
+          if (!before) return null
 
-          if (!existing.organizationId) {
-            // Create org-specific override
-            return ctx.db
-              .insert(obligations)
-              .values({
-                id: `${id}-${ctx.activeOrganizationId}`,
-                articleId: existing.articleId,
-                title: existing.title,
-                summary: existing.summary,
-                status: input.status,
-                humanReviewedAt: new Date(),
-                organizationId: ctx.activeOrganizationId,
-              })
-              .returning()
-          }
-
-          return ctx.db
+          const [after] = await ctx.db
             .update(obligations)
             .set({
               status: input.status,
               humanReviewedAt: new Date(),
+              humanReviewedBy: ctx.user.id,
             })
-            .where(and(eq(obligations.id, id), eq(obligations.organizationId, ctx.activeOrganizationId)))
+            .where(scopedAnd(obligations, ctx, eq(obligations.id, id)))
             .returning()
+
+          // Record audit
+          if (after) {
+            await ctx.db.insert(auditLog).values({
+              organizationId: ctx.activeOrganizationId,
+              actorUserId: ctx.user.id,
+              action: 'update_obligation_status',
+              entityType: 'obligation',
+              entityId: id,
+              diff: { before, after },
+            })
+          }
+
+          return after
         })
       )
 
@@ -261,40 +228,59 @@ export const obligationsRouter = router({
       z.object({
         articleId: z.string(),
         title: z.string().min(1).max(500),
-        description: z.string().optional(),
-        status: z.enum(['pending', 'compliant', 'non_compliant']).default('pending'),
+        summary: z.string().optional(),
+        referenceCode: z.string().optional(),
+        requirementType: z.enum(['process', 'technical', 'reporting']).optional(),
+        riskLevel: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+        status: z
+          .enum(['not_started', 'in_progress', 'implemented', 'under_review', 'verified'])
+          .default('not_started'),
+        dueDate: z.date().optional(),
+        ownerUserId: z.string().optional(),
+        ownerTeam: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Generate obligation ID
-      const countResult = await ctx.db.select({ count: sql<number>`count(*)` }).from(obligations)
+      requireMutatePermission(ctx)
 
-      const count = Number(countResult[0]?.count ?? 0)
-
-      // Get article for ID prefix
-      const article = await ctx.db.query.articles.findFirst({
-        where: eq(articles.id, input.articleId),
-        with: {
-          regulation: {
-            columns: { id: true },
+      return withCreateAudit(ctx, 'create_obligation', 'obligation', async () => {
+        // Get article to derive regulation and ID prefix
+        const article = await ctx.db.query.articles.findFirst({
+          where: scopedAnd(articles, ctx, eq(articles.id, input.articleId)),
+          with: {
+            regulation: {
+              columns: { id: true },
+            },
           },
-        },
-      })
-
-      const prefix = article?.regulation?.id?.toUpperCase() ?? 'OBL'
-      const id = `OBL-${prefix}-${String(count + 1).padStart(3, '0')}`
-
-      const [obligation] = await ctx.db
-        .insert(obligations)
-        .values({
-          ...input,
-          id,
-          summary: input.description ?? null,
-          organizationId: ctx.activeOrganizationId,
         })
-        .returning()
 
-      return obligation
+        if (!article) {
+          throw new Error('Article not found')
+        }
+
+        // Generate obligation ID
+        const countResult = await ctx.db
+          .select({ count: sql<number>`count(*)` })
+          .from(obligations)
+          .where(eq(obligations.organizationId, ctx.activeOrganizationId))
+
+        const count = Number(countResult[0]?.count ?? 0)
+        const prefix = article.regulation?.id?.toUpperCase() ?? 'OBL'
+        const id = `OBL-${prefix}-${String(count + 1).padStart(3, '0')}`
+
+        const [obligation] = await ctx.db
+          .insert(obligations)
+          .values({
+            ...input,
+            id,
+            organizationId: ctx.activeOrganizationId,
+            regulationId: article.regulationId,
+            sourceType: 'manual',
+          })
+          .returning()
+
+        return obligation
+      })
     }),
 
   /**
@@ -305,33 +291,105 @@ export const obligationsRouter = router({
       z.object({
         id: z.string(),
         title: z.string().min(1).max(500).optional(),
-        description: z.string().optional(),
-        status: z.enum(['pending', 'compliant', 'non_compliant']).optional(),
+        summary: z.string().optional(),
+        referenceCode: z.string().optional(),
+        requirementType: z.enum(['process', 'technical', 'reporting']).optional(),
+        riskLevel: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+        status: z.enum(['not_started', 'in_progress', 'implemented', 'under_review', 'verified']).optional(),
+        dueDate: z.date().nullable().optional(),
+        ownerUserId: z.string().nullable().optional(),
+        ownerTeam: z.string().nullable().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const { id, ...updates } = input
+      requireMutatePermission(ctx)
 
-      const [obligation] = await ctx.db
-        .update(obligations)
-        .set({
-          ...updates,
-          humanReviewedAt: updates.status ? new Date() : undefined,
+      return withAudit(ctx, 'update_obligation', 'obligation', input.id, async () => {
+        const { id, ...updates } = input
+
+        const before = await ctx.db.query.obligations.findFirst({
+          where: scopedAnd(obligations, ctx, eq(obligations.id, id)),
         })
-        .where(and(eq(obligations.id, id), eq(obligations.organizationId, ctx.activeOrganizationId)))
-        .returning()
 
-      return obligation
+        const [after] = await ctx.db
+          .update(obligations)
+          .set({
+            ...updates,
+            humanReviewedAt: updates.status ? new Date() : undefined,
+            humanReviewedBy: updates.status ? ctx.user.id : undefined,
+          })
+          .where(scopedAnd(obligations, ctx, eq(obligations.id, id)))
+          .returning()
+
+        return { before, after, result: after }
+      })
     }),
 
   /**
    * Delete an obligation
    */
   delete: orgProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
-    await ctx.db
-      .delete(obligations)
-      .where(and(eq(obligations.id, input.id), eq(obligations.organizationId, ctx.activeOrganizationId)))
+    requireMutatePermission(ctx)
 
-    return { success: true }
+    return withDeleteAudit(
+      ctx,
+      'delete_obligation',
+      'obligation',
+      input.id,
+      () =>
+        ctx.db.query.obligations.findFirst({
+          where: scopedAnd(obligations, ctx, eq(obligations.id, input.id)),
+        }),
+      () => ctx.db.delete(obligations).where(scopedAnd(obligations, ctx, eq(obligations.id, input.id)))
+    )
+  }),
+
+  /**
+   * Get obligations by article
+   */
+  getByArticle: orgProcedure.input(z.object({ articleId: z.string() })).query(async ({ ctx, input }) => {
+    return ctx.db.query.obligations.findMany({
+      where: scopedAnd(obligations, ctx, eq(obligations.articleId, input.articleId)),
+      orderBy: desc(obligations.createdAt),
+      with: {
+        owner: {
+          columns: { id: true, name: true },
+        },
+        systemMappings: {
+          with: {
+            system: {
+              columns: { id: true, name: true },
+            },
+          },
+        },
+      },
+    })
+  }),
+
+  /**
+   * Get obligation stats by regulation
+   */
+  getStatsByRegulation: orgProcedure.input(z.object({ regulationId: z.string() })).query(async ({ ctx, input }) => {
+    const obls = await ctx.db.query.obligations.findMany({
+      where: scopedAnd(obligations, ctx, eq(obligations.regulationId, input.regulationId)),
+      columns: { status: true, riskLevel: true },
+    })
+
+    return {
+      total: obls.length,
+      byStatus: {
+        notStarted: obls.filter((o) => o.status === 'not_started').length,
+        inProgress: obls.filter((o) => o.status === 'in_progress').length,
+        implemented: obls.filter((o) => o.status === 'implemented').length,
+        underReview: obls.filter((o) => o.status === 'under_review').length,
+        verified: obls.filter((o) => o.status === 'verified').length,
+      },
+      byRiskLevel: {
+        critical: obls.filter((o) => o.riskLevel === 'critical').length,
+        high: obls.filter((o) => o.riskLevel === 'high').length,
+        medium: obls.filter((o) => o.riskLevel === 'medium').length,
+        low: obls.filter((o) => o.riskLevel === 'low').length,
+      },
+    }
   }),
 })

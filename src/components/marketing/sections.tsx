@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
 import type { LucideIcon } from 'lucide-react'
-import type { ReactNode } from 'react'
+import type { Key, ReactNode } from 'react'
 
 // Container wrapper for consistent max-width and padding
 export function Container({ children, className }: { children: ReactNode; className?: string }) {
@@ -73,6 +73,7 @@ export function FeatureCard({
   description,
   color = 'blue',
 }: {
+  key?: Key
   icon: LucideIcon
   title: string
   description: string
@@ -106,6 +107,7 @@ export function TestimonialCard({
   company,
   avatarUrl,
 }: {
+  key?: Key
   quote: string
   author: string
   role: string
@@ -138,7 +140,7 @@ export function TestimonialCard({
 }
 
 // Stat card for metrics
-export function StatCard({ value, label, suffix }: { value: string; label: string; suffix?: string }) {
+export function StatCard({ value, label, suffix }: { key?: Key; value: string; label: string; suffix?: string }) {
   return (
     <div className="text-center">
       <div className="text-4xl font-bold text-zinc-900 lg:text-5xl dark:text-white">
@@ -167,7 +169,7 @@ export function LogoCloud({ logos }: { logos: { name: string; logo?: ReactNode }
 }
 
 // FAQ Item
-export function FAQItem({ question, answer }: { question: string; answer: string }) {
+export function FAQItem({ question, answer }: { key?: Key; question: string; answer: string }) {
   return (
     <div className="border-b border-zinc-200 py-6 dark:border-zinc-800">
       <h3 className="text-lg font-medium text-zinc-900 dark:text-white">{question}</h3>

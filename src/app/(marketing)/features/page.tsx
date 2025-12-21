@@ -180,7 +180,13 @@ export default function FeaturesPage() {
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {coreFeatures.map((feature) => (
-              <FeatureCard key={feature.title} {...feature} />
+              <FeatureCard
+                key={feature.title}
+                icon={feature.icon}
+                title={feature.title}
+                description={feature.description}
+                color={feature.color}
+              />
             ))}
           </div>
         </Container>

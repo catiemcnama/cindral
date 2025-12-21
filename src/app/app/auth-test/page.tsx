@@ -24,7 +24,7 @@ export default function AuthTestPage() {
             <strong>2. Create Organization:</strong> Once signed in, create your first organization
           </li>
           <li>
-            <strong>3. Manage Organizations:</strong> Switch between organizations using "Set Active"
+            <strong>3. Manage Organizations:</strong> Switch between organizations using &quot;Set Active&quot;
           </li>
           <li>
             <strong>4. Invite Members:</strong> Use the organization client methods to invite others

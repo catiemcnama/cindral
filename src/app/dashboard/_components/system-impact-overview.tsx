@@ -61,7 +61,7 @@ export function SystemImpactOverview() {
   if (statsQuery.error) {
     const isAuthError = (err: unknown) => {
       if (!err) return false
-      const e = err as any
+      const e = err as { data?: { httpStatus?: number }; message?: string }
       if (e?.data?.httpStatus === 401) return true
       const m = (e?.message || '').toString()
       return m.includes('401') || m.toLowerCase().includes('unauthorized')

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import type { Key } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
@@ -29,9 +30,16 @@ function getComplianceColor(score: number) {
   return 'text-red-400'
 }
 
-function RegulationCard({ regulation, highlighted }: { regulation: RegulationSummary; highlighted: boolean }) {
+function RegulationCard({
+  regulation,
+  highlighted,
+}: {
+  key?: Key
+  regulation: RegulationSummary
+  highlighted: boolean
+}) {
   return (
-    <Link key={regulation.id} href={`/dashboard/regulations/${regulation.id}`}>
+    <Link href={`/dashboard/regulations/${regulation.id}`}>
       <Card
         className={cn(
           'cursor-pointer bg-card/50 transition-colors hover:bg-card/80',

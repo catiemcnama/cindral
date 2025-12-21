@@ -33,7 +33,7 @@ export function RecentAlerts() {
     // Show demo alerts if unauthenticated
     const isAuthError = (err: unknown) => {
       if (!err) return false
-      const e = err as any
+      const e = err as { data?: { httpStatus?: number }; message?: string }
       if (e?.data?.httpStatus === 401) return true
       const m = (e?.message || '').toString()
       return m.includes('401') || m.toLowerCase().includes('unauthorized')
@@ -51,7 +51,7 @@ export function RecentAlerts() {
           id: 'a2',
           title: 'Demo: Data processing change detected',
           regulation: { name: 'GDPR' },
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+          createdAt: '2024-01-01T00:00:00.000Z',
         },
       ]
 
@@ -110,10 +110,10 @@ export function RecentAlerts() {
           {alerts.length === 0 ? (
             <div className="text-sm text-muted-foreground">No recent alerts.</div>
           ) : (
-            alerts.map((a: any) => (
+            alerts.map((a) => (
               <div key={a.id} className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <div className="text-sm font-medium">{a.title ?? a.summary ?? 'Alert'}</div>
+                  <div className="text-sm font-medium">{a.title ?? a.description ?? 'Alert'}</div>
                   <div className="text-xs text-muted-foreground">{a.regulation?.name ?? '—'}</div>
                 </div>
                 <div className="text-xs text-muted-foreground">{new Date(a.createdAt).toLocaleDateString()}</div>

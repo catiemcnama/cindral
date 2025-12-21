@@ -269,7 +269,7 @@ export default function HomePage() {
         <Container>
           <div className="grid grid-cols-2 gap-8 lg:grid-cols-4">
             {stats.map((stat) => (
-              <StatCard key={stat.label} {...stat} />
+              <StatCard key={stat.label} value={stat.value} suffix={stat.suffix} label={stat.label} />
             ))}
           </div>
         </Container>
@@ -286,7 +286,13 @@ export default function HomePage() {
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {features.map((feature) => (
-              <FeatureCard key={feature.title} {...feature} />
+              <FeatureCard
+                key={feature.title}
+                icon={feature.icon}
+                title={feature.title}
+                description={feature.description}
+                color={feature.color}
+              />
             ))}
           </div>
         </Container>
@@ -388,7 +394,13 @@ export default function HomePage() {
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {testimonials.map((testimonial) => (
-              <TestimonialCard key={testimonial.author} {...testimonial} />
+              <TestimonialCard
+                key={testimonial.author}
+                quote={testimonial.quote}
+                author={testimonial.author}
+                role={testimonial.role}
+                company={testimonial.company}
+              />
             ))}
           </div>
         </Container>
@@ -441,7 +453,7 @@ export default function HomePage() {
 
           <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
             {faqs.map((faq) => (
-              <FAQItem key={faq.question} {...faq} />
+              <FAQItem key={faq.question} question={faq.question} answer={faq.answer} />
             ))}
           </div>
 

@@ -1,4 +1,6 @@
-import { articleSystemImpacts, systems } from '@/db/schema'
+import { articleSystemImpacts, obligationSystemMappings, systems } from '@/db/schema'
+import { withAudit, withCreateAudit, withDeleteAudit, recordAudit } from '@/lib/audit'
+import { requireMutatePermission, scopedAnd } from '@/lib/tenancy'
 import { and, desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { orgProcedure, router } from '../init'
@@ -11,7 +13,8 @@ export const systemsRouter = router({
     .input(
       z
         .object({
-          criticality: z.enum(['critical', 'high', 'medium', 'low']).optional(),
+          criticality: z.enum(['critical', 'high', 'medium', 'low', 'info']).optional(),
+          category: z.string().optional(),
           search: z.string().optional(),
           limit: z.number().min(1).max(100).default(50),
           offset: z.number().min(0).default(0),
@@ -19,14 +22,17 @@ export const systemsRouter = router({
         .optional()
     )
     .query(async ({ ctx, input }) => {
-      const { criticality, search, limit = 50, offset = 0 } = input ?? {}
+      const { criticality, category, search, limit = 50, offset = 0 } = input ?? {}
 
-      const conditions = [
-        sql`(${systems.organizationId} IS NULL OR ${systems.organizationId} = ${ctx.activeOrganizationId})`,
-      ]
+      // Strict org scoping
+      const conditions = [eq(systems.organizationId, ctx.activeOrganizationId)]
 
       if (criticality) {
         conditions.push(eq(systems.criticality, criticality))
+      }
+
+      if (category) {
+        conditions.push(eq(systems.category, category))
       }
 
       if (search) {
@@ -40,6 +46,7 @@ export const systemsRouter = router({
         orderBy: desc(systems.criticality),
         with: {
           articleImpacts: {
+            where: eq(articleSystemImpacts.organizationId, ctx.activeOrganizationId),
             with: {
               article: {
                 with: {
@@ -49,6 +56,17 @@ export const systemsRouter = router({
                 },
               },
             },
+          },
+          obligationMappings: {
+            where: eq(obligationSystemMappings.organizationId, ctx.activeOrganizationId),
+            with: {
+              obligation: {
+                columns: { id: true, title: true, status: true },
+              },
+            },
+          },
+          owner: {
+            columns: { id: true, name: true, email: true },
           },
         },
       })
@@ -76,6 +94,7 @@ export const systemsRouter = router({
           impactCounts,
           regulationsAffected: Array.from(regulations),
           totalImpacts: system.articleImpacts.length,
+          obligationCount: system.obligationMappings.length,
         }
       })
 
@@ -98,21 +117,28 @@ export const systemsRouter = router({
    */
   getById: orgProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
     const system = await ctx.db.query.systems.findFirst({
-      where: and(
-        eq(systems.id, input.id),
-        sql`(${systems.organizationId} IS NULL OR ${systems.organizationId} = ${ctx.activeOrganizationId})`
-      ),
+      where: scopedAnd(systems, ctx, eq(systems.id, input.id)),
       with: {
+        owner: {
+          columns: { id: true, name: true, email: true },
+        },
         articleImpacts: {
+          where: eq(articleSystemImpacts.organizationId, ctx.activeOrganizationId),
           with: {
             article: {
               with: {
                 regulation: true,
                 obligations: {
-                  where: sql`(organization_id IS NULL OR organization_id = ${ctx.activeOrganizationId})`,
+                  where: eq(systems.organizationId, ctx.activeOrganizationId),
                 },
               },
             },
+          },
+        },
+        obligationMappings: {
+          where: eq(obligationSystemMappings.organizationId, ctx.activeOrganizationId),
+          with: {
+            obligation: true,
           },
         },
       },
@@ -171,26 +197,37 @@ export const systemsRouter = router({
       z.object({
         name: z.string().min(1).max(255),
         description: z.string().optional(),
-        criticality: z.enum(['critical', 'high', 'medium', 'low']).optional(),
+        category: z.string().optional(),
+        criticality: z.enum(['critical', 'high', 'medium', 'low', 'info']).optional(),
+        dataClassification: z.string().optional(),
+        ownerTeam: z.string().optional(),
+        ownerUserId: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Generate ID from name
-      const id = input.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '')
+      requireMutatePermission(ctx)
 
-      const [system] = await ctx.db
-        .insert(systems)
-        .values({
-          ...input,
-          id,
-          organizationId: ctx.activeOrganizationId,
-        })
-        .returning()
+      return withCreateAudit(ctx, 'create_system', 'system', async () => {
+        // Generate ID from name
+        const id = input.name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '')
 
-      return system
+        const slug = id
+
+        const [system] = await ctx.db
+          .insert(systems)
+          .values({
+            ...input,
+            id,
+            slug,
+            organizationId: ctx.activeOrganizationId,
+          })
+          .returning()
+
+        return system
+      })
     }),
 
   /**
@@ -202,34 +239,70 @@ export const systemsRouter = router({
         id: z.string(),
         name: z.string().min(1).max(255).optional(),
         description: z.string().optional(),
-        criticality: z.enum(['critical', 'high', 'medium', 'low']).optional(),
+        category: z.string().optional(),
+        criticality: z.enum(['critical', 'high', 'medium', 'low', 'info']).optional(),
+        dataClassification: z.string().optional(),
+        ownerTeam: z.string().optional(),
+        ownerUserId: z.string().nullable().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const { id, ...updates } = input
+      requireMutatePermission(ctx)
 
-      const [system] = await ctx.db
-        .update(systems)
-        .set(updates)
-        .where(and(eq(systems.id, id), eq(systems.organizationId, ctx.activeOrganizationId)))
-        .returning()
+      return withAudit(ctx, 'update_system', 'system', input.id, async () => {
+        const { id, ...updates } = input
 
-      return system
+        const before = await ctx.db.query.systems.findFirst({
+          where: scopedAnd(systems, ctx, eq(systems.id, id)),
+        })
+
+        const [after] = await ctx.db
+          .update(systems)
+          .set(updates)
+          .where(scopedAnd(systems, ctx, eq(systems.id, id)))
+          .returning()
+
+        return { before, after, result: after }
+      })
     }),
 
   /**
    * Delete a system
    */
   delete: orgProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
-    // First delete all impacts
-    await ctx.db.delete(articleSystemImpacts).where(eq(articleSystemImpacts.systemId, input.id))
+    requireMutatePermission(ctx)
 
-    // Then delete system
-    await ctx.db
-      .delete(systems)
-      .where(and(eq(systems.id, input.id), eq(systems.organizationId, ctx.activeOrganizationId)))
-
-    return { success: true }
+    return withDeleteAudit(
+      ctx,
+      'delete_system',
+      'system',
+      input.id,
+      () =>
+        ctx.db.query.systems.findFirst({
+          where: scopedAnd(systems, ctx, eq(systems.id, input.id)),
+        }),
+      async () => {
+        // First delete all impacts and mappings
+        await ctx.db
+          .delete(articleSystemImpacts)
+          .where(
+            and(
+              eq(articleSystemImpacts.systemId, input.id),
+              eq(articleSystemImpacts.organizationId, ctx.activeOrganizationId)
+            )
+          )
+        await ctx.db
+          .delete(obligationSystemMappings)
+          .where(
+            and(
+              eq(obligationSystemMappings.systemId, input.id),
+              eq(obligationSystemMappings.organizationId, ctx.activeOrganizationId)
+            )
+          )
+        // Then delete system
+        await ctx.db.delete(systems).where(scopedAnd(systems, ctx, eq(systems.id, input.id)))
+      }
+    )
   }),
 
   /**
@@ -245,7 +318,23 @@ export const systemsRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const [impact] = await ctx.db.insert(articleSystemImpacts).values(input).returning()
+      requireMutatePermission(ctx)
+
+      const [impact] = await ctx.db
+        .insert(articleSystemImpacts)
+        .values({
+          ...input,
+          organizationId: ctx.activeOrganizationId,
+        })
+        .returning()
+
+      await recordAudit({
+        ctx,
+        action: 'add_system_impact',
+        entityType: 'article_system_impact',
+        entityId: impact.id,
+        after: impact,
+      })
 
       return impact
     }),
@@ -261,11 +350,35 @@ export const systemsRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      requireMutatePermission(ctx)
+
+      const before = await ctx.db.query.articleSystemImpacts.findFirst({
+        where: and(
+          eq(articleSystemImpacts.systemId, input.systemId),
+          eq(articleSystemImpacts.articleId, input.articleId),
+          eq(articleSystemImpacts.organizationId, ctx.activeOrganizationId)
+        ),
+      })
+
       await ctx.db
         .delete(articleSystemImpacts)
         .where(
-          and(eq(articleSystemImpacts.systemId, input.systemId), eq(articleSystemImpacts.articleId, input.articleId))
+          and(
+            eq(articleSystemImpacts.systemId, input.systemId),
+            eq(articleSystemImpacts.articleId, input.articleId),
+            eq(articleSystemImpacts.organizationId, ctx.activeOrganizationId)
+          )
         )
+
+      if (before) {
+        await recordAudit({
+          ctx,
+          action: 'remove_system_impact',
+          entityType: 'article_system_impact',
+          entityId: before.id,
+          before,
+        })
+      }
 
       return { success: true }
     }),
@@ -275,7 +388,10 @@ export const systemsRouter = router({
    */
   getByArticle: orgProcedure.input(z.object({ articleId: z.string() })).query(async ({ ctx, input }) => {
     const impacts = await ctx.db.query.articleSystemImpacts.findMany({
-      where: eq(articleSystemImpacts.articleId, input.articleId),
+      where: and(
+        eq(articleSystemImpacts.articleId, input.articleId),
+        eq(articleSystemImpacts.organizationId, ctx.activeOrganizationId)
+      ),
       with: {
         system: true,
       },
@@ -293,7 +409,10 @@ export const systemsRouter = router({
    */
   getArticlesForSystem: orgProcedure.input(z.object({ systemId: z.string() })).query(async ({ ctx, input }) => {
     const impacts = await ctx.db.query.articleSystemImpacts.findMany({
-      where: eq(articleSystemImpacts.systemId, input.systemId),
+      where: and(
+        eq(articleSystemImpacts.systemId, input.systemId),
+        eq(articleSystemImpacts.organizationId, ctx.activeOrganizationId)
+      ),
       with: {
         article: {
           with: {
@@ -310,5 +429,17 @@ export const systemsRouter = router({
       impactLevel: i.impactLevel,
       notes: i.notes,
     }))
+  }),
+
+  /**
+   * Get unique categories
+   */
+  getCategories: orgProcedure.query(async ({ ctx }) => {
+    const result = await ctx.db
+      .selectDistinct({ category: systems.category })
+      .from(systems)
+      .where(and(eq(systems.organizationId, ctx.activeOrganizationId), sql`${systems.category} IS NOT NULL`))
+
+    return result.map((r) => r.category).filter(Boolean) as string[]
   }),
 })

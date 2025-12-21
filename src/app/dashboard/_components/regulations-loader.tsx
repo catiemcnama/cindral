@@ -29,7 +29,7 @@ export default function RegulationsLoader() {
   if (q.error) {
     const isAuthError = (err: unknown) => {
       if (!err) return false
-      const e = err as any
+      const e = err as { data?: { httpStatus?: number }; message?: string }
       if (e?.data?.httpStatus === 401) return true
       const m = (e?.message || '').toString()
       return m.includes('401') || m.toLowerCase().includes('unauthorized')
@@ -73,12 +73,12 @@ export default function RegulationsLoader() {
     )
   }
 
-  const regs = (q.data ?? []).map((r: any) => ({
+  const regs = (q.data ?? []).map((r) => ({
     id: r.id,
     name: r.name,
     fullTitle: r.name,
-    jurisdiction: r.jurisdiction,
-    effectiveDate: r.effectiveDate ?? '',
+    jurisdiction: r.jurisdiction ?? 'Unknown',
+    effectiveDate: r.effectiveDate ? String(r.effectiveDate) : '',
     articlesCount: r.total ?? 0,
     alertsCount: 0,
     complianceScore: r.complianceRate ?? 100,

@@ -1,4 +1,6 @@
-import { alerts } from '@/db/schema'
+import { alerts, auditLog } from '@/db/schema'
+import { withAudit, withCreateAudit, withDeleteAudit } from '@/lib/audit'
+import { requireMutatePermission, scopedAnd } from '@/lib/tenancy'
 import { and, asc, desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { orgProcedure, router } from '../init'
@@ -11,30 +13,39 @@ export const alertsRouter = router({
     .input(
       z
         .object({
-          severity: z.enum(['critical', 'high', 'medium', 'low']).optional(),
-          status: z.enum(['open', 'in_progress', 'resolved']).optional(),
+          type: z
+            .enum(['obligation_overdue', 'regulation_changed', 'evidence_pack_failed', 'system_unmapped'])
+            .optional(),
+          severity: z.enum(['info', 'low', 'medium', 'high', 'critical']).optional(),
+          status: z.enum(['open', 'in_triage', 'in_progress', 'resolved', 'wont_fix']).optional(),
           regulationId: z.string().optional(),
-          ownerId: z.string().optional(),
+          assignedToUserId: z.string().optional(),
           limit: z.number().min(1).max(100).default(20),
           offset: z.number().min(0).default(0),
-          sortBy: z.enum(['createdAt', 'severity', 'status']).default('createdAt'),
+          sortBy: z.enum(['createdAt', 'severity', 'status', 'dueDate']).default('createdAt'),
           sortOrder: z.enum(['asc', 'desc']).default('desc'),
         })
         .optional()
     )
     .query(async ({ ctx, input }) => {
       const {
+        type,
         severity,
         status,
         regulationId,
-        ownerId,
+        assignedToUserId,
         limit = 20,
         offset = 0,
         sortBy = 'createdAt',
         sortOrder = 'desc',
       } = input ?? {}
 
+      // Start with org-scoped condition (strict tenancy)
       const conditions = [eq(alerts.organizationId, ctx.activeOrganizationId)]
+
+      if (type) {
+        conditions.push(eq(alerts.type, type))
+      }
 
       if (severity) {
         conditions.push(eq(alerts.severity, severity))
@@ -48,8 +59,8 @@ export const alertsRouter = router({
         conditions.push(eq(alerts.regulationId, regulationId))
       }
 
-      if (ownerId) {
-        conditions.push(eq(alerts.ownerId, ownerId))
+      if (assignedToUserId) {
+        conditions.push(eq(alerts.assignedToUserId, assignedToUserId))
       }
 
       const alertsList = await ctx.db.query.alerts.findMany({
@@ -67,7 +78,13 @@ export const alertsRouter = router({
           article: {
             columns: { id: true, articleNumber: true, sectionTitle: true },
           },
-          owner: {
+          obligation: {
+            columns: { id: true, title: true, status: true },
+          },
+          system: {
+            columns: { id: true, name: true },
+          },
+          assignedTo: {
             columns: { id: true, name: true, email: true, image: true },
           },
         },
@@ -80,32 +97,37 @@ export const alertsRouter = router({
         .where(and(...conditions))
 
       // Get counts by status for stats
-      const openCount = await ctx.db
-        .select({ count: sql<number>`count(*)` })
-        .from(alerts)
-        .where(and(eq(alerts.organizationId, ctx.activeOrganizationId), eq(alerts.status, 'open')))
-
-      const inProgressCount = await ctx.db
-        .select({ count: sql<number>`count(*)` })
-        .from(alerts)
-        .where(and(eq(alerts.organizationId, ctx.activeOrganizationId), eq(alerts.status, 'in_progress')))
-
-      const criticalCount = await ctx.db
-        .select({ count: sql<number>`count(*)` })
-        .from(alerts)
-        .where(
-          and(
-            eq(alerts.organizationId, ctx.activeOrganizationId),
-            eq(alerts.severity, 'critical'),
-            sql`${alerts.status} != 'resolved'`
-          )
-        )
+      const [openCount, inTriageCount, inProgressCount, criticalCount] = await Promise.all([
+        ctx.db
+          .select({ count: sql<number>`count(*)` })
+          .from(alerts)
+          .where(and(eq(alerts.organizationId, ctx.activeOrganizationId), eq(alerts.status, 'open'))),
+        ctx.db
+          .select({ count: sql<number>`count(*)` })
+          .from(alerts)
+          .where(and(eq(alerts.organizationId, ctx.activeOrganizationId), eq(alerts.status, 'in_triage'))),
+        ctx.db
+          .select({ count: sql<number>`count(*)` })
+          .from(alerts)
+          .where(and(eq(alerts.organizationId, ctx.activeOrganizationId), eq(alerts.status, 'in_progress'))),
+        ctx.db
+          .select({ count: sql<number>`count(*)` })
+          .from(alerts)
+          .where(
+            and(
+              eq(alerts.organizationId, ctx.activeOrganizationId),
+              eq(alerts.severity, 'critical'),
+              sql`${alerts.status} NOT IN ('resolved', 'wont_fix')`
+            )
+          ),
+      ])
 
       return {
         items: alertsList,
         total: Number(totalResult[0]?.count ?? 0),
         stats: {
           open: Number(openCount[0]?.count ?? 0),
+          inTriage: Number(inTriageCount[0]?.count ?? 0),
           inProgress: Number(inProgressCount[0]?.count ?? 0),
           critical: Number(criticalCount[0]?.count ?? 0),
         },
@@ -119,12 +141,14 @@ export const alertsRouter = router({
    */
   getById: orgProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
     const alert = await ctx.db.query.alerts.findFirst({
-      where: and(eq(alerts.id, input.id), eq(alerts.organizationId, ctx.activeOrganizationId)),
+      where: scopedAnd(alerts, ctx, eq(alerts.id, input.id)),
       with: {
         regulation: true,
         article: {
           with: {
-            obligations: true,
+            obligations: {
+              where: eq(alerts.organizationId, ctx.activeOrganizationId),
+            },
             systemImpacts: {
               with: {
                 system: true,
@@ -132,8 +156,14 @@ export const alertsRouter = router({
             },
           },
         },
-        owner: {
+        obligation: true,
+        system: true,
+        evidencePack: true,
+        assignedTo: {
           columns: { id: true, name: true, email: true, image: true },
+        },
+        resolvedBy: {
+          columns: { id: true, name: true, email: true },
         },
       },
     })
@@ -153,33 +183,41 @@ export const alertsRouter = router({
       z.object({
         title: z.string().min(1).max(500),
         description: z.string().optional(),
-        severity: z.enum(['critical', 'high', 'medium', 'low']),
+        type: z.enum(['obligation_overdue', 'regulation_changed', 'evidence_pack_failed', 'system_unmapped']),
+        severity: z.enum(['info', 'low', 'medium', 'high', 'critical']),
         regulationId: z.string().optional(),
         articleId: z.string().optional(),
-        ownerId: z.string().optional(),
+        obligationId: z.string().optional(),
+        systemId: z.string().optional(),
+        assignedToUserId: z.string().optional(),
+        dueDate: z.date().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Generate alert ID
-      const countResult = await ctx.db
-        .select({ count: sql<number>`count(*)` })
-        .from(alerts)
-        .where(eq(alerts.organizationId, ctx.activeOrganizationId))
+      requireMutatePermission(ctx)
 
-      const count = Number(countResult[0]?.count ?? 0)
-      const id = `ALT-${String(count + 1).padStart(3, '0')}`
+      return withCreateAudit(ctx, 'create_alert', 'alert', async () => {
+        // Generate alert ID
+        const countResult = await ctx.db
+          .select({ count: sql<number>`count(*)` })
+          .from(alerts)
+          .where(eq(alerts.organizationId, ctx.activeOrganizationId))
 
-      const [alert] = await ctx.db
-        .insert(alerts)
-        .values({
-          ...input,
-          id,
-          status: 'open',
-          organizationId: ctx.activeOrganizationId,
-        })
-        .returning()
+        const count = Number(countResult[0]?.count ?? 0)
+        const id = `ALT-${String(count + 1).padStart(3, '0')}`
 
-      return alert
+        const [alert] = await ctx.db
+          .insert(alerts)
+          .values({
+            ...input,
+            id,
+            status: 'open',
+            organizationId: ctx.activeOrganizationId,
+          })
+          .returning()
+
+        return alert
+      })
     }),
 
   /**
@@ -189,17 +227,37 @@ export const alertsRouter = router({
     .input(
       z.object({
         id: z.string(),
-        status: z.enum(['open', 'in_progress', 'resolved']),
+        status: z.enum(['open', 'in_triage', 'in_progress', 'resolved', 'wont_fix']),
+        resolutionNotes: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const [alert] = await ctx.db
-        .update(alerts)
-        .set({ status: input.status })
-        .where(and(eq(alerts.id, input.id), eq(alerts.organizationId, ctx.activeOrganizationId)))
-        .returning()
+      requireMutatePermission(ctx)
 
-      return alert
+      return withAudit(ctx, 'update_alert_status', 'alert', input.id, async () => {
+        const before = await ctx.db.query.alerts.findFirst({
+          where: scopedAnd(alerts, ctx, eq(alerts.id, input.id)),
+        })
+
+        const updateData: Record<string, unknown> = { status: input.status }
+
+        // If resolving, set resolution fields
+        if (input.status === 'resolved' || input.status === 'wont_fix') {
+          updateData.resolvedAt = new Date()
+          updateData.resolvedByUserId = ctx.user.id
+          if (input.resolutionNotes) {
+            updateData.resolutionNotes = input.resolutionNotes
+          }
+        }
+
+        const [after] = await ctx.db
+          .update(alerts)
+          .set(updateData)
+          .where(scopedAnd(alerts, ctx, eq(alerts.id, input.id)))
+          .returning()
+
+        return { before, after, result: after }
+      })
     }),
 
   /**
@@ -209,17 +267,25 @@ export const alertsRouter = router({
     .input(
       z.object({
         id: z.string(),
-        ownerId: z.string().nullable(),
+        assignedToUserId: z.string().nullable(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const [alert] = await ctx.db
-        .update(alerts)
-        .set({ ownerId: input.ownerId })
-        .where(and(eq(alerts.id, input.id), eq(alerts.organizationId, ctx.activeOrganizationId)))
-        .returning()
+      requireMutatePermission(ctx)
 
-      return alert
+      return withAudit(ctx, 'assign_alert', 'alert', input.id, async () => {
+        const before = await ctx.db.query.alerts.findFirst({
+          where: scopedAnd(alerts, ctx, eq(alerts.id, input.id)),
+        })
+
+        const [after] = await ctx.db
+          .update(alerts)
+          .set({ assignedToUserId: input.assignedToUserId })
+          .where(scopedAnd(alerts, ctx, eq(alerts.id, input.id)))
+          .returning()
+
+        return { before, after, result: after }
+      })
     }),
 
   /**
@@ -231,30 +297,52 @@ export const alertsRouter = router({
         id: z.string(),
         title: z.string().min(1).max(500).optional(),
         description: z.string().optional(),
-        severity: z.enum(['critical', 'high', 'medium', 'low']).optional(),
-        status: z.enum(['open', 'in_progress', 'resolved']).optional(),
-        ownerId: z.string().nullable().optional(),
+        type: z
+          .enum(['obligation_overdue', 'regulation_changed', 'evidence_pack_failed', 'system_unmapped'])
+          .optional(),
+        severity: z.enum(['info', 'low', 'medium', 'high', 'critical']).optional(),
+        status: z.enum(['open', 'in_triage', 'in_progress', 'resolved', 'wont_fix']).optional(),
+        assignedToUserId: z.string().nullable().optional(),
+        dueDate: z.date().nullable().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const { id, ...updates } = input
+      requireMutatePermission(ctx)
 
-      const [alert] = await ctx.db
-        .update(alerts)
-        .set(updates)
-        .where(and(eq(alerts.id, id), eq(alerts.organizationId, ctx.activeOrganizationId)))
-        .returning()
+      return withAudit(ctx, 'update_alert', 'alert', input.id, async () => {
+        const { id, ...updates } = input
 
-      return alert
+        const before = await ctx.db.query.alerts.findFirst({
+          where: scopedAnd(alerts, ctx, eq(alerts.id, id)),
+        })
+
+        const [after] = await ctx.db
+          .update(alerts)
+          .set(updates)
+          .where(scopedAnd(alerts, ctx, eq(alerts.id, id)))
+          .returning()
+
+        return { before, after, result: after }
+      })
     }),
 
   /**
    * Delete an alert
    */
   delete: orgProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
-    await ctx.db.delete(alerts).where(and(eq(alerts.id, input.id), eq(alerts.organizationId, ctx.activeOrganizationId)))
+    requireMutatePermission(ctx)
 
-    return { success: true }
+    return withDeleteAudit(
+      ctx,
+      'delete_alert',
+      'alert',
+      input.id,
+      () =>
+        ctx.db.query.alerts.findFirst({
+          where: scopedAnd(alerts, ctx, eq(alerts.id, input.id)),
+        }),
+      () => ctx.db.delete(alerts).where(scopedAnd(alerts, ctx, eq(alerts.id, input.id)))
+    )
   }),
 
   /**
@@ -264,21 +352,40 @@ export const alertsRouter = router({
     .input(
       z.object({
         ids: z.array(z.string()),
-        status: z.enum(['open', 'in_progress', 'resolved']),
+        status: z.enum(['open', 'in_triage', 'in_progress', 'resolved', 'wont_fix']),
       })
     )
     .mutation(async ({ ctx, input }) => {
+      requireMutatePermission(ctx)
+
       const updated = await Promise.all(
-        input.ids.map((id) =>
-          ctx.db
+        input.ids.map(async (id) => {
+          const before = await ctx.db.query.alerts.findFirst({
+            where: scopedAnd(alerts, ctx, eq(alerts.id, id)),
+          })
+
+          const [after] = await ctx.db
             .update(alerts)
             .set({ status: input.status })
-            .where(and(eq(alerts.id, id), eq(alerts.organizationId, ctx.activeOrganizationId)))
+            .where(scopedAnd(alerts, ctx, eq(alerts.id, id)))
             .returning()
-        )
+
+          if (after) {
+            await ctx.db.insert(auditLog).values({
+              organizationId: ctx.activeOrganizationId,
+              actorUserId: ctx.user.id,
+              action: 'update_alert_status',
+              entityType: 'alert',
+              entityId: id,
+              diff: { before, after },
+            })
+          }
+
+          return after
+        })
       )
 
-      return { updated: updated.flat().length }
+      return { updated: updated.filter(Boolean).length }
     }),
 
   /**
@@ -288,20 +395,39 @@ export const alertsRouter = router({
     .input(
       z.object({
         ids: z.array(z.string()),
-        ownerId: z.string().nullable(),
+        assignedToUserId: z.string().nullable(),
       })
     )
     .mutation(async ({ ctx, input }) => {
+      requireMutatePermission(ctx)
+
       const updated = await Promise.all(
-        input.ids.map((id) =>
-          ctx.db
+        input.ids.map(async (id) => {
+          const before = await ctx.db.query.alerts.findFirst({
+            where: scopedAnd(alerts, ctx, eq(alerts.id, id)),
+          })
+
+          const [after] = await ctx.db
             .update(alerts)
-            .set({ ownerId: input.ownerId })
-            .where(and(eq(alerts.id, id), eq(alerts.organizationId, ctx.activeOrganizationId)))
+            .set({ assignedToUserId: input.assignedToUserId })
+            .where(scopedAnd(alerts, ctx, eq(alerts.id, id)))
             .returning()
-        )
+
+          if (after) {
+            await ctx.db.insert(auditLog).values({
+              organizationId: ctx.activeOrganizationId,
+              actorUserId: ctx.user.id,
+              action: 'assign_alert',
+              entityType: 'alert',
+              entityId: id,
+              diff: { before, after },
+            })
+          }
+
+          return after
+        })
       )
 
-      return { updated: updated.flat().length }
+      return { updated: updated.filter(Boolean).length }
     }),
 })

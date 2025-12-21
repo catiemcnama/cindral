@@ -1,4 +1,4 @@
--- Day 1 canonical schema for Cindral
+-- Initial schema for Cindral
 -- Enums (must be created before tables)
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 

@@ -1,4 +1,12 @@
-import { alerts, articleSystemImpacts, evidencePacks, obligations, regulatoryChanges, systems } from '@/db/schema'
+import {
+  alerts,
+  articleSystemImpacts,
+  evidencePacks,
+  obligations,
+  regulations,
+  regulatoryChanges,
+  systems,
+} from '@/db/schema'
 import { and, count, desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { orgProcedure, router } from '../init'
@@ -8,31 +16,36 @@ export const dashboardRouter = router({
    * Get main dashboard stats
    */
   getStats: orgProcedure.query(async ({ ctx }) => {
-    // Get obligation stats
+    // Get obligation stats (strict org scoping)
     const orgObligations = await ctx.db.query.obligations.findMany({
-      where: sql`(${obligations.organizationId} IS NULL OR ${obligations.organizationId} = ${ctx.activeOrganizationId})`,
+      where: eq(obligations.organizationId, ctx.activeOrganizationId),
       columns: { status: true },
     })
 
     const obligationStats = {
       total: orgObligations.length,
-      compliant: orgObligations.filter((o) => o.status === 'compliant').length,
-      pending: orgObligations.filter((o) => o.status === 'pending').length,
-      nonCompliant: orgObligations.filter((o) => o.status === 'non_compliant').length,
+      notStarted: orgObligations.filter((o) => o.status === 'not_started').length,
+      inProgress: orgObligations.filter((o) => o.status === 'in_progress').length,
+      implemented: orgObligations.filter((o) => o.status === 'implemented').length,
+      underReview: orgObligations.filter((o) => o.status === 'under_review').length,
+      verified: orgObligations.filter((o) => o.status === 'verified').length,
     }
 
-    // Calculate controls at risk (non-compliant + pending)
-    const controlsAtRisk = obligationStats.nonCompliant
+    // Controls at risk = not_started + in_progress
+    const controlsAtRisk = obligationStats.notStarted
 
-    // Get system stats
+    // Get system stats (strict org scoping)
     const systemsList = await ctx.db.query.systems.findMany({
-      where: sql`(${systems.organizationId} IS NULL OR ${systems.organizationId} = ${ctx.activeOrganizationId})`,
+      where: eq(systems.organizationId, ctx.activeOrganizationId),
       columns: { id: true, criticality: true },
     })
 
     // Get systems with critical/high impacts
     const criticalImpacts = await ctx.db.query.articleSystemImpacts.findMany({
-      where: sql`${articleSystemImpacts.impactLevel} IN ('critical', 'high')`,
+      where: and(
+        eq(articleSystemImpacts.organizationId, ctx.activeOrganizationId),
+        sql`${articleSystemImpacts.impactLevel} IN ('critical', 'high')`
+      ),
       columns: { systemId: true },
     })
 
@@ -43,11 +56,16 @@ export const dashboardRouter = router({
     const activeAlerts = await ctx.db
       .select({ count: count() })
       .from(alerts)
-      .where(and(eq(alerts.organizationId, ctx.activeOrganizationId), sql`${alerts.status} IN ('open', 'in_progress')`))
+      .where(
+        and(
+          eq(alerts.organizationId, ctx.activeOrganizationId),
+          sql`${alerts.status} IN ('open', 'in_triage', 'in_progress')`
+        )
+      )
 
-    // Calculate overall compliance rate
-    const complianceRate =
-      obligationStats.total > 0 ? Math.round((obligationStats.compliant / obligationStats.total) * 100) : 0
+    // Calculate overall compliance rate (implemented + verified = compliant)
+    const compliant = obligationStats.implemented + obligationStats.verified
+    const complianceRate = obligationStats.total > 0 ? Math.round((compliant / obligationStats.total) * 100) : 100
 
     // Evidence packs count
     const evidencePacksResult = await ctx.db
@@ -71,13 +89,14 @@ export const dashboardRouter = router({
    * Get compliance breakdown by regulation
    */
   getComplianceByRegulation: orgProcedure.query(async ({ ctx }) => {
-    // Get all regulations with their obligations
+    // Get all regulations for this org
     const regs = await ctx.db.query.regulations.findMany({
+      where: eq(regulations.organizationId, ctx.activeOrganizationId),
       with: {
         articles: {
           with: {
             obligations: {
-              where: sql`(${obligations.organizationId} IS NULL OR ${obligations.organizationId} = ${ctx.activeOrganizationId})`,
+              where: eq(obligations.organizationId, ctx.activeOrganizationId),
             },
           },
         },
@@ -88,21 +107,27 @@ export const dashboardRouter = router({
       .map((reg) => {
         const allObligations = reg.articles.flatMap((a) => a.obligations)
         const total = allObligations.length
-        const compliant = allObligations.filter((o) => o.status === 'compliant').length
-        const pending = allObligations.filter((o) => o.status === 'pending').length
-        const nonCompliant = allObligations.filter((o) => o.status === 'non_compliant').length
+        const notStarted = allObligations.filter((o) => o.status === 'not_started').length
+        const inProgress = allObligations.filter((o) => o.status === 'in_progress').length
+        const implemented = allObligations.filter((o) => o.status === 'implemented').length
+        const underReview = allObligations.filter((o) => o.status === 'under_review').length
+        const verified = allObligations.filter((o) => o.status === 'verified').length
 
+        const compliant = implemented + verified
         const complianceRate = total > 0 ? Math.round((compliant / total) * 100) : 100
 
         return {
           id: reg.id,
           name: reg.name,
+          framework: reg.framework,
           jurisdiction: reg.jurisdiction,
           effectiveDate: reg.effectiveDate,
           total,
-          compliant,
-          pending,
-          nonCompliant,
+          notStarted,
+          inProgress,
+          implemented,
+          underReview,
+          verified,
           complianceRate,
         }
       })
@@ -125,6 +150,12 @@ export const dashboardRouter = router({
           regulation: {
             columns: { id: true, name: true },
           },
+          obligation: {
+            columns: { id: true, title: true },
+          },
+          system: {
+            columns: { id: true, name: true },
+          },
         },
       })
 
@@ -140,11 +171,12 @@ export const dashboardRouter = router({
       const limit = input?.limit ?? 10
 
       const changes = await ctx.db.query.regulatoryChanges.findMany({
+        where: eq(regulatoryChanges.organizationId, ctx.activeOrganizationId),
         limit,
         orderBy: desc(regulatoryChanges.publishedAt),
         with: {
           regulation: {
-            columns: { id: true, name: true },
+            columns: { id: true, name: true, framework: true },
           },
         },
       })
@@ -157,18 +189,23 @@ export const dashboardRouter = router({
    */
   getSystemImpactOverview: orgProcedure.query(async ({ ctx }) => {
     const systemsList = await ctx.db.query.systems.findMany({
-      where: sql`(${systems.organizationId} IS NULL OR ${systems.organizationId} = ${ctx.activeOrganizationId})`,
+      where: eq(systems.organizationId, ctx.activeOrganizationId),
       with: {
         articleImpacts: {
+          where: eq(articleSystemImpacts.organizationId, ctx.activeOrganizationId),
           with: {
             article: {
               with: {
                 regulation: {
-                  columns: { id: true, name: true },
+                  columns: { id: true, name: true, framework: true },
                 },
               },
             },
           },
+        },
+        obligationMappings: {
+          where: eq(systems.organizationId, ctx.activeOrganizationId),
+          columns: { id: true },
         },
       },
     })
@@ -200,9 +237,11 @@ export const dashboardRouter = router({
         return {
           id: system.id,
           name: system.name,
+          category: system.category,
           criticality: system.criticality,
           impactCounts,
           totalImpacts: system.articleImpacts.length,
+          obligationCount: system.obligationMappings?.length ?? 0,
           regulationsAffected: Array.from(regs),
           riskLevel,
         }
@@ -222,23 +261,72 @@ export const dashboardRouter = router({
       where: eq(evidencePacks.organizationId, ctx.activeOrganizationId),
       with: {
         regulation: {
-          columns: { id: true, name: true },
+          columns: { id: true, name: true, framework: true },
         },
       },
       orderBy: desc(evidencePacks.generatedAt),
     })
 
     const byFormat: Record<string, number> = {}
+    const byStatus: Record<string, number> = {}
+    const byAudience: Record<string, number> = {}
 
     packs.forEach((p) => {
       const format = p.exportFormat ?? 'unknown'
       byFormat[format] = (byFormat[format] ?? 0) + 1
+
+      const status = p.status ?? 'unknown'
+      byStatus[status] = (byStatus[status] ?? 0) + 1
+
+      const audience = p.intendedAudience ?? 'unknown'
+      byAudience[audience] = (byAudience[audience] ?? 0) + 1
     })
 
     return {
       total: packs.length,
       byFormat,
+      byStatus,
+      byAudience,
       recent: packs.slice(0, 5),
+    }
+  }),
+
+  /**
+   * Get quick compliance summary
+   */
+  getQuickSummary: orgProcedure.query(async ({ ctx }) => {
+    const [regsCount, obligationsCount, alertsCount, systemsCount] = await Promise.all([
+      ctx.db.query.regulations.findMany({
+        where: eq(regulations.organizationId, ctx.activeOrganizationId),
+        columns: { id: true },
+      }),
+      ctx.db.query.obligations.findMany({
+        where: eq(obligations.organizationId, ctx.activeOrganizationId),
+        columns: { status: true },
+      }),
+      ctx.db.query.alerts.findMany({
+        where: and(
+          eq(alerts.organizationId, ctx.activeOrganizationId),
+          sql`${alerts.status} NOT IN ('resolved', 'wont_fix')`
+        ),
+        columns: { severity: true },
+      }),
+      ctx.db.query.systems.findMany({
+        where: eq(systems.organizationId, ctx.activeOrganizationId),
+        columns: { id: true },
+      }),
+    ])
+
+    const compliant = obligationsCount.filter((o) => o.status === 'verified' || o.status === 'implemented').length
+    const total = obligationsCount.length
+
+    return {
+      regulations: regsCount.length,
+      obligations: total,
+      complianceRate: total > 0 ? Math.round((compliant / total) * 100) : 100,
+      activeAlerts: alertsCount.length,
+      criticalAlerts: alertsCount.filter((a) => a.severity === 'critical').length,
+      systems: systemsCount.length,
     }
   }),
 })

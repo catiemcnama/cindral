@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm'
-import { boolean, integer, index, json, pgEnum, pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core'
+import { index, json, pgEnum, pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core'
 
 /**
  * Better-Auth Tables
@@ -28,316 +28,489 @@ import { invitation, member, organization, session, user } from '../../auth-sche
 /**
  * Enums
  */
-export const severityEnum = pgEnum('severity', ['critical', 'high', 'medium', 'low'])
-export const alertStatusEnum = pgEnum('alert_status', ['open', 'in_progress', 'resolved'])
-export const obligationStatusEnum = pgEnum('obligation_status', ['pending', 'compliant', 'non_compliant'])
+
+// Role enum for organization members
+export const roleEnum = pgEnum('role', ['OrgAdmin', 'ComplianceManager', 'Auditor', 'Viewer', 'BillingAdmin'])
+
+// Severity levels
+export const severityEnum = pgEnum('severity', ['info', 'low', 'medium', 'high', 'critical'])
+
+// Alert status workflow
+export const alertStatusEnum = pgEnum('alert_status', ['open', 'in_triage', 'in_progress', 'resolved', 'wont_fix'])
+
+// Alert type enum
+export const alertTypeEnum = pgEnum('alert_type', [
+  'obligation_overdue',
+  'regulation_changed',
+  'evidence_pack_failed',
+  'system_unmapped',
+])
+
+// Obligation status (5-state workflow)
+export const obligationStatusEnum = pgEnum('obligation_status', [
+  'not_started',
+  'in_progress',
+  'implemented',
+  'under_review',
+  'verified',
+])
+
+// Requirement type for obligations
+export const requirementTypeEnum = pgEnum('requirement_type', ['process', 'technical', 'reporting'])
+
+// Risk level enum
+export const riskLevelEnum = pgEnum('risk_level', ['low', 'medium', 'high', 'critical'])
+
+// Impact level (same as severity for article impacts)
 export const impactLevelEnum = pgEnum('impact_level', ['critical', 'high', 'medium', 'low'])
 
-/**
- * Regulations - DORA, GDPR, AI Act, Basel III, etc.
- */
-export const regulations = pgTable('regulations', {
-  id: text('id').primaryKey(), // e.g., 'dora', 'gdpr', 'ai-act'
-  name: varchar('name', { length: 255 }).notNull(),
-  slug: varchar('slug', { length: 255 }).notNull(),
-  framework: varchar('framework', { length: 100 }),
-  version: varchar('version', { length: 50 }),
-  status: varchar('status', { length: 50 }).default('active'),
-  fullTitle: text('full_title').notNull(),
-  jurisdiction: varchar('jurisdiction', { length: 100 }), // e.g., 'European Union'
-  effectiveDate: timestamp('effective_date'),
-  lastUpdated: timestamp('last_updated'),
-  organizationId: text('organization_id').references(() => organization.id, { onDelete: 'cascade' }),
-  // Provenance
-  sourceUrl: text('source_url'),
-  sourceType: varchar('source_type', { length: 100 }),
-  ingestJobId: text('ingest_job_id'),
-  ingestTimestamp: timestamp('ingest_timestamp'),
-  checksum: text('checksum'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at')
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-})
+// Evidence pack status
+export const evidenceStatusEnum = pgEnum('evidence_status', ['draft', 'generating', 'ready', 'failed', 'archived'])
 
-/**
- * Articles - Individual articles within regulations
- */
-export const articles = pgTable('articles', {
-  id: text('id').primaryKey(), // e.g., 'dora-article-11'
-  regulationId: text('regulation_id')
-    .notNull()
-    .references(() => regulations.id, { onDelete: 'cascade' }),
-  organizationId: text('organization_id').references(() => organization.id, { onDelete: 'cascade' }),
-  articleNumber: varchar('article_number', { length: 100 }).notNull(), // e.g., 'Article 11(1)'
-  sectionTitle: text('section_title'), // Can be very long in EU regulations
-  title: text('title'),
-  rawText: text('raw_text'),
-  normalizedText: text('normalized_text'),
-  description: text('description'),
-  // Provenance
-  sourceUrl: text('source_url'),
-  ingestJobId: text('ingest_job_id'),
-  ingestTimestamp: timestamp('ingest_timestamp'),
-  checksum: text('checksum'),
-  // Review workflow
-  humanReviewedBy: text('human_reviewed_by'),
-  humanReviewedAt: timestamp('human_reviewed_at'),
-  reviewStatus: varchar('review_status', { length: 50 }).default('pending'),
-  aiSummary: text('ai_summary'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at')
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-})
+// Mapping confidence
+export const mappingConfidenceEnum = pgEnum('mapping_confidence', ['low', 'medium', 'high'])
 
-/**
- * Systems - IT systems tracked for compliance (Mobile App, Core Banking, etc.)
- */
-export const systems = pgTable('systems', {
-  id: text('id').primaryKey(),
-  name: varchar('name', { length: 255 }).notNull(),
-  description: text('description'),
-  criticality: severityEnum('criticality'),
-  organizationId: text('organization_id').references(() => organization.id, { onDelete: 'cascade' }),
-  slug: varchar('slug', { length: 255 }),
-  category: varchar('category', { length: 100 }),
-  dataClassification: varchar('data_classification', { length: 100 }),
-  ownerTeam: varchar('owner_team', { length: 200 }),
-  ownerUserId: text('owner_user_id'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at')
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-})
+// Mapped by
+export const mappedByEnum = pgEnum('mapped_by', ['llm', 'human'])
 
-/**
- * Article-System Impact - Maps which systems are affected by which articles
- */
-export const articleSystemImpacts = pgTable('article_system_impacts', {
-  id: serial('id').primaryKey(),
-  articleId: text('article_id')
-    .notNull()
-    .references(() => articles.id, { onDelete: 'cascade' }),
-  systemId: text('system_id')
-    .notNull()
-    .references(() => systems.id, { onDelete: 'cascade' }),
-  impactLevel: impactLevelEnum('impact_level').notNull(),
-  status: alertStatusEnum('status').default('open'),
-  notes: text('notes'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-})
+// Review status
+export const reviewStatusEnum = pgEnum('review_status', ['pending', 'approved', 'rejected'])
 
-/**
- * Obligation <-> System mappings (explicit)
- */
-export const obligationSystemMappings = pgTable('obligation_system_mappings', {
-  id: serial('id').primaryKey(),
-  organizationId: text('organization_id').notNull().references(() => organization.id, { onDelete: 'cascade' }),
-  obligationId: text('obligation_id').notNull().references(() => obligations.id, { onDelete: 'cascade' }),
-  systemId: text('system_id').notNull().references(() => systems.id, { onDelete: 'cascade' }),
-  mappingConfidence: varchar('mapping_confidence', { length: 50 }).default('medium'),
-  mappedBy: varchar('mapped_by', { length: 50 }).default('human'),
-  reason: text('reason'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at')
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-})
+// Regulation status
+export const regulationStatusEnum = pgEnum('regulation_status', ['active', 'superseded', 'draft'])
 
-/**
- * Alerts - Regulatory change alerts
- */
-export const alerts = pgTable('alerts', {
-  id: text('id').primaryKey(), // e.g., 'ALT-001'
-  title: varchar('title', { length: 500 }).notNull(),
-  description: text('description'),
-  severity: severityEnum('severity').notNull(),
-  status: alertStatusEnum('status').notNull().default('open'),
-  regulationId: text('regulation_id').references(() => regulations.id, { onDelete: 'set null' }),
-  articleId: text('article_id').references(() => articles.id, { onDelete: 'set null' }),
-  ownerId: text('owner_id').references(() => user.id, { onDelete: 'set null' }),
-  organizationId: text('organization_id').references(() => organization.id, { onDelete: 'cascade' }),
-  // generic context column for additional metadata
-  context: json('context'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at')
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-})
+// Source type
+export const sourceTypeEnum = pgEnum('source_type', ['eur-lex', 'manual-upload', 'api', 'llm', 'manual'])
 
-/**
- * Obligations - Compliance obligations derived from articles
- */
-export const obligations = pgTable('obligations', {
-  id: text('id').primaryKey(), // e.g., 'OBL-DORA-11-001'
-  articleId: text('article_id')
-    .notNull()
-    .references(() => articles.id, { onDelete: 'cascade' }),
-  organizationId: text('organization_id').references(() => organization.id, { onDelete: 'cascade' }),
-  regulationId: text('regulation_id').references(() => regulations.id, { onDelete: 'cascade' }),
-  referenceCode: varchar('reference_code', { length: 255 }),
-  title: varchar('title', { length: 500 }).notNull(),
-  summary: text('summary'),
-  requirementType: varchar('requirement_type', { length: 100 }),
-  riskLevel: varchar('risk_level', { length: 50 }),
-  status: obligationStatusEnum('status').notNull().default('pending'),
-  // Provenance
-  sourceType: varchar('source_type', { length: 50 }),
-  ingestJobId: text('ingest_job_id'),
-  ingestTimestamp: timestamp('ingest_timestamp'),
-  checksum: text('checksum'),
-  // Review
-  humanReviewedBy: text('human_reviewed_by'),
-  humanReviewedAt: timestamp('human_reviewed_at'),
-  dueDate: timestamp('due_date'),
-  ownerTeam: varchar('owner_team', { length: 200 }),
-  ownerUserId: text('owner_user_id'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at')
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-})
-
-/**
- * Evidence Packs - Generated compliance documentation bundles
- */
-export const evidencePacks = pgTable('evidence_packs', {
-  id: serial('id').primaryKey(),
-  regulationId: text('regulation_id')
-    .notNull()
-    .references(() => regulations.id, { onDelete: 'cascade' }),
-  articleId: text('article_id').references(() => articles.id, { onDelete: 'set null' }),
-  generatedAt: timestamp('generated_at').notNull().defaultNow(),
-  exportFormat: varchar('export_format', { length: 50 }), // 'pdf', 'confluence', 'jira'
-  organizationId: text('organization_id').references(() => organization.id, { onDelete: 'cascade' }),
-  createdById: text('created_by_id').references(() => user.id, { onDelete: 'set null' }),
-  title: varchar('title', { length: 255 }),
-  status: varchar('status', { length: 50 }).default('draft'),
-  jobId: text('job_id'),
-  lastGeneratedAt: timestamp('last_generated_at'),
-  downloadUrl: text('download_url'),
-  storageLocation: text('storage_location'),
-  intendedAudience: varchar('intended_audience', { length: 50 }),
-  requestedByUserId: text('requested_by_user_id'),
-})
-
-
-/**
- * Audit log - records all critical mutations
- */
-export const auditLog = pgTable('audit_log', {
-  id: serial('id').primaryKey(),
-  organizationId: text('organization_id').references(() => organization.id, { onDelete: 'cascade' }),
-  actorUserId: text('actor_user_id').references(() => user.id, { onDelete: 'set null' }),
-  action: varchar('action', { length: 200 }).notNull(),
-  entityType: varchar('entity_type', { length: 100 }).notNull(),
-  entityId: text('entity_id'),
-  diff: json('diff'),
-  ipAddress: text('ip_address'),
-  userAgent: text('user_agent'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-})
+// Ingest job status
+export const ingestJobStatusEnum = pgEnum('ingest_job_status', ['pending', 'running', 'succeeded', 'failed', 'partial'])
 
 /**
  * Ingest jobs - track ingestion work
  */
-export const ingestJobs = pgTable('ingest_jobs', {
-  id: text('id').primaryKey(),
-  organizationId: text('organization_id').references(() => organization.id, { onDelete: 'cascade' }),
-  source: varchar('source', { length: 100 }),
-  sourceUrl: text('source_url'),
-  status: varchar('status', { length: 50 }).default('pending'),
-  startedAt: timestamp('started_at'),
-  finishedAt: timestamp('finished_at'),
-  log: text('log'),
-  errorMessage: text('error_message'),
-})
+export const ingestJobs = pgTable(
+  'ingest_jobs',
+  {
+    id: text('id').primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    source: varchar('source', { length: 100 }).notNull(),
+    sourceUrl: text('source_url'),
+    status: ingestJobStatusEnum('status').default('pending'),
+    startedAt: timestamp('started_at'),
+    finishedAt: timestamp('finished_at'),
+    log: text('log'),
+    errorMessage: text('error_message'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => [index('ingest_jobs_org_idx').on(table.organizationId)]
+)
+
+/**
+ * Regulations - DORA, GDPR, AI Act, Basel III, etc.
+ */
+export const regulations = pgTable(
+  'regulations',
+  {
+    id: text('id').primaryKey(), // e.g., 'dora', 'gdpr', 'ai-act'
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    name: varchar('name', { length: 255 }).notNull(),
+    slug: varchar('slug', { length: 255 }).notNull(),
+    framework: varchar('framework', { length: 100 }).notNull(),
+    version: varchar('version', { length: 50 }),
+    status: regulationStatusEnum('status').default('active'),
+    fullTitle: text('full_title').notNull(),
+    jurisdiction: varchar('jurisdiction', { length: 100 }),
+    effectiveDate: timestamp('effective_date'),
+    lastUpdated: timestamp('last_updated'),
+    // Provenance
+    sourceUrl: text('source_url'),
+    sourceType: sourceTypeEnum('source_type'),
+    ingestJobId: text('ingest_job_id').references(() => ingestJobs.id, { onDelete: 'set null' }),
+    ingestTimestamp: timestamp('ingest_timestamp'),
+    checksum: text('checksum'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index('regulations_org_id_idx').on(table.organizationId, table.id),
+    index('regulations_org_framework_idx').on(table.organizationId, table.framework),
+  ]
+)
+
+/**
+ * Articles - Individual articles within regulations
+ */
+export const articles = pgTable(
+  'articles',
+  {
+    id: text('id').primaryKey(), // e.g., 'dora-article-11'
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    regulationId: text('regulation_id')
+      .notNull()
+      .references(() => regulations.id, { onDelete: 'cascade' }),
+    articleNumber: varchar('article_number', { length: 100 }).notNull(),
+    sectionTitle: text('section_title'),
+    title: text('title'),
+    rawText: text('raw_text'),
+    normalizedText: text('normalized_text'),
+    description: text('description'),
+    // Provenance
+    sourceUrl: text('source_url'),
+    ingestJobId: text('ingest_job_id').references(() => ingestJobs.id, { onDelete: 'set null' }),
+    ingestTimestamp: timestamp('ingest_timestamp'),
+    checksum: text('checksum'),
+    // Review workflow
+    humanReviewedBy: text('human_reviewed_by').references(() => user.id, { onDelete: 'set null' }),
+    humanReviewedAt: timestamp('human_reviewed_at'),
+    reviewStatus: reviewStatusEnum('review_status').default('pending'),
+    aiSummary: text('ai_summary'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index('articles_org_reg_idx').on(table.organizationId, table.regulationId, table.articleNumber),
+    index('articles_org_id_idx').on(table.organizationId, table.id),
+  ]
+)
+
+/**
+ * Systems - IT systems tracked for compliance
+ */
+export const systems = pgTable(
+  'systems',
+  {
+    id: text('id').primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    name: varchar('name', { length: 255 }).notNull(),
+    slug: varchar('slug', { length: 255 }),
+    category: varchar('category', { length: 100 }),
+    criticality: severityEnum('criticality'),
+    dataClassification: varchar('data_classification', { length: 100 }),
+    description: text('description'),
+    ownerTeam: varchar('owner_team', { length: 200 }),
+    ownerUserId: text('owner_user_id').references(() => user.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [index('systems_org_id_idx').on(table.organizationId, table.id)]
+)
+
+/**
+ * Obligations - Compliance obligations derived from articles
+ */
+export const obligations = pgTable(
+  'obligations',
+  {
+    id: text('id').primaryKey(), // e.g., 'OBL-DORA-11-001'
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    regulationId: text('regulation_id').references(() => regulations.id, { onDelete: 'cascade' }),
+    articleId: text('article_id')
+      .notNull()
+      .references(() => articles.id, { onDelete: 'cascade' }),
+    referenceCode: varchar('reference_code', { length: 255 }),
+    title: varchar('title', { length: 500 }).notNull(),
+    summary: text('summary'),
+    requirementType: requirementTypeEnum('requirement_type'),
+    riskLevel: riskLevelEnum('risk_level'),
+    status: obligationStatusEnum('status').notNull().default('not_started'),
+    // Provenance
+    sourceType: sourceTypeEnum('source_type'),
+    ingestJobId: text('ingest_job_id').references(() => ingestJobs.id, { onDelete: 'set null' }),
+    ingestTimestamp: timestamp('ingest_timestamp'),
+    checksum: text('checksum'),
+    // Review
+    humanReviewedBy: text('human_reviewed_by').references(() => user.id, { onDelete: 'set null' }),
+    humanReviewedAt: timestamp('human_reviewed_at'),
+    dueDate: timestamp('due_date'),
+    ownerTeam: varchar('owner_team', { length: 200 }),
+    ownerUserId: text('owner_user_id').references(() => user.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index('obligations_org_status_idx').on(table.organizationId, table.status),
+    index('obligations_org_risk_idx').on(table.organizationId, table.riskLevel),
+    index('obligations_org_reg_idx').on(table.organizationId, table.regulationId),
+    index('obligations_org_id_idx').on(table.organizationId, table.id),
+  ]
+)
+
+/**
+ * Article-System Impact - Maps which systems are affected by which articles
+ */
+export const articleSystemImpacts = pgTable(
+  'article_system_impacts',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    articleId: text('article_id')
+      .notNull()
+      .references(() => articles.id, { onDelete: 'cascade' }),
+    systemId: text('system_id')
+      .notNull()
+      .references(() => systems.id, { onDelete: 'cascade' }),
+    impactLevel: impactLevelEnum('impact_level').notNull(),
+    status: alertStatusEnum('status').default('open'),
+    notes: text('notes'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [index('article_system_impacts_org_idx').on(table.organizationId)]
+)
+
+/**
+ * Obligation <-> System mappings (explicit)
+ */
+export const obligationSystemMappings = pgTable(
+  'obligation_system_mappings',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    obligationId: text('obligation_id')
+      .notNull()
+      .references(() => obligations.id, { onDelete: 'cascade' }),
+    systemId: text('system_id')
+      .notNull()
+      .references(() => systems.id, { onDelete: 'cascade' }),
+    mappingConfidence: mappingConfidenceEnum('mapping_confidence').default('medium'),
+    mappedBy: mappedByEnum('mapped_by').default('human'),
+    reason: text('reason'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [index('obligation_system_mappings_org_idx').on(table.organizationId)]
+)
+
+/**
+ * Evidence Packs - Generated compliance documentation bundles
+ */
+export const evidencePacks = pgTable(
+  'evidence_packs',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    title: varchar('title', { length: 255 }),
+    description: text('description'),
+    framework: varchar('framework', { length: 100 }),
+    jurisdiction: varchar('jurisdiction', { length: 100 }),
+    status: evidenceStatusEnum('status').default('draft'),
+    regulationId: text('regulation_id').references(() => regulations.id, { onDelete: 'cascade' }),
+    systemId: text('system_id').references(() => systems.id, { onDelete: 'set null' }),
+    articleId: text('article_id').references(() => articles.id, { onDelete: 'set null' }),
+    requestedByUserId: text('requested_by_user_id').references(() => user.id, { onDelete: 'set null' }),
+    intendedAudience: varchar('intended_audience', { length: 50 }), // 'internal', 'auditor', 'regulator'
+    jobId: text('job_id'),
+    lastGeneratedAt: timestamp('last_generated_at'),
+    downloadUrl: text('download_url'),
+    storageLocation: text('storage_location'),
+    exportFormat: varchar('export_format', { length: 50 }),
+    generatedAt: timestamp('generated_at').notNull().defaultNow(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index('evidence_packs_org_status_idx').on(table.organizationId, table.status),
+    index('evidence_packs_org_id_idx').on(table.organizationId, table.id),
+  ]
+)
+
+/**
+ * Alerts - Regulatory change alerts
+ */
+export const alerts = pgTable(
+  'alerts',
+  {
+    id: text('id').primaryKey(), // e.g., 'ALT-001'
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    type: alertTypeEnum('type'),
+    severity: severityEnum('severity').notNull(),
+    status: alertStatusEnum('status').notNull().default('open'),
+    title: varchar('title', { length: 500 }).notNull(),
+    description: text('description'),
+    context: json('context'), // JSONB for extra metadata
+    // Related entities (nullable FKs)
+    regulationId: text('regulation_id').references(() => regulations.id, { onDelete: 'set null' }),
+    articleId: text('article_id').references(() => articles.id, { onDelete: 'set null' }),
+    obligationId: text('obligation_id').references(() => obligations.id, { onDelete: 'set null' }),
+    systemId: text('system_id').references(() => systems.id, { onDelete: 'set null' }),
+    evidencePackId: integer('evidence_pack_id').references(() => evidencePacks.id, { onDelete: 'set null' }),
+    // Assignment and resolution
+    assignedToUserId: text('assigned_to_user_id').references(() => user.id, { onDelete: 'set null' }),
+    dueDate: timestamp('due_date'),
+    resolvedAt: timestamp('resolved_at'),
+    resolvedByUserId: text('resolved_by_user_id').references(() => user.id, { onDelete: 'set null' }),
+    resolutionNotes: text('resolution_notes'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index('alerts_org_status_idx').on(table.organizationId, table.status),
+    index('alerts_org_severity_idx').on(table.organizationId, table.severity),
+    index('alerts_org_created_idx').on(table.organizationId, table.createdAt),
+    index('alerts_org_id_idx').on(table.organizationId, table.id),
+  ]
+)
+
+// Import integer for evidencePackId reference
+import { integer } from 'drizzle-orm/pg-core'
+
+/**
+ * Audit log - records all critical mutations
+ */
+export const auditLog = pgTable(
+  'audit_log',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    actorUserId: text('actor_user_id').references(() => user.id, { onDelete: 'set null' }),
+    action: varchar('action', { length: 200 }).notNull(),
+    entityType: varchar('entity_type', { length: 100 }).notNull(),
+    entityId: text('entity_id'),
+    diff: json('diff'),
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => [
+    index('audit_log_org_idx').on(table.organizationId),
+    index('audit_log_entity_idx').on(table.entityType, table.entityId),
+    index('audit_log_actor_idx').on(table.actorUserId),
+  ]
+)
+
 /**
  * Regulatory Change Feed - Timeline of regulatory updates
  */
-export const regulatoryChanges = pgTable('regulatory_changes', {
-  id: serial('id').primaryKey(),
-  regulationId: text('regulation_id')
-    .notNull()
-    .references(() => regulations.id, { onDelete: 'cascade' }),
-  articleId: text('article_id').references(() => articles.id, { onDelete: 'set null' }),
-  title: varchar('title', { length: 500 }).notNull(),
-  description: text('description'),
-  severity: severityEnum('severity').notNull(),
-  changesCount: integer('changes_count').default(0),
-  publishedAt: timestamp('published_at').notNull().defaultNow(),
-  organizationId: text('organization_id').references(() => organization.id, { onDelete: 'cascade' }),
-})
-
-/**
- * Legacy posts table (can be removed if not needed)
- */
-export const posts = pgTable('posts', {
-  id: serial('id').primaryKey(),
-  title: varchar('title', { length: 255 }).notNull(),
-  content: text('content').notNull(),
-  userId: text('user_id')
-    .notNull()
-    .references(() => user.id, { onDelete: 'cascade' }),
-  organizationId: text('organization_id').references(() => organization.id, {
-    onDelete: 'cascade',
-  }),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at')
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-})
+export const regulatoryChanges = pgTable(
+  'regulatory_changes',
+  {
+    id: serial('id').primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    regulationId: text('regulation_id')
+      .notNull()
+      .references(() => regulations.id, { onDelete: 'cascade' }),
+    articleId: text('article_id').references(() => articles.id, { onDelete: 'set null' }),
+    title: varchar('title', { length: 500 }).notNull(),
+    description: text('description'),
+    severity: severityEnum('severity').notNull(),
+    changesCount: integer('changes_count').default(0),
+    publishedAt: timestamp('published_at').notNull().defaultNow(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => [index('regulatory_changes_org_idx').on(table.organizationId)]
+)
 
 /**
  * Application Relations
  */
 
-// Extend user relations to include posts and alerts
+// Extend user relations to include alerts
 export const userRelations = relations(user, ({ many }) => ({
-  posts: many(posts),
   alerts: many(alerts),
+  ownedSystems: many(systems),
+  ownedObligations: many(obligations),
 }))
 
-export const postsRelations = relations(posts, ({ one }) => ({
-  user: one(user, {
-    fields: [posts.userId],
-    references: [user.id],
-  }),
+export const regulationsRelations = relations(regulations, ({ one, many }) => ({
   organization: one(organization, {
-    fields: [posts.organizationId],
+    fields: [regulations.organizationId],
     references: [organization.id],
   }),
-}))
-
-export const regulationsRelations = relations(regulations, ({ many }) => ({
+  ingestJob: one(ingestJobs, {
+    fields: [regulations.ingestJobId],
+    references: [ingestJobs.id],
+  }),
   articles: many(articles),
   alerts: many(alerts),
   regulatoryChanges: many(regulatoryChanges),
   evidencePacks: many(evidencePacks),
+  obligations: many(obligations),
 }))
 
 export const articlesRelations = relations(articles, ({ one, many }) => ({
+  organization: one(organization, {
+    fields: [articles.organizationId],
+    references: [organization.id],
+  }),
   regulation: one(regulations, {
     fields: [articles.regulationId],
     references: [regulations.id],
   }),
+  ingestJob: one(ingestJobs, {
+    fields: [articles.ingestJobId],
+    references: [ingestJobs.id],
+  }),
   obligations: many(obligations),
   systemImpacts: many(articleSystemImpacts),
+  alerts: many(alerts),
 }))
 
-export const systemsRelations = relations(systems, ({ many }) => ({
+export const systemsRelations = relations(systems, ({ one, many }) => ({
+  organization: one(organization, {
+    fields: [systems.organizationId],
+    references: [organization.id],
+  }),
+  owner: one(user, {
+    fields: [systems.ownerUserId],
+    references: [user.id],
+  }),
   articleImpacts: many(articleSystemImpacts),
+  obligationMappings: many(obligationSystemMappings),
+  alerts: many(alerts),
+  evidencePacks: many(evidencePacks),
 }))
 
 export const articleSystemImpactsRelations = relations(articleSystemImpacts, ({ one }) => ({
+  organization: one(organization, {
+    fields: [articleSystemImpacts.organizationId],
+    references: [organization.id],
+  }),
   article: one(articles, {
     fields: [articleSystemImpacts.articleId],
     references: [articles.id],
@@ -348,7 +521,51 @@ export const articleSystemImpactsRelations = relations(articleSystemImpacts, ({ 
   }),
 }))
 
+export const obligationsRelations = relations(obligations, ({ one, many }) => ({
+  organization: one(organization, {
+    fields: [obligations.organizationId],
+    references: [organization.id],
+  }),
+  regulation: one(regulations, {
+    fields: [obligations.regulationId],
+    references: [regulations.id],
+  }),
+  article: one(articles, {
+    fields: [obligations.articleId],
+    references: [articles.id],
+  }),
+  ingestJob: one(ingestJobs, {
+    fields: [obligations.ingestJobId],
+    references: [ingestJobs.id],
+  }),
+  owner: one(user, {
+    fields: [obligations.ownerUserId],
+    references: [user.id],
+  }),
+  systemMappings: many(obligationSystemMappings),
+  alerts: many(alerts),
+}))
+
+export const obligationSystemMappingsRelations = relations(obligationSystemMappings, ({ one }) => ({
+  organization: one(organization, {
+    fields: [obligationSystemMappings.organizationId],
+    references: [organization.id],
+  }),
+  obligation: one(obligations, {
+    fields: [obligationSystemMappings.obligationId],
+    references: [obligations.id],
+  }),
+  system: one(systems, {
+    fields: [obligationSystemMappings.systemId],
+    references: [systems.id],
+  }),
+}))
+
 export const alertsRelations = relations(alerts, ({ one }) => ({
+  organization: one(organization, {
+    fields: [alerts.organizationId],
+    references: [organization.id],
+  }),
   regulation: one(regulations, {
     fields: [alerts.regulationId],
     references: [regulations.id],
@@ -357,35 +574,56 @@ export const alertsRelations = relations(alerts, ({ one }) => ({
     fields: [alerts.articleId],
     references: [articles.id],
   }),
-  owner: one(user, {
-    fields: [alerts.ownerId],
+  obligation: one(obligations, {
+    fields: [alerts.obligationId],
+    references: [obligations.id],
+  }),
+  system: one(systems, {
+    fields: [alerts.systemId],
+    references: [systems.id],
+  }),
+  evidencePack: one(evidencePacks, {
+    fields: [alerts.evidencePackId],
+    references: [evidencePacks.id],
+  }),
+  assignedTo: one(user, {
+    fields: [alerts.assignedToUserId],
+    references: [user.id],
+  }),
+  resolvedBy: one(user, {
+    fields: [alerts.resolvedByUserId],
     references: [user.id],
   }),
 }))
 
-export const obligationsRelations = relations(obligations, ({ one }) => ({
-  article: one(articles, {
-    fields: [obligations.articleId],
-    references: [articles.id],
-  }),
-}))
-
 export const evidencePacksRelations = relations(evidencePacks, ({ one }) => ({
+  organization: one(organization, {
+    fields: [evidencePacks.organizationId],
+    references: [organization.id],
+  }),
   regulation: one(regulations, {
     fields: [evidencePacks.regulationId],
     references: [regulations.id],
+  }),
+  system: one(systems, {
+    fields: [evidencePacks.systemId],
+    references: [systems.id],
   }),
   article: one(articles, {
     fields: [evidencePacks.articleId],
     references: [articles.id],
   }),
-  createdBy: one(user, {
-    fields: [evidencePacks.createdById],
+  requestedBy: one(user, {
+    fields: [evidencePacks.requestedByUserId],
     references: [user.id],
   }),
 }))
 
 export const regulatoryChangesRelations = relations(regulatoryChanges, ({ one }) => ({
+  organization: one(organization, {
+    fields: [regulatoryChanges.organizationId],
+    references: [organization.id],
+  }),
   regulation: one(regulations, {
     fields: [regulatoryChanges.regulationId],
     references: [regulations.id],
@@ -394,6 +632,16 @@ export const regulatoryChangesRelations = relations(regulatoryChanges, ({ one })
     fields: [regulatoryChanges.articleId],
     references: [articles.id],
   }),
+}))
+
+export const ingestJobsRelations = relations(ingestJobs, ({ one, many }) => ({
+  organization: one(organization, {
+    fields: [ingestJobs.organizationId],
+    references: [organization.id],
+  }),
+  regulations: many(regulations),
+  articles: many(articles),
+  obligations: many(obligations),
 }))
 
 /**
@@ -416,10 +664,6 @@ export type NewMember = typeof member.$inferInsert
 export type Invitation = typeof invitation.$inferSelect
 export type NewInvitation = typeof invitation.$inferInsert
 
-// Application types
-export type Post = typeof posts.$inferSelect
-export type NewPost = typeof posts.$inferInsert
-
 // Compliance domain types
 export type Regulation = typeof regulations.$inferSelect
 export type NewRegulation = typeof regulations.$inferInsert
@@ -433,6 +677,9 @@ export type NewSystem = typeof systems.$inferInsert
 export type ArticleSystemImpact = typeof articleSystemImpacts.$inferSelect
 export type NewArticleSystemImpact = typeof articleSystemImpacts.$inferInsert
 
+export type ObligationSystemMapping = typeof obligationSystemMappings.$inferSelect
+export type NewObligationSystemMapping = typeof obligationSystemMappings.$inferInsert
+
 export type Alert = typeof alerts.$inferSelect
 export type NewAlert = typeof alerts.$inferInsert
 
@@ -444,3 +691,9 @@ export type NewEvidencePack = typeof evidencePacks.$inferInsert
 
 export type RegulatoryChange = typeof regulatoryChanges.$inferSelect
 export type NewRegulatoryChange = typeof regulatoryChanges.$inferInsert
+
+export type IngestJob = typeof ingestJobs.$inferSelect
+export type NewIngestJob = typeof ingestJobs.$inferInsert
+
+export type AuditLogEntry = typeof auditLog.$inferSelect
+export type NewAuditLogEntry = typeof auditLog.$inferInsert
