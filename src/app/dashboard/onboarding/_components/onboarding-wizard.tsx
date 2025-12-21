@@ -1,7 +1,5 @@
 'use client'
 
-import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowRightIcon,
   BanknoteIcon,
@@ -20,6 +18,8 @@ import {
   UserPlusIcon,
   UsersIcon,
 } from 'lucide-react'
+import Link from 'next/link'
+import { useEffect, useMemo, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -278,7 +278,7 @@ const inviteRoles = [
   { value: 'member', label: 'Member' },
 ]
 
-const EMAIL_REGEX = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const regulationIndex = regulations.reduce<Record<string, Regulation>>((acc, regulation) => {
   acc[regulation.id] = regulation
@@ -391,15 +391,20 @@ export function OnboardingWizard() {
     hasLoadedState,
   ])
 
+  // `recommendedRegulations` is derived from `industryId` via useMemo.
+  // Use `industryId` in the dependency array to avoid unnecessary re-runs.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!industryId || regulationsCustomized || !hasLoadedState) return
     setSelectedRegulations(recommendedRegulations)
-  }, [industryId, recommendedRegulations, regulationsCustomized, hasLoadedState])
+  }, [industryId, regulationsCustomized, hasLoadedState])
 
+  // `recommendedSystems` is derived from `industryId` via useMemo.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!industryId || systemsCustomized || !hasLoadedState) return
     setSelectedSystems(recommendedSystems)
-  }, [industryId, recommendedSystems, systemsCustomized, hasLoadedState])
+  }, [industryId, systemsCustomized, hasLoadedState])
 
   const handleToggleRegulation = (id: string) => {
     setSelectedRegulations((prev) => {
@@ -437,7 +442,10 @@ export function OnboardingWizard() {
     if (!name) return
 
     const description = customSystemDescription.trim()
-    const slugBase = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+    const slugBase = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '')
     const id = slugBase ? `custom-${slugBase}` : `custom-${Date.now()}`
 
     setCustomSystems((prev) => [...prev, { id, name, description }])
@@ -592,9 +600,7 @@ export function OnboardingWizard() {
 
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="text-sm text-muted-foreground">
-                    {selectedIndustry
-                      ? `${selectedIndustry.name} selected.`
-                      : 'Select an industry to continue.'}
+                    {selectedIndustry ? `${selectedIndustry.name} selected.` : 'Select an industry to continue.'}
                   </div>
                   <Button onClick={() => setStep(2)} disabled={!selectedIndustry}>
                     Continue to regulations
@@ -688,8 +694,8 @@ export function OnboardingWizard() {
                             </div>
                           </div>
                         </div>
-                      )}
-                    )}
+                      )
+                    })}
                   </div>
                 )}
 
@@ -755,7 +761,10 @@ export function OnboardingWizard() {
                         />
                         <div className="flex-1 space-y-2">
                           <div className="flex flex-wrap items-center gap-2">
-                            <label htmlFor={`system-${system.id}`} className="flex items-center gap-2 text-sm font-medium">
+                            <label
+                              htmlFor={`system-${system.id}`}
+                              className="flex items-center gap-2 text-sm font-medium"
+                            >
                               <Icon className="size-4 text-muted-foreground" />
                               {system.name}
                             </label>
@@ -808,9 +817,7 @@ export function OnboardingWizard() {
                       </div>
                     </div>
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <p className="text-xs text-muted-foreground">
-                        You can add owners and evidence later.
-                      </p>
+                      <p className="text-xs text-muted-foreground">You can add owners and evidence later.</p>
                       <Button size="sm" onClick={handleAddCustomSystem} disabled={!customSystemName.trim()}>
                         Add system
                       </Button>
@@ -868,9 +875,7 @@ export function OnboardingWizard() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <CardTitle>Step 4: Invite your team</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      Add compliance, security, and engineering partners.
-                    </p>
+                    <p className="text-sm text-muted-foreground">Add compliance, security, and engineering partners.</p>
                   </div>
                   <Badge variant="secondary" className="gap-1">
                     <UsersIcon className="size-3" />
@@ -883,7 +888,7 @@ export function OnboardingWizard() {
                   <div className="space-y-2">
                     <Label htmlFor="inviteEmail">Email address</Label>
                     <div className="relative">
-                      <MailIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                      <MailIcon className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         id="inviteEmail"
                         value={inviteEmail}
@@ -915,9 +920,7 @@ export function OnboardingWizard() {
                     </Button>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Invites will be sent after you finish onboarding.
-                </p>
+                <p className="text-xs text-muted-foreground">Invites will be sent after you finish onboarding.</p>
 
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
@@ -988,9 +991,7 @@ export function OnboardingWizard() {
             <CardContent className="space-y-4">
               <div>
                 <p className="text-xs text-muted-foreground">Industry</p>
-                <p className="text-sm font-medium">
-                  {selectedIndustry ? selectedIndustry.name : 'Select an industry'}
-                </p>
+                <p className="text-sm font-medium">{selectedIndustry ? selectedIndustry.name : 'Select an industry'}</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-lg border bg-muted/40 p-3">
@@ -1052,9 +1053,7 @@ export function OnboardingWizard() {
                       {name}
                     </Badge>
                   ))}
-                  {systemNameOverflow > 0 && (
-                    <Badge variant="outline">+{systemNameOverflow} more</Badge>
-                  )}
+                  {systemNameOverflow > 0 && <Badge variant="outline">+{systemNameOverflow} more</Badge>}
                 </div>
               </div>
 

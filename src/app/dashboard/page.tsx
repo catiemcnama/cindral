@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 
 import { ComplianceStatus } from './_components/compliance-status'
 import { OnboardingCta } from './_components/onboarding-cta'
+import { RecentAlerts } from './_components/recent-alerts'
 import { RegulatoryFeed } from './_components/regulatory-feed'
 import { SystemImpactOverview } from './_components/system-impact-overview'
 
@@ -18,6 +19,9 @@ export default function DashboardPage() {
         {/* Left column - Regulatory Change Feed */}
         <div className="lg:col-span-2">
           <RegulatoryFeed />
+          <div className="mt-6">
+            <RecentAlerts />
+          </div>
         </div>
 
         {/* Right column - Stats and Charts */}

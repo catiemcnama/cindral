@@ -1,8 +1,9 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ChartConfig, ChartContainer } from '@/components/ui/chart'
-import { Cell, Label, Pie, PieChart, ResponsiveContainer } from 'recharts'
+import { ChartConfig } from '@/components/ui/chart'
+import { Skeleton } from '@/components/ui/skeleton'
+import dynamic from 'next/dynamic'
 
 // Mock data matching the Figma mockup - 67% overall compliance
 const complianceData = [
@@ -26,6 +27,15 @@ const chartConfig: ChartConfig = {
   },
 }
 
+const LazyCompliancePie = dynamic(() => import('./compliance-pie').then((m) => m.CompliancePie), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-50 w-full items-center justify-center">
+      <Skeleton className="h-24 w-24" />
+    </div>
+  ),
+})
+
 export function ComplianceStatus() {
   const totalValue = complianceData.reduce((acc, curr) => acc + curr.value, 0)
   const compliantPercentage = Math.round((complianceData[0].value / totalValue) * 100)
@@ -36,43 +46,14 @@ export function ComplianceStatus() {
         <CardTitle className="text-base font-medium">Compliance Status</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center">
-        <ChartContainer config={chartConfig} className="h-50 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={complianceData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={80}
-                paddingAngle={2}
-                dataKey="value"
-                strokeWidth={0}
-              >
-                {complianceData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.fill} />
-                ))}
-                <Label
-                  content={({ viewBox }) => {
-                    if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
-                      return (
-                        <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
-                          <tspan x={viewBox.cx} y={viewBox.cy} className="fill-foreground text-3xl font-bold">
-                            {compliantPercentage}%
-                          </tspan>
-                          <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 20} className="fill-muted-foreground text-xs">
-                            Overall
-                          </tspan>
-                        </text>
-                      )
-                    }
-                    return null
-                  }}
-                />
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartContainer>
+        <div className="h-50 w-full">
+          <LazyCompliancePie complianceData={complianceData} />
+        </div>
+
+        {/* Accessible summary for screen readers */}
+        <div className="sr-only" aria-live="polite">
+          Overall compliance {compliantPercentage}%. {complianceData.map((d) => `${d.name} ${d.value}%`).join(', ')}
+        </div>
 
         {/* Legend */}
         <div className="mt-2 flex flex-wrap justify-center gap-4">

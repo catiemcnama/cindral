@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -79,11 +79,14 @@ function RegulationCard({ regulation, highlighted }: { regulation: RegulationSum
 }
 
 export function RegulationsList({ regulations }: RegulationsListProps) {
-  const onboarding = useSyncExternalStore(
-    subscribeToOnboarding,
-    readOnboardingState,
-    () => null
-  )
+  const [onboarding, setOnboarding] = useState(() => readOnboardingState())
+
+  useEffect(() => {
+    const unsubscribe = subscribeToOnboarding(() => {
+      setOnboarding(readOnboardingState())
+    })
+    return unsubscribe
+  }, [])
 
   const scopedIds = useMemo(() => new Set(onboarding?.regulations ?? []), [onboarding])
   const scopedRegulations = useMemo(
@@ -109,9 +112,7 @@ export function RegulationsList({ regulations }: RegulationsListProps) {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 className="text-lg font-semibold">Your scope</h2>
-              <p className="text-sm text-muted-foreground">
-                Based on the regulations you selected during onboarding.
-              </p>
+              <p className="text-sm text-muted-foreground">Based on the regulations you selected during onboarding.</p>
             </div>
             <Badge variant="outline">{scopedRegulations.length} regulations</Badge>
           </div>
@@ -133,11 +134,7 @@ export function RegulationsList({ regulations }: RegulationsListProps) {
         </div>
         <div className="grid gap-4">
           {(hasScope ? remainingRegulations : regulations).map((regulation) => (
-            <RegulationCard
-              key={regulation.id}
-              regulation={regulation}
-              highlighted={scopedIds.has(regulation.id)}
-            />
+            <RegulationCard key={regulation.id} regulation={regulation} highlighted={scopedIds.has(regulation.id)} />
           ))}
         </div>
       </div>
