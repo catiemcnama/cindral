@@ -90,7 +90,7 @@ ADD COLUMN IF NOT EXISTS organization_id TEXT REFERENCES organization(id) ON DEL
 ALTER TABLE article_system_impacts 
 ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
 
--- alerts: Add missing columns from Day 1 spec
+-- alerts: Add missing columns
 ALTER TABLE alerts ADD COLUMN IF NOT EXISTS type alert_type;
 ALTER TABLE alerts ADD COLUMN IF NOT EXISTS obligation_id TEXT REFERENCES obligations(id) ON DELETE SET NULL;
 ALTER TABLE alerts ADD COLUMN IF NOT EXISTS system_id TEXT REFERENCES systems(id) ON DELETE SET NULL;

@@ -1,5 +1,5 @@
 import { articleSystemImpacts, obligationSystemMappings, systems } from '@/db/schema'
-import { withAudit, withCreateAudit, withDeleteAudit, recordAudit } from '@/lib/audit'
+import { recordAudit, withAudit, withCreateAudit, withDeleteAudit } from '@/lib/audit'
 import { requireMutatePermission, scopedAnd } from '@/lib/tenancy'
 import { and, desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'

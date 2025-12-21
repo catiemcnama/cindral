@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import { TRPCError } from '@trpc/server'
 import { canMutate, hasRole, isAdmin, requireAdmin, requireMutatePermission, requireRole, ROLES } from '@/lib/tenancy'
+import { TRPCError } from '@trpc/server'
+import { describe, expect, it } from 'vitest'
 import { createTestContext } from '../helpers'
 
 describe('RBAC', () => {

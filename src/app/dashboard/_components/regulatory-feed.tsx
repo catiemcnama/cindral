@@ -4,6 +4,7 @@ import { useTRPC } from '@/trpc/client'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowRightIcon } from 'lucide-react'
 import Link from 'next/link'
+import { useMemo } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -26,38 +27,43 @@ const regulationStyles: Record<string, string> = {
   'ESG Disclosure': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
 }
 
+// Type guard for auth errors
+function isAuthError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false
+  const e = err as { data?: { httpStatus?: number }; message?: string }
+  if (e?.data?.httpStatus === 401) return true
+  const msg = String(e?.message || '')
+  return msg.includes('401') || msg.toLowerCase().includes('unauthorized')
+}
+
 export function RegulatoryFeed() {
   const trpc = useTRPC()
   const feedQuery = useQuery(trpc.dashboard.getRegulatoryFeed.queryOptions({ limit: 5 }))
   const { data, isLoading, error } = feedQuery
 
-  // Demo fallback when user is unauthenticated or API returns 401
-  const isAuthError = (err: unknown) => {
-    if (!err) return false
-    const e = err as { data?: { httpStatus?: number }; message?: string }
-    if (e?.data?.httpStatus === 401) return true
-    const msg = (e?.message || '').toString()
-    return msg.includes('401') || msg.toLowerCase().includes('unauthorized')
-  }
-
-  const demoFeed = [
-    {
-      id: 'd1',
-      regulation: 'DORA',
-      articleRef: 'Article 11(1)',
-      severity: 'critical',
-      title: 'Demo: Monthly risk assessments required for major ICT providers',
-      publishedAt: new Date().toISOString(),
-    },
-    {
-      id: 'd2',
-      regulation: 'GDPR',
-      articleRef: 'Article 35',
-      severity: 'high',
-      title: 'Demo: DPIA requirements extended to AI processing',
-      publishedAt: '2024-01-01T00:00:00.000Z',
-    },
-  ]
+  // Memoize demo data to avoid recalculating on each render
+  const demoFeed = useMemo(() => {
+    const now = new Date()
+    const sixHoursAgo = new Date(now.getTime() - 1000 * 60 * 60 * 6)
+    return [
+      {
+        id: 'd1',
+        regulation: 'DORA',
+        articleRef: 'Article 11(1)',
+        severity: 'critical' as const,
+        title: 'Demo: Monthly risk assessments required for major ICT providers',
+        publishedAt: now.toISOString(),
+      },
+      {
+        id: 'd2',
+        regulation: 'GDPR',
+        articleRef: 'Article 35',
+        severity: 'high' as const,
+        title: 'Demo: DPIA requirements extended to AI processing',
+        publishedAt: sixHoursAgo.toISOString(),
+      },
+    ]
+  }, [])
 
   return (
     <div className="space-y-4">
@@ -151,40 +157,33 @@ export function RegulatoryFeed() {
 
         {!isLoading && !error && (
           <>
-            {(data ?? []).map((change) => (
-              <Card key={change.id} className="bg-card/50 transition-colors hover:bg-card/80">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            'font-medium',
-                            regulationStyles[change.regulation?.name || change.regulation?.id] || 'bg-muted'
-                          )}
-                        >
-                          {change.regulation?.name ?? 'Regulation'}
-                        </Badge>
-                        <span className="text-sm text-muted-foreground">{change.articleId ?? ''}</span>
+            {(data ?? []).map((change) => {
+              const regName = change.regulation?.name || 'Regulation'
+              return (
+                <Card key={change.id} className="bg-card/50 transition-colors hover:bg-card/80">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge
+                            variant="outline"
+                            className={cn('font-medium', regulationStyles[regName] || 'bg-muted')}
+                          >
+                            {regName}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">{change.articleId ?? ''}</span>
+                        </div>
+                        <p className="text-sm leading-relaxed">{change.title ?? 'Regulatory change'}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(change.publishedAt).toLocaleString()}</p>
                       </div>
-                      <p className="text-sm leading-relaxed">
-                        {change.title ?? change.description ?? 'Regulatory change'}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {change.publishedAt ? new Date(change.publishedAt).toLocaleString() : ''}
-                      </p>
+                      <Badge variant="outline" className={cn('shrink-0 capitalize', severityStyles[change.severity])}>
+                        {change.severity}
+                      </Badge>
                     </div>
-                    <Badge
-                      variant="outline"
-                      className={cn('shrink-0 capitalize', severityStyles[(change.severity as string) || 'medium'])}
-                    >
-                      {change.severity ?? 'medium'}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              )
+            })}
           </>
         )}
       </div>

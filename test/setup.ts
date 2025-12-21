@@ -1,5 +1,5 @@
-import { beforeAll, afterAll } from 'vitest'
 import { config } from 'dotenv'
+import { afterAll, beforeAll } from 'vitest'
 
 // Load environment variables
 config({ path: '.env.local' })
@@ -16,7 +16,7 @@ beforeAll(async () => {
   }
 
   // Set test environment
-  process.env.NODE_ENV = 'test'
+  ;(process.env as { NODE_ENV: string }).NODE_ENV = 'test'
 })
 
 /**

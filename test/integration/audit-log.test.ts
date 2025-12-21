@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { TEST_ORGS, TEST_USERS } from '../helpers'
 
 // Skip integration tests if no database URL is configured
@@ -83,9 +83,9 @@ describe.skipIf(skipTests)('Audit Log', () => {
     })
 
     it('handles null context gracefully', async () => {
-      // Should not throw, just warn
+      // Should not throw, just warn - use unknown to bypass type checking for edge case
       await recordAudit({
-        ctx: { activeOrganizationId: undefined } as { activeOrganizationId: undefined },
+        ctx: { activeOrganizationId: undefined } as unknown as Parameters<typeof recordAudit>[0]['ctx'],
         action: 'test_create',
         entityType: 'obligation',
         entityId: 'test',

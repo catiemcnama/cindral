@@ -7,8 +7,9 @@
  */
 
 import { and, eq } from 'drizzle-orm'
+import fs from 'fs'
+import path from 'path'
 import { db } from './index'
-import type { Member, Organization, User } from './schema'
 import {
   alerts,
   articles,
@@ -25,8 +26,6 @@ import {
   systems,
   user,
 } from './schema'
-import fs from 'fs'
-import path from 'path'
 
 // ============================================================================
 // DEMO ORGANIZATIONS
@@ -623,7 +622,7 @@ async function seed() {
 Summary:
   • ${organizationsSeed.length} organizations
   • ${usersSeed.length} users
-  • ${membershipsSeed.length} memberships (Day 1 roles)
+  • ${membershipsSeed.length} memberships
   • ${totalRegs} regulations
   • ${totalArts} articles
   • ${totalObls} obligations

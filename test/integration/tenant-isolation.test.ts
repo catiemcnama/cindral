@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import { TEST_ORGS } from '../helpers'
 
 // Skip integration tests if no database URL is configured

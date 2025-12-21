@@ -1,6 +1,6 @@
 import 'dotenv/config'
-import { db } from '../src/db'
 import { desc } from 'drizzle-orm'
+import { db } from '../src/db'
 
 async function main() {
   const rows = await db.query.ingestJobs.findMany({ orderBy: (j) => desc(j.startedAt) })
