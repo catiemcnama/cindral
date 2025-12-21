@@ -155,6 +155,31 @@ Result: "Based on your profile, 12 regulations and 847 obligations apply to you"
 
 ---
 
+## 📝 User Feedback — Prioritized Action Plan
+
+The items below are distilled from recent user feedback (dashboard + website). Each item is prioritized (P0 = fix now, P1 = near-term, P2 = later) with a short estimate to help schedule work.
+
+- **P0 — Core UX & Layout fixes (4–8 hrs):** Fix header layout (icons right-aligned), make `Cindral` logo navigate to `/dashboard` from any page, restore search functionality, correct top-left "C" collapse rendering, reduce left-side empty whitespace and rebalance columns.
+- **P0 — Onboarding Enforcement (3–6 hrs):** Require onboarding as the first-run flow; block dashboard data until onboarding completes and show clear CTA to start onboarding.
+- **P0 — Feed & Interactivity (4–6 hrs):** Make regulatory feed items clickable (open regulation detail), add in-feed skeletons and loading indicators, wire feed links to `regulations.getById`.
+- **P1 — Data Performance & UX (8–16 hrs):** Speed up regulations list with server-side pagination/caching, add skeletons and sensible defaults, index common queries; ensure percentages and compliance scores render as charts not raw text.
+- **P1 — Compliance Status & Colors (6–10 hrs):** Implement working compliance pie/chart, improve color tokens and WCAG contrast, add accessible text summary for screen readers.
+- **P1 — Obligations Checklist (8–12 hrs):** Add a checklist UI with auto-complete and auto-check rules, show suggested next actions and onboarding-driven priorities on the Obligations page.
+- **P1 — Alerts & Evidence Packs (6–12 hrs):** Fix alerts dropdown interactivity, make evidence-pack generation reliable with progress UI, clarify "owner" field and criticality customization per onboarding industry.
+- **P2 — System Map Integration (8–20 hrs):** Clarify System Map UX; provide secure linking instructions (OAuth/Service Account pattern), explain steps to map systems to org assets securely.
+- **P2 — Website & Copy Improvements (4–8 hrs):** Add collapsible FAQ and pricing FAQs, tighten copy for symmetry and clarity, highlight "Up and running in minutes" after essential setup steps.
+
+### Quick Wins (can be done in next sprint)
+
+- Add skeletons to any long-loading cards (Regulations, Alerts, System Impact).
+- Make feed demo fallback (already present) a temporary developer-only behavior and add a dev auto-sign-in option.
+- Make regulatory list rows clickable and show modal/detail drawer.
+
+If you'd like, I can (pick one):
+
+- Start implementing the **P0 Core UX & Layout fixes** now and open a PR, or
+- Implement **Onboarding Enforcement** first so users always see onboarding.
+
 ## 📋 15 Workstreams (200+ Items)
 
 ### 1. DATABASE FOUNDATION ✅ COMPLETE
