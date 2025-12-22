@@ -697,6 +697,55 @@ export const ingestJobsRelations = relations(ingestJobs, ({ one, many }) => ({
 }))
 
 /**
+ * Onboarding State - Tracks setup wizard progress
+ */
+export const onboardingState = pgTable(
+  'onboarding_state',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+
+    // Step progress
+    currentStep: integer('current_step').notNull().default(1),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+
+    // Step 1: Industry
+    industry: text('industry'),
+
+    // Step 2: Regulations
+    selectedRegulations: text('selected_regulations').array().default([]),
+    regulationsCustomized: integer('regulations_customized').default(0), // 0 = false, 1 = true
+
+    // Step 3: Systems
+    selectedSystemTemplates: text('selected_system_templates').array().default([]),
+    customSystems: json('custom_systems').$type<{ id: string; name: string; description: string }[]>().default([]),
+    systemsCustomized: integer('systems_customized').default(0),
+
+    // Step 4: Invites
+    pendingInvites: json('pending_invites').$type<{ email: string; role: string }[]>().default([]),
+
+    // Timestamps
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    orgIdx: index('idx_onboarding_state_org').on(table.organizationId),
+    orgUnique: uniqueIndex('onboarding_state_org_unique').on(table.organizationId),
+  })
+)
+
+export const onboardingStateRelations = relations(onboardingState, ({ one }) => ({
+  organization: one(organization, {
+    fields: [onboardingState.organizationId],
+    references: [organization.id],
+  }),
+}))
+
+/**
  * Type exports for insertion and selection
  */
 
@@ -749,3 +798,6 @@ export type NewIngestJob = typeof ingestJobs.$inferInsert
 
 export type AuditLogEntry = typeof auditLog.$inferSelect
 export type NewAuditLogEntry = typeof auditLog.$inferInsert
+
+export type OnboardingState = typeof onboardingState.$inferSelect
+export type NewOnboardingState = typeof onboardingState.$inferInsert

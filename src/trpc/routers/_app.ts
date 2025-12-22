@@ -8,7 +8,9 @@ import { articlesRouter } from './articles'
 import { dashboardRouter } from './dashboard'
 import { evidencePacksRouter } from './evidence-packs'
 import { obligationsRouter } from './obligations'
+import { onboardingRouter } from './onboarding'
 import { regulationsRouter } from './regulations'
+import { searchRouter } from './search'
 import { systemsRouter } from './systems'
 
 export const appRouter = router({
@@ -20,6 +22,8 @@ export const appRouter = router({
   systems: systemsRouter,
   evidencePacks: evidencePacksRouter,
   dashboard: dashboardRouter,
+  search: searchRouter,
+  onboarding: onboardingRouter,
 
   // Public procedures
   hello: publicProcedure
