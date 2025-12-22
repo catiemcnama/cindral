@@ -3,11 +3,11 @@
 import Link from 'next/link'
 import { useMemo } from 'react'
 
+import { LastUpdated, LiveIndicator } from '@/components/notification-badge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { FeedItemSkeleton } from '@/components/ui/skeletons'
-import { LastUpdated, LiveIndicator } from '@/components/notification-badge'
 import { useTRPCPollingOptions } from '@/hooks/use-polling'
 import { cn } from '@/lib/utils'
 import { useTRPC } from '@/trpc/client'

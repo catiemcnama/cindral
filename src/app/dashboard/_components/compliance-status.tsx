@@ -2,10 +2,10 @@
 
 import dynamic from 'next/dynamic'
 
+import { LastUpdated } from '@/components/notification-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartSkeleton } from '@/components/ui/skeletons'
-import { LastUpdated } from '@/components/notification-badge'
 import { useTRPCPollingOptions } from '@/hooks/use-polling'
 import { useTRPC } from '@/trpc/client'
 import { useQuery } from '@tanstack/react-query'

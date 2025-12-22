@@ -3,11 +3,11 @@
 import Link from 'next/link'
 import { useEffect } from 'react'
 
+import { LastUpdated, SidebarBadge } from '@/components/notification-badge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertItemSkeleton } from '@/components/ui/skeletons'
-import { LastUpdated, SidebarBadge } from '@/components/notification-badge'
 import { useTRPCPollingOptions } from '@/hooks/use-polling'
 import { useLastSeen, useNewItemsCount } from '@/lib/last-seen'
 import { cn } from '@/lib/utils'

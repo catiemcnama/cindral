@@ -2,10 +2,10 @@
 
 import Link from 'next/link'
 
+import { LastUpdated } from '@/components/notification-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { StatsGridSkeleton } from '@/components/ui/skeletons'
-import { LastUpdated } from '@/components/notification-badge'
 import { useTRPCPollingOptions } from '@/hooks/use-polling'
 import { cn } from '@/lib/utils'
 import { useTRPC } from '@/trpc/client'
