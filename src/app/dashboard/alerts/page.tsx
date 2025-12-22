@@ -93,7 +93,7 @@ export default function AlertsPage() {
 
   // Pagination
   const [page, setPage] = useState(0)
-  const [pageSize, setPageSize] = useState(20)
+  const pageSize = 20 // Fixed page size for now
   const [sortBy, setSortBy] = useState<'createdAt' | 'severity' | 'status' | 'dueDate'>('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 

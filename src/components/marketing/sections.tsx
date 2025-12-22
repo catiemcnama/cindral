@@ -120,6 +120,7 @@ export function TestimonialCard({
       <div className="mt-6 flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-sm font-semibold text-white">
           {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- External avatar URLs from various domains
             <img src={avatarUrl} alt={author} className="h-full w-full rounded-full object-cover" />
           ) : (
             author

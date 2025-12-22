@@ -115,7 +115,6 @@ export default function GenerateEvidencePackPage() {
   // Extract data for stable dependencies
   const regulationItems = regulationsQuery.data?.items
   const articleItems = articlesQuery.data?.items
-  const systemItems = systemsQuery.data?.items
 
   // Derived data
   const selectedRegulation = useMemo(() => {
