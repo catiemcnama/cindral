@@ -1,7 +1,5 @@
 'use client'
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import {
   BellIcon,
   Building2Icon,
@@ -12,7 +10,11 @@ import {
   SettingsIcon,
   UserIcon,
 } from 'lucide-react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
+import { CommandSearch, SearchTrigger, useCommandSearch } from '@/components/command-search'
+import { NotificationBadge } from '@/components/notification-badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -34,8 +36,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { SidebarTrigger } from '@/components/ui/sidebar'
-import { NotificationBadge } from '@/components/notification-badge'
-import { CommandSearch, SearchTrigger, useCommandSearch } from '@/components/command-search'
 import { signOut, useSession } from '@/lib/auth-client'
 
 // =============================================================================

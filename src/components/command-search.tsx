@@ -24,9 +24,9 @@ import {
   CommandList,
   CommandSeparator,
 } from '@/components/ui/command'
+import { useDebounce } from '@/hooks/use-debounce'
 import { useTRPC } from '@/trpc/client'
 import { useQuery } from '@tanstack/react-query'
-import { useDebounce } from '@/hooks/use-debounce'
 
 // =============================================================================
 // Types

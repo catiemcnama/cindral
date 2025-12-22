@@ -1,159 +1,393 @@
-import { AlertCircleIcon, CheckCircleIcon, ClockIcon, DownloadIcon, ExternalLinkIcon, FileTextIcon } from 'lucide-react'
-import { Metadata } from 'next'
+'use client'
 
+import {
+  AlertCircleIcon,
+  CheckCircleIcon,
+  DownloadIcon,
+  FileTextIcon,
+  Loader2Icon,
+  MoreHorizontalIcon,
+  PackageIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  SearchIcon,
+  Trash2Icon,
+  XIcon,
+} from 'lucide-react'
+import Link from 'next/link'
+import { useCallback, useMemo, useState } from 'react'
+
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
+import { useTRPC } from '@/trpc/client'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-export const metadata: Metadata = {
-  title: 'Evidence Packs - Cindral',
-  description: 'Generate and export compliance evidence documentation',
+// =============================================================================
+// Types & Styles
+// =============================================================================
+
+type PackStatus = 'draft' | 'generating' | 'ready' | 'failed' | 'archived'
+type PackAudience = 'internal' | 'auditor' | 'regulator'
+type PackFormat = 'pdf' | 'confluence' | 'jira' | 'json'
+
+const statusStyles: Record<PackStatus, { color: string; icon: typeof CheckCircleIcon }> = {
+  draft: { color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: FileTextIcon },
+  generating: { color: 'bg-blue-500/10 text-blue-500 border-blue-500/20', icon: Loader2Icon },
+  ready: { color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: CheckCircleIcon },
+  failed: { color: 'bg-red-500/10 text-red-500 border-red-500/20', icon: AlertCircleIcon },
+  archived: { color: 'bg-muted text-muted-foreground border-muted', icon: PackageIcon },
 }
 
-// Mock data matching the Figma mockup
-const evidencePackData = {
-  regulation: {
-    id: 'dora',
-    name: 'DORA',
-    fullTitle: 'Digital Operational Resilience Act (EU) 2022/2554',
-  },
-  article: {
-    id: 'article-11-1',
-    number: 'Article 11(1)',
-    title: 'ICT third-party service providers',
-  },
-  obligations: [
-    {
-      id: 'OBL-DORA-11-001',
-      title: 'Assess all risks from ICT service providers on a monthly basis',
-      lastUpdated: '2024-10-15',
-      status: 'pending' as const,
-    },
-    {
-      id: 'OBL-DORA-11-002',
-      title: 'Maintain full control of ICT services at all times',
-      lastUpdated: '2024-11-10',
-      status: 'compliant' as const,
-    },
-    {
-      id: 'OBL-DORA-11-003',
-      title: 'Maintain effective third-party risk management framework',
-      lastUpdated: '2024-11-05',
-      status: 'compliant' as const,
-    },
-  ],
+const statusLabels: Record<PackStatus, string> = {
+  draft: 'Draft',
+  generating: 'Generating',
+  ready: 'Ready',
+  failed: 'Failed',
+  archived: 'Archived',
 }
 
-const obligationStatusStyles = {
-  pending: {
-    bg: 'bg-yellow-500/10 border-yellow-500/20',
-    icon: ClockIcon,
-    iconColor: 'text-yellow-400',
-  },
-  compliant: {
-    bg: 'bg-emerald-500/10 border-emerald-500/20',
-    icon: CheckCircleIcon,
-    iconColor: 'text-emerald-400',
-  },
-  non_compliant: {
-    bg: 'bg-red-500/10 border-red-500/20',
-    icon: AlertCircleIcon,
-    iconColor: 'text-red-400',
-  },
+const audienceLabels: Record<PackAudience, string> = {
+  internal: 'Internal',
+  auditor: 'Auditor',
+  regulator: 'Regulator',
 }
+
+const formatLabels: Record<PackFormat, string> = {
+  pdf: 'PDF',
+  confluence: 'Confluence',
+  jira: 'Jira',
+  json: 'JSON',
+}
+
+// =============================================================================
+// Component
+// =============================================================================
 
 export default function EvidencePacksPage() {
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
+
+  // State
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<PackStatus | 'all'>('all')
+  const [audienceFilter, setAudienceFilter] = useState<PackAudience | 'all'>('all')
+
+  // Query
+  const packsQuery = useQuery({
+    ...trpc.evidencePacks.list.queryOptions({
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+      intendedAudience: audienceFilter !== 'all' ? audienceFilter : undefined,
+      limit: 50,
+    }),
+    staleTime: 30000,
+  })
+
+  const { data, isLoading, error, refetch, isFetching } = packsQuery
+  const items = data?.items
+
+  // Mutations
+  const deleteMutation = useMutation({
+    ...trpc.evidencePacks.delete.mutationOptions(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: trpc.evidencePacks.list.queryKey() })
+    },
+  })
+
+  // Filter by search
+  const filteredPacks = useMemo(() => {
+    if (!items) return []
+    if (!searchQuery) return items
+
+    const q = searchQuery.toLowerCase()
+    return items.filter(
+      (p) =>
+        p.title?.toLowerCase().includes(q) ||
+        p.regulation?.name?.toLowerCase().includes(q) ||
+        p.exportFormat?.toLowerCase().includes(q)
+    )
+  }, [items, searchQuery])
+
+  const handleDelete = useCallback(
+    (id: number) => {
+      if (confirm('Are you sure you want to delete this evidence pack?')) {
+        deleteMutation.mutate({ id })
+      }
+    },
+    [deleteMutation]
+  )
+
+  const stats = data?.stats ?? { draft: 0, ready: 0, failed: 0 }
+
   return (
-    <div className="p-6">
+    <div className="flex flex-col gap-6 p-6">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Evidence Pack Generator</h1>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold">
+            <PackageIcon className="size-6" />
+            Evidence Packs
+          </h1>
+          <p className="text-sm text-muted-foreground">Generate compliance evidence for audits and regulators</p>
+        </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline">
-            <ExternalLinkIcon className="mr-2 size-4" />
-            Export to Confluence
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCwIcon className={cn('mr-2 size-4', isFetching && 'animate-spin')} />
+            Refresh
           </Button>
-          <Button variant="outline">
-            <ExternalLinkIcon className="mr-2 size-4" />
-            Export to Jira
-          </Button>
-          <Button>
-            <DownloadIcon className="mr-2 size-4" />
-            Export to PDF
+          <Button asChild>
+            <Link href="/dashboard/evidence-packs/generate">
+              <PlusIcon className="mr-2 size-4" />
+              Generate Pack
+            </Link>
           </Button>
         </div>
       </div>
 
-      <div className="space-y-6">
-        {/* Regulation Card */}
-        <Card className="bg-card/50">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="flex size-12 items-center justify-center rounded-lg bg-primary/10">
-                <FileTextIcon className="size-6 text-primary" />
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Regulation</div>
-                <h2 className="text-xl font-semibold">{evidencePackData.regulation.name}</h2>
-                <p className="text-sm text-muted-foreground">{evidencePackData.regulation.fullTitle}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Connection line */}
-        <div className="flex justify-center">
-          <div className="h-8 w-0.5 bg-border" />
-        </div>
-
-        {/* Article Card */}
-        <Card className="bg-card/50">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="flex size-12 items-center justify-center rounded-lg bg-blue-500/10">
-                <span className="text-sm font-semibold text-blue-400">Art</span>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Article</div>
-                <h3 className="text-lg font-semibold">{evidencePackData.article.number}</h3>
-                <p className="text-sm text-muted-foreground">{evidencePackData.article.title}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Connection line */}
-        <div className="flex justify-center">
-          <div className="h-8 w-0.5 bg-border" />
-        </div>
-
-        {/* Obligations Section */}
+      {/* Stats Cards */}
+      <div className="grid gap-4 sm:grid-cols-3">
         <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base">Obligations</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Ready</CardTitle>
+            <CheckCircleIcon className="size-4 text-emerald-500" />
           </CardHeader>
-          <CardContent className="space-y-3">
-            {evidencePackData.obligations.map((obligation) => {
-              const statusStyle = obligationStatusStyles[obligation.status]
-              const StatusIcon = statusStyle.icon
-
-              return (
-                <div key={obligation.id} className={cn('flex items-start gap-4 rounded-lg border p-4', statusStyle.bg)}>
-                  <StatusIcon className={cn('mt-0.5 size-5 shrink-0', statusStyle.iconColor)} />
-                  <div className="flex-1">
-                    <p className="text-sm">{obligation.title}</p>
-                    <div className="mt-1 flex items-center gap-2">
-                      <ClockIcon className="size-3 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">Last updated: {obligation.lastUpdated}</span>
-                    </div>
-                  </div>
-                  <span className="shrink-0 font-mono text-xs text-muted-foreground">{obligation.id}</span>
-                </div>
-              )
-            })}
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.ready}</div>
+            <p className="text-xs text-muted-foreground">Available for download</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Draft</CardTitle>
+            <FileTextIcon className="size-4 text-slate-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.draft}</div>
+            <p className="text-xs text-muted-foreground">Awaiting generation</p>
+          </CardContent>
+        </Card>
+        <Card className={stats.failed > 0 ? 'border-red-500/20 bg-red-500/5' : ''}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className={cn('text-sm font-medium', stats.failed > 0 && 'text-red-500')}>Failed</CardTitle>
+            <AlertCircleIcon className={cn('size-4', stats.failed > 0 ? 'text-red-500' : 'text-muted-foreground')} />
+          </CardHeader>
+          <CardContent>
+            <div className={cn('text-2xl font-bold', stats.failed > 0 && 'text-red-500')}>{stats.failed}</div>
+            <p className="text-xs text-muted-foreground">Need attention</p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Search */}
+        <div className="relative w-64">
+          <SearchIcon className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search packs..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+
+        {/* Status Filter */}
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as PackStatus | 'all')}>
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="ready">Ready</SelectItem>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="generating">Generating</SelectItem>
+            <SelectItem value="failed">Failed</SelectItem>
+            <SelectItem value="archived">Archived</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Audience Filter */}
+        <Select value={audienceFilter} onValueChange={(v) => setAudienceFilter(v as PackAudience | 'all')}>
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="Audience" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Audiences</SelectItem>
+            <SelectItem value="internal">Internal</SelectItem>
+            <SelectItem value="auditor">Auditor</SelectItem>
+            <SelectItem value="regulator">Regulator</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Clear Filters */}
+        {(statusFilter !== 'all' || audienceFilter !== 'all') && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setStatusFilter('all')
+              setAudienceFilter('all')
+            }}
+          >
+            <XIcon className="mr-1 size-3" />
+            Clear
+          </Button>
+        )}
+      </div>
+
+      {/* Table */}
+      <div className="rounded-lg border">
+        {isLoading ? (
+          <div className="p-8">
+            <div className="space-y-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <Skeleton className="h-5 w-48" />
+                  <Skeleton className="h-5 w-20" />
+                  <Skeleton className="h-5 flex-1" />
+                  <Skeleton className="h-5 w-24" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <AlertCircleIcon className="size-12 text-muted-foreground/50" />
+            <p className="mt-4 text-sm text-muted-foreground">Failed to load evidence packs</p>
+            <Button variant="outline" size="sm" className="mt-2" onClick={() => refetch()}>
+              Retry
+            </Button>
+          </div>
+        ) : filteredPacks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <PackageIcon className="size-12 text-muted-foreground/50" />
+            <p className="mt-4 text-sm font-medium">No evidence packs found</p>
+            <p className="text-sm text-muted-foreground">
+              {searchQuery
+                ? 'Try adjusting your search or filters'
+                : 'Generate your first evidence pack to get started'}
+            </p>
+            {!searchQuery && (
+              <Button asChild className="mt-4">
+                <Link href="/dashboard/evidence-packs/generate">
+                  <PlusIcon className="mr-2 size-4" />
+                  Generate Pack
+                </Link>
+              </Button>
+            )}
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead className="w-28">Regulation</TableHead>
+                <TableHead className="w-24">Status</TableHead>
+                <TableHead className="w-24">Format</TableHead>
+                <TableHead className="w-24">Audience</TableHead>
+                <TableHead className="w-32">Generated</TableHead>
+                <TableHead className="w-12" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredPacks.map((pack) => {
+                const statusStyle = statusStyles[pack.status as PackStatus]
+                const StatusIcon = statusStyle?.icon ?? FileTextIcon
+
+                return (
+                  <TableRow key={pack.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-9 items-center justify-center rounded-lg bg-muted">
+                          <FileTextIcon className="size-4 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{pack.title}</p>
+                          {pack.description && (
+                            <p className="max-w-xs truncate text-xs text-muted-foreground">{pack.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {pack.regulation?.name && <Badge variant="outline">{pack.regulation.name}</Badge>}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={cn('gap-1', statusStyle?.color)}>
+                        <StatusIcon className={cn('size-3', pack.status === 'generating' && 'animate-spin')} />
+                        {statusLabels[pack.status as PackStatus] ?? pack.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">
+                        {formatLabels[pack.exportFormat as PackFormat] ?? pack.exportFormat}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-muted-foreground">
+                        {audienceLabels[pack.intendedAudience as PackAudience] ?? pack.intendedAudience}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {pack.generatedAt ? new Date(pack.generatedAt).toLocaleDateString() : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="size-8">
+                            <MoreHorizontalIcon className="size-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {pack.status === 'ready' && (
+                            <DropdownMenuItem>
+                              <DownloadIcon className="mr-2 size-4" />
+                              Download
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem asChild>
+                            <Link href={`/dashboard/evidence-packs/${pack.id}`}>View Details</Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDelete(pack.id)}
+                            disabled={deleteMutation.isPending}
+                          >
+                            <Trash2Icon className="mr-2 size-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        )}
+      </div>
+
+      {/* Pagination placeholder */}
+      {data && data.total > 50 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {filteredPacks.length} of {data.total}
+          </p>
+        </div>
+      )}
     </div>
   )
 }

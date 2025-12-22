@@ -5,7 +5,7 @@
  */
 
 import { alerts, articles, obligations, regulations, systems } from '@/db/schema'
-import { and, eq, ilike, or, sql } from 'drizzle-orm'
+import { and, eq, ilike, or } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { orgProcedure, router } from '../init'
