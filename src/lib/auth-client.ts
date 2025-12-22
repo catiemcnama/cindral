@@ -3,30 +3,26 @@
 import { organizationClient } from 'better-auth/client/plugins'
 import { createAuthClient } from 'better-auth/react'
 
-// Use current origin in browser to avoid CORS issues with www/non-www mismatch
-const getBaseURL = () => {
-  if (typeof window !== 'undefined') {
-    return window.location.origin
-  }
-  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-}
-
+// Don't set baseURL - better-auth will use relative URLs which work with any domain
 export const authClient = createAuthClient({
-  baseURL: getBaseURL(),
   plugins: [organizationClient()],
 })
 
-export const {
-  signIn,
-  signUp,
-  signOut,
-  useSession,
-  organization,
-  useActiveOrganization,
-  requestPasswordReset,
-  resetPassword,
-  verifyEmail,
-} = authClient
+export const { signIn, signUp, signOut, useSession, organization, useActiveOrganization } = authClient
+
+// Password reset - use type assertion for forgetPassword method
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const client = authClient as any
+export const requestPasswordReset = (params: { email: string; redirectTo?: string }) =>
+  client.forgetPassword({
+    email: params.email,
+    redirectTo: params.redirectTo || '/reset-password',
+  })
+
+export const resetPassword = (params: { token: string; newPassword: string }) =>
+  authClient.resetPassword({ newPassword: params.newPassword, token: params.token })
+
+export const verifyEmail = (params: { query: { token: string } }) => authClient.verifyEmail(params)
 
 // OAuth sign-in helpers
 export const signInWithGoogle = () => authClient.signIn.social({ provider: 'google' })

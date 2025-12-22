@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { authClient } from '@/lib/auth-client'
+import { requestPasswordReset } from '@/lib/auth-client'
 import { cn } from '@/lib/utils'
 import { AlertCircle, ArrowLeft, Check, Loader2, Mail, Shield } from 'lucide-react'
 import Link from 'next/link'
@@ -50,7 +50,7 @@ export default function ForgotPasswordPage() {
       setError('')
 
       try {
-        const result = await authClient.requestPasswordReset({
+        const result = await requestPasswordReset({
           email: email.trim(),
           redirectTo: `${window.location.origin}/reset-password`,
         })
