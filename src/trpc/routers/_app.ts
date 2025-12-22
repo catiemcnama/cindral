@@ -11,6 +11,7 @@ import { obligationsRouter } from './obligations'
 import { onboardingRouter } from './onboarding'
 import { regulationsRouter } from './regulations'
 import { searchRouter } from './search'
+import { systemMapRouter } from './systemMap'
 import { systemsRouter } from './systems'
 
 export const appRouter = router({
@@ -23,6 +24,7 @@ export const appRouter = router({
   evidencePacks: evidencePacksRouter,
   dashboard: dashboardRouter,
   search: searchRouter,
+  systemMap: systemMapRouter,
   onboarding: onboardingRouter,
 
   // Public procedures

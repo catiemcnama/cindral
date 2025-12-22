@@ -1,19 +1,20 @@
 'use client'
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboardIcon,
-  FileTextIcon,
-  CheckSquareIcon,
-  NetworkIcon,
   BellIcon,
+  CheckSquareIcon,
+  ChevronLeftIcon,
+  FileTextIcon,
+  LayoutDashboardIcon,
+  NetworkIcon,
   PackageIcon,
   SettingsIcon,
-  ChevronLeftIcon,
   SparklesIcon,
 } from 'lucide-react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
+import { Progress } from '@/components/ui/progress'
 import {
   Sidebar,
   SidebarContent,
@@ -27,9 +28,8 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { Progress } from '@/components/ui/progress'
-import { cn } from '@/lib/utils'
 import { useOnboardingStatus } from '@/hooks/use-onboarding'
+import { cn } from '@/lib/utils'
 
 // =============================================================================
 // Navigation Configuration

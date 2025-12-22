@@ -1,31 +1,43 @@
-import { NetworkIcon } from 'lucide-react'
-import { Metadata } from 'next'
+'use client'
 
-import { Card, CardContent } from '@/components/ui/card'
+import { ReactFlowProvider } from '@xyflow/react'
 
-export const metadata: Metadata = {
-  title: 'System Map - Cindral',
-  description: 'Visualize system dependencies and compliance impacts',
-}
+import { SystemMap } from '@/components/system-map'
+import { useActiveOrganization } from '@/lib/auth-client'
 
 export default function SystemMapPage() {
+  const { data: activeOrg, isPending } = useActiveOrganization()
+
+  if (isPending) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (!activeOrg) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-muted-foreground">No organization selected</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="h-full p-6">
-      <div className="mb-6">
+    <div className="flex h-[calc(100vh-64px)] flex-col">
+      <div className="border-b bg-background px-6 py-4">
         <h1 className="text-2xl font-semibold">System Map</h1>
-        <p className="text-muted-foreground">Visualize dependencies between systems and regulatory requirements</p>
+        <p className="text-muted-foreground">
+          Visualize dependencies between systems and regulatory requirements
+        </p>
       </div>
 
-      <Card className="h-[calc(100vh-220px)]">
-        <CardContent className="flex h-full flex-col items-center justify-center">
-          <NetworkIcon className="mb-4 size-16 text-muted-foreground/50" />
-          <h2 className="mb-2 text-xl font-semibold">System Map Coming Soon</h2>
-          <p className="max-w-md text-center text-muted-foreground">
-            Interactive visualization of your IT systems and their regulatory impact will be available here. This will
-            include node graphs showing dependencies, risk levels, and compliance status.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="flex-1">
+        <ReactFlowProvider>
+          <SystemMap organizationId={activeOrg.id} />
+        </ReactFlowProvider>
+      </div>
     </div>
   )
 }
