@@ -1,9 +1,4 @@
-import {
-  articles,
-  articleSystemImpacts,
-  regulations,
-  systems,
-} from '@/db/schema'
+import { articles, articleSystemImpacts, regulations, systems } from '@/db/schema'
 import { recordAudit } from '@/lib/audit'
 import { NotFoundError } from '@/lib/errors'
 import { requireMutatePermission } from '@/lib/tenancy'
@@ -28,10 +23,7 @@ export const systemMapRouter = router({
         articleCount: sql<number>`count(${articles.id})::int`,
       })
       .from(regulations)
-      .leftJoin(
-        articles,
-        and(eq(articles.regulationId, regulations.id), isNull(articles.deletedAt))
-      )
+      .leftJoin(articles, and(eq(articles.regulationId, regulations.id), isNull(articles.deletedAt)))
       .where(and(eq(regulations.organizationId, orgId), isNull(regulations.deletedAt)))
       .groupBy(regulations.id)
 
@@ -47,10 +39,7 @@ export const systemMapRouter = router({
       .from(articles)
       .leftJoin(
         articleSystemImpacts,
-        and(
-          eq(articleSystemImpacts.articleId, articles.id),
-          eq(articleSystemImpacts.organizationId, orgId)
-        )
+        and(eq(articleSystemImpacts.articleId, articles.id), eq(articleSystemImpacts.organizationId, orgId))
       )
       .where(and(eq(articles.organizationId, orgId), isNull(articles.deletedAt)))
       .groupBy(articles.id)
@@ -138,10 +127,7 @@ export const systemMapRouter = router({
 
       // Verify article exists
       const article = await ctx.db.query.articles.findFirst({
-        where: and(
-          eq(articles.id, input.articleId),
-          eq(articles.organizationId, ctx.activeOrganizationId)
-        ),
+        where: and(eq(articles.id, input.articleId), eq(articles.organizationId, ctx.activeOrganizationId)),
       })
       if (!article) {
         throw new NotFoundError('Article', input.articleId)
@@ -149,10 +135,7 @@ export const systemMapRouter = router({
 
       // Verify system exists
       const system = await ctx.db.query.systems.findFirst({
-        where: and(
-          eq(systems.id, input.systemId),
-          eq(systems.organizationId, ctx.activeOrganizationId)
-        ),
+        where: and(eq(systems.id, input.systemId), eq(systems.organizationId, ctx.activeOrganizationId)),
       })
       if (!system) {
         throw new NotFoundError('System', input.systemId)
@@ -238,9 +221,7 @@ export const systemMapRouter = router({
         throw new NotFoundError('Impact', `${input.articleId}-${input.systemId}`)
       }
 
-      await ctx.db
-        .delete(articleSystemImpacts)
-        .where(eq(articleSystemImpacts.id, existing.id))
+      await ctx.db.delete(articleSystemImpacts).where(eq(articleSystemImpacts.id, existing.id))
 
       await recordAudit({
         ctx,
@@ -301,4 +282,3 @@ export const systemMapRouter = router({
       return updated
     }),
 })
-

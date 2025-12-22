@@ -1,4 +1,4 @@
-import type { Node, Edge } from '@xyflow/react'
+import type { Edge, Node } from '@xyflow/react'
 
 // =============================================================================
 // Node Types
@@ -122,4 +122,3 @@ export interface ContextMenuState {
   nodeType: 'regulation' | 'article' | 'system' | null
   edgeId: string | null
 }
-

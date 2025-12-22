@@ -1,8 +1,8 @@
 'use client'
 
-import { memo } from 'react'
 import { Handle, Position } from '@xyflow/react'
 import { FileTextIcon, ServerIcon } from 'lucide-react'
+import { memo } from 'react'
 
 import { cn } from '@/lib/utils'
 import type { ArticleNodeData } from '../types'

@@ -8,4 +8,19 @@ export const authClient = createAuthClient({
   plugins: [organizationClient()],
 })
 
-export const { signIn, signUp, signOut, useSession, organization, useActiveOrganization } = authClient
+export const {
+  signIn,
+  signUp,
+  signOut,
+  useSession,
+  organization,
+  useActiveOrganization,
+  requestPasswordReset,
+  resetPassword,
+  verifyEmail,
+} = authClient
+
+// OAuth sign-in helpers
+export const signInWithGoogle = () => authClient.signIn.social({ provider: 'google' })
+export const signInWithMicrosoft = () => authClient.signIn.social({ provider: 'microsoft' })
+export const signInWithGitHub = () => authClient.signIn.social({ provider: 'github' })

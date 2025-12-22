@@ -748,12 +748,7 @@ export const onboardingStateRelations = relations(onboardingState, ({ one }) => 
 /**
  * Integration status
  */
-export const integrationStatusEnum = pgEnum('integration_status', [
-  'pending',
-  'connected',
-  'error',
-  'disconnected',
-])
+export const integrationStatusEnum = pgEnum('integration_status', ['pending', 'connected', 'error', 'disconnected'])
 
 /**
  * Integration provider types
@@ -800,10 +795,7 @@ export const integrations = pgTable(
   (table) => ({
     orgIdx: index('idx_integrations_org').on(table.organizationId),
     providerIdx: index('idx_integrations_provider').on(table.organizationId, table.provider),
-    orgProviderUnique: uniqueIndex('integrations_org_provider_unique').on(
-      table.organizationId,
-      table.provider
-    ),
+    orgProviderUnique: uniqueIndex('integrations_org_provider_unique').on(table.organizationId, table.provider),
   })
 )
 

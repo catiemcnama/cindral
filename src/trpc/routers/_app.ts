@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { orgProcedure, protectedProcedure, publicProcedure, router } from '../init'
 
 // Domain routers
+import { aiRouter } from './ai'
 import { alertsRouter } from './alerts'
 import { articlesRouter } from './articles'
 import { billingRouter } from './billing'
@@ -30,6 +31,7 @@ export const appRouter = router({
   integrations: integrationsRouter,
   billing: billingRouter,
   onboarding: onboardingRouter,
+  ai: aiRouter,
 
   // Public procedures
   hello: publicProcedure

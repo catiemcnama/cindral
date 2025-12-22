@@ -1,7 +1,7 @@
 'use client'
 
-import { memo } from 'react'
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from '@xyflow/react'
+import { memo } from 'react'
 
 import { IMPACT_COLORS } from '../constants'
 import type { ImpactEdgeData } from '../types'

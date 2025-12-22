@@ -1,9 +1,9 @@
-export { RegulationNode } from './regulation-node'
 export { ArticleNode } from './article-node'
+export { RegulationNode } from './regulation-node'
 export { SystemNode } from './system-node'
 
-import { RegulationNode } from './regulation-node'
 import { ArticleNode } from './article-node'
+import { RegulationNode } from './regulation-node'
 import { SystemNode } from './system-node'
 
 export const nodeTypes = {
@@ -11,4 +11,3 @@ export const nodeTypes = {
   article: ArticleNode,
   system: SystemNode,
 }
-

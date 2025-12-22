@@ -1,8 +1,8 @@
 'use client'
 
-import { memo } from 'react'
 import { Handle, Position } from '@xyflow/react'
 import { AlertTriangleIcon, ServerIcon, ShieldCheckIcon } from 'lucide-react'
+import { memo } from 'react'
 
 import { cn } from '@/lib/utils'
 import { CRITICALITY_COLORS, IMPACT_COLORS } from '../constants'
@@ -73,7 +73,7 @@ function SystemNodeComponent({ data, selected }: SystemNodeProps) {
 
       {/* Impact count badge */}
       {data.impactCount > 0 && (
-        <div className="absolute -right-2 -top-2 flex size-5 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
+        <div className="absolute -top-2 -right-2 flex size-5 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
           {data.impactCount}
         </div>
       )}

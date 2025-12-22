@@ -1,7 +1,7 @@
 'use client'
 
-import { memo } from 'react'
 import { BaseEdge, getBezierPath, type EdgeProps } from '@xyflow/react'
+import { memo } from 'react'
 
 function HierarchyEdgeComponent({
   id,

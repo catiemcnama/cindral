@@ -1,8 +1,8 @@
 'use client'
 
-import { memo } from 'react'
 import { Handle, Position } from '@xyflow/react'
 import { BookOpenIcon, CheckCircle2Icon, ClockIcon, FileTextIcon } from 'lucide-react'
+import { memo } from 'react'
 
 import { cn } from '@/lib/utils'
 import type { RegulationNodeData } from '../types'
