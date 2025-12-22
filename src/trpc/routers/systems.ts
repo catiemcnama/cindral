@@ -1,7 +1,8 @@
 import { articleSystemImpacts, obligationSystemMappings, systems } from '@/db/schema'
 import { recordAudit, withAudit, withCreateAudit, withDeleteAudit } from '@/lib/audit'
+import { NotFoundError } from '@/lib/errors'
 import { requireMutatePermission, scopedAnd } from '@/lib/tenancy'
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { orgProcedure, router } from '../init'
 
@@ -24,8 +25,8 @@ export const systemsRouter = router({
     .query(async ({ ctx, input }) => {
       const { criticality, category, search, limit = 50, offset = 0 } = input ?? {}
 
-      // Strict org scoping
-      const conditions = [eq(systems.organizationId, ctx.activeOrganizationId)]
+      // Strict org scoping + soft-delete filter
+      const conditions = [eq(systems.organizationId, ctx.activeOrganizationId), isNull(systems.deletedAt)]
 
       if (criticality) {
         conditions.push(eq(systems.criticality, criticality))
@@ -145,7 +146,7 @@ export const systemsRouter = router({
     })
 
     if (!system) {
-      throw new Error('System not found')
+      throw new NotFoundError('System', input.id)
     }
 
     // Group impacts by regulation

@@ -1,5 +1,6 @@
 import { articles, obligations } from '@/db/schema'
 import { withAudit, withCreateAudit, withDeleteAudit } from '@/lib/audit'
+import { NotFoundError } from '@/lib/errors'
 import { requireAdmin, requireMutatePermission, scopedAnd } from '@/lib/tenancy'
 import { and, desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
@@ -84,7 +85,7 @@ export const articlesRouter = router({
     })
 
     if (!article) {
-      throw new Error('Article not found')
+      throw new NotFoundError('Article', input.id)
     }
 
     return article

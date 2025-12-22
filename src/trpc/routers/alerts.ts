@@ -1,7 +1,8 @@
 import { alerts, auditLog } from '@/db/schema'
 import { withAudit, withCreateAudit, withDeleteAudit } from '@/lib/audit'
-import { requireMutatePermission, scopedAnd } from '@/lib/tenancy'
-import { and, asc, desc, eq, sql } from 'drizzle-orm'
+import { NotFoundError } from '@/lib/errors'
+import { requireMutatePermission, scopedAnd, scopedAndActive } from '@/lib/tenancy'
+import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { orgProcedure, router } from '../init'
 
@@ -40,8 +41,8 @@ export const alertsRouter = router({
         sortOrder = 'desc',
       } = input ?? {}
 
-      // Start with org-scoped condition (strict tenancy)
-      const conditions = [eq(alerts.organizationId, ctx.activeOrganizationId)]
+      // Start with org-scoped condition + soft-delete filter (strict tenancy)
+      const conditions = [eq(alerts.organizationId, ctx.activeOrganizationId), isNull(alerts.deletedAt)]
 
       if (type) {
         conditions.push(eq(alerts.type, type))
@@ -141,7 +142,7 @@ export const alertsRouter = router({
    */
   getById: orgProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
     const alert = await ctx.db.query.alerts.findFirst({
-      where: scopedAnd(alerts, ctx, eq(alerts.id, input.id)),
+      where: scopedAndActive(alerts, ctx, eq(alerts.id, input.id)),
       with: {
         regulation: true,
         article: {
@@ -169,7 +170,7 @@ export const alertsRouter = router({
     })
 
     if (!alert) {
-      throw new Error('Alert not found')
+      throw new NotFoundError('Alert', input.id)
     }
 
     return alert
@@ -351,27 +352,35 @@ export const alertsRouter = router({
   bulkUpdateStatus: orgProcedure
     .input(
       z.object({
-        ids: z.array(z.string()),
+        ids: z.array(z.string()).min(1).max(100),
         status: z.enum(['open', 'in_triage', 'in_progress', 'resolved', 'wont_fix']),
       })
     )
     .mutation(async ({ ctx, input }) => {
       requireMutatePermission(ctx)
 
-      const updated = await Promise.all(
-        input.ids.map(async (id) => {
-          const before = await ctx.db.query.alerts.findFirst({
+      // Use transaction to ensure atomicity
+      return ctx.db.transaction(async (tx) => {
+        const results: Array<{ id: string; success: boolean }> = []
+
+        for (const id of input.ids) {
+          const before = await tx.query.alerts.findFirst({
             where: scopedAnd(alerts, ctx, eq(alerts.id, id)),
           })
 
-          const [after] = await ctx.db
+          if (!before) {
+            results.push({ id, success: false })
+            continue
+          }
+
+          const [after] = await tx
             .update(alerts)
             .set({ status: input.status })
             .where(scopedAnd(alerts, ctx, eq(alerts.id, id)))
             .returning()
 
           if (after) {
-            await ctx.db.insert(auditLog).values({
+            await tx.insert(auditLog).values({
               organizationId: ctx.activeOrganizationId,
               actorUserId: ctx.user.id,
               action: 'update_alert_status',
@@ -379,13 +388,12 @@ export const alertsRouter = router({
               entityId: id,
               diff: { before, after },
             })
+            results.push({ id, success: true })
           }
+        }
 
-          return after
-        })
-      )
-
-      return { updated: updated.filter(Boolean).length }
+        return { updated: results.filter((r) => r.success).length, results }
+      })
     }),
 
   /**
@@ -394,27 +402,35 @@ export const alertsRouter = router({
   bulkAssign: orgProcedure
     .input(
       z.object({
-        ids: z.array(z.string()),
+        ids: z.array(z.string()).min(1).max(100),
         assignedToUserId: z.string().nullable(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       requireMutatePermission(ctx)
 
-      const updated = await Promise.all(
-        input.ids.map(async (id) => {
-          const before = await ctx.db.query.alerts.findFirst({
+      // Use transaction to ensure atomicity
+      return ctx.db.transaction(async (tx) => {
+        const results: Array<{ id: string; success: boolean }> = []
+
+        for (const id of input.ids) {
+          const before = await tx.query.alerts.findFirst({
             where: scopedAnd(alerts, ctx, eq(alerts.id, id)),
           })
 
-          const [after] = await ctx.db
+          if (!before) {
+            results.push({ id, success: false })
+            continue
+          }
+
+          const [after] = await tx
             .update(alerts)
             .set({ assignedToUserId: input.assignedToUserId })
             .where(scopedAnd(alerts, ctx, eq(alerts.id, id)))
             .returning()
 
           if (after) {
-            await ctx.db.insert(auditLog).values({
+            await tx.insert(auditLog).values({
               organizationId: ctx.activeOrganizationId,
               actorUserId: ctx.user.id,
               action: 'assign_alert',
@@ -422,12 +438,11 @@ export const alertsRouter = router({
               entityId: id,
               diff: { before, after },
             })
+            results.push({ id, success: true })
           }
+        }
 
-          return after
-        })
-      )
-
-      return { updated: updated.filter(Boolean).length }
+        return { updated: results.filter((r) => r.success).length, results }
+      })
     }),
 })

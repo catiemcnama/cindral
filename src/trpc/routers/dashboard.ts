@@ -7,86 +7,98 @@ import {
   regulatoryChanges,
   systems,
 } from '@/db/schema'
-import { and, count, desc, eq, sql } from 'drizzle-orm'
+import { cached, CACHE_KEYS, TTL } from '@/lib/cache'
+import { and, count, desc, eq, isNull, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { orgProcedure, router } from '../init'
 
 export const dashboardRouter = router({
   /**
    * Get main dashboard stats
+   * Cached for 30s with stale-while-revalidate
    */
   getStats: orgProcedure.query(async ({ ctx }) => {
-    // Get obligation stats (strict org scoping)
-    const orgObligations = await ctx.db.query.obligations.findMany({
-      where: eq(obligations.organizationId, ctx.activeOrganizationId),
-      columns: { status: true },
-    })
+    const orgId = ctx.activeOrganizationId
 
-    const obligationStats = {
-      total: orgObligations.length,
-      notStarted: orgObligations.filter((o) => o.status === 'not_started').length,
-      inProgress: orgObligations.filter((o) => o.status === 'in_progress').length,
-      implemented: orgObligations.filter((o) => o.status === 'implemented').length,
-      underReview: orgObligations.filter((o) => o.status === 'under_review').length,
-      verified: orgObligations.filter((o) => o.status === 'verified').length,
-    }
+    return cached(
+      CACHE_KEYS.dashboardStats(orgId),
+      async () => {
+        // Get obligation stats (strict org scoping + soft-delete filter)
+        const orgObligations = await ctx.db.query.obligations.findMany({
+          where: and(eq(obligations.organizationId, orgId), isNull(obligations.deletedAt)),
+          columns: { status: true },
+        })
 
-    // Controls at risk = not_started + in_progress
-    const controlsAtRisk = obligationStats.notStarted
+        const obligationStats = {
+          total: orgObligations.length,
+          notStarted: orgObligations.filter((o) => o.status === 'not_started').length,
+          inProgress: orgObligations.filter((o) => o.status === 'in_progress').length,
+          implemented: orgObligations.filter((o) => o.status === 'implemented').length,
+          underReview: orgObligations.filter((o) => o.status === 'under_review').length,
+          verified: orgObligations.filter((o) => o.status === 'verified').length,
+        }
 
-    // Get system stats (strict org scoping)
-    const systemsList = await ctx.db.query.systems.findMany({
-      where: eq(systems.organizationId, ctx.activeOrganizationId),
-      columns: { id: true, criticality: true },
-    })
+        // Controls at risk = not_started
+        const controlsAtRisk = obligationStats.notStarted
 
-    // Get systems with critical/high impacts
-    const criticalImpacts = await ctx.db.query.articleSystemImpacts.findMany({
-      where: and(
-        eq(articleSystemImpacts.organizationId, ctx.activeOrganizationId),
-        sql`${articleSystemImpacts.impactLevel} IN ('critical', 'high')`
-      ),
-      columns: { systemId: true },
-    })
+        // Get system stats (strict org scoping + soft-delete filter)
+        const systemsList = await ctx.db.query.systems.findMany({
+          where: and(eq(systems.organizationId, orgId), isNull(systems.deletedAt)),
+          columns: { id: true, criticality: true },
+        })
 
-    const impactedSystemIds = new Set(criticalImpacts.map((i) => i.systemId))
-    const systemsImpacted = systemsList.filter((s) => impactedSystemIds.has(s.id)).length
+        // Get systems with critical/high impacts
+        const criticalImpacts = await ctx.db.query.articleSystemImpacts.findMany({
+          where: and(
+            eq(articleSystemImpacts.organizationId, orgId),
+            sql`${articleSystemImpacts.impactLevel} IN ('critical', 'high')`
+          ),
+          columns: { systemId: true },
+        })
 
-    // Get active alerts count
-    const activeAlerts = await ctx.db
-      .select({ count: count() })
-      .from(alerts)
-      .where(
-        and(
-          eq(alerts.organizationId, ctx.activeOrganizationId),
-          sql`${alerts.status} IN ('open', 'in_triage', 'in_progress')`
-        )
-      )
+        const impactedSystemIds = new Set(criticalImpacts.map((i) => i.systemId))
+        const systemsImpacted = systemsList.filter((s) => impactedSystemIds.has(s.id)).length
 
-    // Calculate overall compliance rate (implemented + verified = compliant)
-    const compliant = obligationStats.implemented + obligationStats.verified
-    const complianceRate = obligationStats.total > 0 ? Math.round((compliant / obligationStats.total) * 100) : 100
+        // Get active alerts count (soft-delete filter)
+        const activeAlerts = await ctx.db
+          .select({ count: count() })
+          .from(alerts)
+          .where(
+            and(
+              eq(alerts.organizationId, orgId),
+              isNull(alerts.deletedAt),
+              sql`${alerts.status} IN ('open', 'in_triage', 'in_progress')`
+            )
+          )
 
-    // Evidence packs count
-    const evidencePacksResult = await ctx.db
-      .select({ count: count() })
-      .from(evidencePacks)
-      .where(eq(evidencePacks.organizationId, ctx.activeOrganizationId))
+        // Calculate overall compliance rate (implemented + verified = compliant)
+        const compliant = obligationStats.implemented + obligationStats.verified
+        const complianceRate = obligationStats.total > 0 ? Math.round((compliant / obligationStats.total) * 100) : 100
 
-    return {
-      controlsAtRisk,
-      systemsImpacted,
-      evidencePacks: Number(evidencePacksResult[0]?.count ?? 0),
-      activeAlerts: Number(activeAlerts[0]?.count ?? 0),
-      complianceRate,
-      totalSystems: systemsList.length,
-      totalObligations: obligationStats.total,
-      obligations: obligationStats,
-    }
+        // Evidence packs count (soft-delete filter)
+        const evidencePacksResult = await ctx.db
+          .select({ count: count() })
+          .from(evidencePacks)
+          .where(and(eq(evidencePacks.organizationId, orgId), isNull(evidencePacks.deletedAt)))
+
+        return {
+          controlsAtRisk,
+          systemsImpacted,
+          evidencePacks: Number(evidencePacksResult[0]?.count ?? 0),
+          activeAlerts: Number(activeAlerts[0]?.count ?? 0),
+          complianceRate,
+          totalSystems: systemsList.length,
+          totalObligations: obligationStats.total,
+          obligations: obligationStats,
+        }
+      },
+      TTL.dashboard
+    )
   }),
 
   /**
    * Get compliance breakdown by regulation
+   * Cached for 60s
    */
   getComplianceByRegulation: orgProcedure.query(async ({ ctx }) => {
     // Get all regulations for this org

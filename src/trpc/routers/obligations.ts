@@ -1,7 +1,8 @@
 import { articles, auditLog, obligations } from '@/db/schema'
 import { withAudit, withCreateAudit, withDeleteAudit } from '@/lib/audit'
+import { NotFoundError } from '@/lib/errors'
 import { requireMutatePermission, scopedAnd } from '@/lib/tenancy'
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { orgProcedure, router } from '../init'
 
@@ -25,8 +26,8 @@ export const obligationsRouter = router({
     .query(async ({ ctx, input }) => {
       const { articleId, regulationId, status, riskLevel, limit = 50, offset = 0 } = input ?? {}
 
-      // Start with strict org scoping
-      const conditions = [eq(obligations.organizationId, ctx.activeOrganizationId)]
+      // Start with strict org scoping + soft-delete filter
+      const conditions = [eq(obligations.organizationId, ctx.activeOrganizationId), isNull(obligations.deletedAt)]
 
       if (regulationId) {
         conditions.push(eq(obligations.regulationId, regulationId))
@@ -70,6 +71,12 @@ export const obligationsRouter = router({
         },
       })
 
+      // Get total count for pagination (respecting filters)
+      const totalResult = await ctx.db
+        .select({ count: sql<number>`count(*)` })
+        .from(obligations)
+        .where(and(...conditions))
+
       // Get stats for all org obligations
       const allObls = await ctx.db.query.obligations.findMany({
         where: eq(obligations.organizationId, ctx.activeOrganizationId),
@@ -90,7 +97,7 @@ export const obligationsRouter = router({
 
       return {
         items: obligationsList,
-        total: obligationsList.length,
+        total: Number(totalResult[0]?.count ?? 0),
         stats,
         compliancePercent,
         limit,
@@ -128,7 +135,7 @@ export const obligationsRouter = router({
     })
 
     if (!obligation) {
-      throw new Error('Obligation not found')
+      throw new NotFoundError('Obligation', input.id)
     }
 
     return obligation
@@ -153,7 +160,7 @@ export const obligationsRouter = router({
         })
 
         if (!before) {
-          throw new Error('Obligation not found')
+          throw new NotFoundError('Obligation', input.id)
         }
 
         const [after] = await ctx.db
@@ -176,22 +183,28 @@ export const obligationsRouter = router({
   bulkUpdateStatus: orgProcedure
     .input(
       z.object({
-        ids: z.array(z.string()),
+        ids: z.array(z.string()).min(1).max(100),
         status: z.enum(['not_started', 'in_progress', 'implemented', 'under_review', 'verified']),
       })
     )
     .mutation(async ({ ctx, input }) => {
       requireMutatePermission(ctx)
 
-      const results = await Promise.all(
-        input.ids.map(async (id) => {
-          const before = await ctx.db.query.obligations.findFirst({
+      // Use transaction to ensure atomicity
+      return ctx.db.transaction(async (tx) => {
+        const results: Array<{ id: string; success: boolean }> = []
+
+        for (const id of input.ids) {
+          const before = await tx.query.obligations.findFirst({
             where: scopedAnd(obligations, ctx, eq(obligations.id, id)),
           })
 
-          if (!before) return null
+          if (!before) {
+            results.push({ id, success: false })
+            continue
+          }
 
-          const [after] = await ctx.db
+          const [after] = await tx
             .update(obligations)
             .set({
               status: input.status,
@@ -203,7 +216,7 @@ export const obligationsRouter = router({
 
           // Record audit
           if (after) {
-            await ctx.db.insert(auditLog).values({
+            await tx.insert(auditLog).values({
               organizationId: ctx.activeOrganizationId,
               actorUserId: ctx.user.id,
               action: 'update_obligation_status',
@@ -211,13 +224,12 @@ export const obligationsRouter = router({
               entityId: id,
               diff: { before, after },
             })
+            results.push({ id, success: true })
           }
+        }
 
-          return after
-        })
-      )
-
-      return { updated: results.filter(Boolean).length }
+        return { updated: results.filter((r) => r.success).length, results }
+      })
     }),
 
   /**
@@ -255,7 +267,7 @@ export const obligationsRouter = router({
         })
 
         if (!article) {
-          throw new Error('Article not found')
+          throw new NotFoundError('Article', input.articleId)
         }
 
         // Generate obligation ID

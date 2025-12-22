@@ -5,6 +5,7 @@
  */
 
 import { onboardingState, systems } from '@/db/schema'
+import { NotFoundError } from '@/lib/errors'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 
@@ -142,7 +143,7 @@ export const onboardingRouter = router({
     })
 
     if (!state) {
-      throw new Error('Onboarding state not found')
+      throw new NotFoundError('Onboarding state', ctx.activeOrganizationId)
     }
 
     // Mark as complete

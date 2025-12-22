@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server'
-import { and, eq, SQL } from 'drizzle-orm'
+import { and, eq, isNull, SQL } from 'drizzle-orm'
 import type { PgTable, TableConfig } from 'drizzle-orm/pg-core'
 
 /**
@@ -80,6 +80,22 @@ export function scopedAnd<T extends PgTable<TableConfig>>(
   const orgCondition = scopedWhere(table, ctx)
   const validConditions = conditions.filter((c): c is SQL => c !== undefined)
   return and(orgCondition, ...validConditions)!
+}
+
+/**
+ * Combine scoped org filter with soft-delete check and additional conditions
+ * Use this for entities with deletedAt column
+ */
+export function scopedAndActive<T extends PgTable<TableConfig>>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  table: T & { organizationId: any; deletedAt: any },
+  ctx: TenancyContext,
+  ...conditions: (SQL | undefined)[]
+): SQL {
+  const orgCondition = scopedWhere(table, ctx)
+  const notDeleted = isNull(table.deletedAt)
+  const validConditions = conditions.filter((c): c is SQL => c !== undefined)
+  return and(orgCondition, notDeleted, ...validConditions)!
 }
 
 /**

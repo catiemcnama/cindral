@@ -1,5 +1,6 @@
 import { auditLog, evidencePacks, obligations, regulations } from '@/db/schema'
 import { withAudit, withCreateAudit, withDeleteAudit } from '@/lib/audit'
+import { NotFoundError } from '@/lib/errors'
 import { requireMutatePermission, scopedAnd } from '@/lib/tenancy'
 import { and, desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
@@ -117,7 +118,7 @@ export const evidencePacksRouter = router({
     })
 
     if (!pack) {
-      throw new Error('Evidence pack not found')
+      throw new NotFoundError('Evidence pack', input.id)
     }
 
     // Get related obligations for this regulation
@@ -198,7 +199,7 @@ export const evidencePacksRouter = router({
       })
 
       if (!regulation) {
-        throw new Error('Regulation not found')
+        throw new NotFoundError('Regulation', input.regulationId)
       }
 
       // Get all obligations for this regulation

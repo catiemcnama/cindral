@@ -1,7 +1,8 @@
 import { obligations, regulations } from '@/db/schema'
 import { withAudit, withCreateAudit, withDeleteAudit } from '@/lib/audit'
+import { NotFoundError } from '@/lib/errors'
 import { requireAdmin, requireMutatePermission, scopedAnd } from '@/lib/tenancy'
-import { and, asc, desc, eq, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { orgProcedure, router } from '../init'
 
@@ -36,8 +37,8 @@ export const regulationsRouter = router({
         sortOrder = 'asc',
       } = input ?? {}
 
-      // Strict org scoping
-      const conditions = [eq(regulations.organizationId, ctx.activeOrganizationId)]
+      // Strict org scoping + soft-delete filter
+      const conditions = [eq(regulations.organizationId, ctx.activeOrganizationId), isNull(regulations.deletedAt)]
 
       if (jurisdiction) {
         conditions.push(eq(regulations.jurisdiction, jurisdiction))
@@ -153,7 +154,7 @@ export const regulationsRouter = router({
     })
 
     if (!reg) {
-      throw new Error('Regulation not found')
+      throw new NotFoundError('Regulation', input.id)
     }
 
     // Calculate compliance stats

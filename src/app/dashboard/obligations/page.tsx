@@ -7,11 +7,10 @@ import {
   ChevronDownIcon,
   ClockIcon,
   DownloadIcon,
-  FilterIcon,
   MoreHorizontalIcon,
   RefreshCwIcon,
   SearchIcon,
-  XIcon,
+  XIcon
 } from 'lucide-react'
 import Link from 'next/link'
 import { useCallback, useMemo, useState } from 'react'
