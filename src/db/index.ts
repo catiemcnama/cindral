@@ -11,23 +11,17 @@ const POOL_SIZE = parseInt(process.env.DATABASE_POOL_SIZE || '10', 10)
 const QUERY_TIMEOUT = parseInt(process.env.DATABASE_QUERY_TIMEOUT || '30000', 10) // 30s default
 const SLOW_QUERY_THRESHOLD = parseInt(process.env.DATABASE_SLOW_QUERY_MS || '1000', 10) // 1s
 
-if (!DATABASE_URL) {
-  throw new Error(
-    'DATABASE_URL is not defined. Add it to .env.local:\n' +
-      'DATABASE_URL=postgresql://user:password@localhost:5432/cindral'
-  )
-}
-
 // =============================================================================
-// Connection Pool
+// Connection Pool (Lazy Initialization)
 // =============================================================================
 
 /**
- * Cache the database connection in development
+ * Global cache for connection and drizzle instance
  * Prevents too many connections during hot reloading
  */
 const globalForDb = globalThis as unknown as {
   conn: postgres.Sql | undefined
+  db: ReturnType<typeof drizzle<typeof schema>> | undefined
   isHealthy: boolean
 }
 
@@ -41,12 +35,22 @@ function logSlowQuery(query: string, durationMs: number) {
 }
 
 /**
- * Connection pool configuration
- * Optimized for serverless/edge environments
+ * Get or create database connection
+ * Lazily initialized to allow build without DATABASE_URL
  */
-const conn =
-  globalForDb.conn ??
-  postgres(DATABASE_URL, {
+function getConnection(): postgres.Sql {
+  if (globalForDb.conn) {
+    return globalForDb.conn
+  }
+
+  if (!DATABASE_URL) {
+    throw new Error(
+      'DATABASE_URL is not defined. Add it to .env.local:\n' +
+        'DATABASE_URL=postgresql://user:password@localhost:5432/cindral'
+    )
+  }
+
+  const conn = postgres(DATABASE_URL, {
     // Pool sizing
     max: process.env.NODE_ENV === 'production' ? POOL_SIZE : 5,
 
@@ -75,9 +79,23 @@ const conn =
     },
   })
 
-if (process.env.NODE_ENV !== 'production') {
   globalForDb.conn = conn
   globalForDb.isHealthy = true
+  return conn
+}
+
+/**
+ * Get or create Drizzle instance
+ * Lazily initialized to allow build without DATABASE_URL
+ */
+function getDrizzle(): ReturnType<typeof drizzle<typeof schema>> {
+  if (globalForDb.db) {
+    return globalForDb.db
+  }
+
+  const instance = drizzle({ client: getConnection(), schema })
+  globalForDb.db = instance
+  return instance
 }
 
 // =============================================================================
@@ -87,14 +105,27 @@ if (process.env.NODE_ENV !== 'production') {
 /**
  * Drizzle database instance with typed schema
  * Use this for all database operations
+ *
+ * Note: Connection is established lazily on first property access.
+ * This allows Next.js build to succeed without DATABASE_URL.
  */
-export const db = drizzle({ client: conn, schema })
+export const db = new Proxy({} as ReturnType<typeof drizzle<typeof schema>>, {
+  get(_, prop) {
+    return Reflect.get(getDrizzle(), prop)
+  },
+})
 
 /**
  * Raw SQL client for direct queries
  * Use sparingly - prefer Drizzle query builder
+ *
+ * Note: Connection is established lazily on first use.
  */
-export const sql = conn
+export const sql = new Proxy({} as postgres.Sql, {
+  get(_, prop) {
+    return Reflect.get(getConnection(), prop)
+  },
+})
 
 /**
  * Check database health
@@ -108,6 +139,7 @@ export async function checkHealth(): Promise<{
 }> {
   const start = Date.now()
   try {
+    const conn = getConnection()
     await conn`SELECT 1`
     const latencyMs = Date.now() - start
     logSlowQuery('SELECT 1 (health check)', latencyMs)
@@ -142,8 +174,12 @@ export async function withTimeout<T>(operation: () => Promise<T>, timeoutMs: num
  * Call this on application shutdown
  */
 export async function closeDb(): Promise<void> {
-  globalForDb.isHealthy = false
-  await conn.end()
+  if (globalForDb.conn) {
+    globalForDb.isHealthy = false
+    await globalForDb.conn.end()
+    globalForDb.conn = undefined
+    globalForDb.db = undefined
+  }
 }
 
 /**

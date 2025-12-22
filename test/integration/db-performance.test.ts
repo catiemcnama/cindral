@@ -113,9 +113,8 @@ describe.skipIf(skipTests)('Database Performance & Indexes', () => {
       // Note: Small tables may still use Seq Scan as optimizer decides it's cheaper
       // This test verifies the pattern, not absolute behavior
       const hasIndexOption = planText.includes('Index') || planText.includes('Bitmap')
-      const hasSeqScan = planText.includes('Seq Scan')
 
-      // Either uses index, or if seq scan, it's filtered by organization_id
+      // Either uses index, or query is filtered by organization_id (acceptable for small tables)
       expect(hasIndexOption || planText.includes('organization_id')).toBe(true)
     })
 
