@@ -7,6 +7,7 @@ import { alertsRouter } from './alerts'
 import { articlesRouter } from './articles'
 import { dashboardRouter } from './dashboard'
 import { evidencePacksRouter } from './evidence-packs'
+import { integrationsRouter } from './integrations'
 import { obligationsRouter } from './obligations'
 import { onboardingRouter } from './onboarding'
 import { regulationsRouter } from './regulations'
@@ -25,6 +26,7 @@ export const appRouter = router({
   dashboard: dashboardRouter,
   search: searchRouter,
   systemMap: systemMapRouter,
+  integrations: integrationsRouter,
   onboarding: onboardingRouter,
 
   // Public procedures

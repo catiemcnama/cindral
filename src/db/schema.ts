@@ -746,6 +746,79 @@ export const onboardingStateRelations = relations(onboardingState, ({ one }) => 
 }))
 
 /**
+ * Integration status
+ */
+export const integrationStatusEnum = pgEnum('integration_status', [
+  'pending',
+  'connected',
+  'error',
+  'disconnected',
+])
+
+/**
+ * Integration provider types
+ */
+export const integrationProviderEnum = pgEnum('integration_provider', [
+  'jira',
+  'confluence',
+  'servicenow',
+  'slack',
+  'teams',
+])
+
+/**
+ * Third-party integrations
+ */
+export const integrations = pgTable(
+  'integrations',
+  {
+    id: text('id').primaryKey(),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    provider: integrationProviderEnum('provider').notNull(),
+    name: varchar('name', { length: 255 }).notNull(),
+    // Encrypted credentials - stored as JSONB, encrypted at app level
+    config: json('config').$type<{
+      accessToken?: string
+      refreshToken?: string
+      instanceUrl?: string
+      projectKey?: string
+      spaceKey?: string
+    }>(),
+    status: integrationStatusEnum('status').default('pending'),
+    lastSyncAt: timestamp('last_sync_at', { withTimezone: true }),
+    lastError: text('last_error'),
+    // Metadata
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+    createdByUserId: text('created_by_user_id').references(() => user.id, { onDelete: 'set null' }),
+  },
+  (table) => ({
+    orgIdx: index('idx_integrations_org').on(table.organizationId),
+    providerIdx: index('idx_integrations_provider').on(table.organizationId, table.provider),
+    orgProviderUnique: uniqueIndex('integrations_org_provider_unique').on(
+      table.organizationId,
+      table.provider
+    ),
+  })
+)
+
+export const integrationsRelations = relations(integrations, ({ one }) => ({
+  organization: one(organization, {
+    fields: [integrations.organizationId],
+    references: [organization.id],
+  }),
+  createdBy: one(user, {
+    fields: [integrations.createdByUserId],
+    references: [user.id],
+  }),
+}))
+
+/**
  * Type exports for insertion and selection
  */
 
@@ -797,6 +870,9 @@ export type IngestJob = typeof ingestJobs.$inferSelect
 export type NewIngestJob = typeof ingestJobs.$inferInsert
 
 export type AuditLogEntry = typeof auditLog.$inferSelect
+
+export type Integration = typeof integrations.$inferSelect
+export type NewIntegration = typeof integrations.$inferInsert
 export type NewAuditLogEntry = typeof auditLog.$inferInsert
 
 export type OnboardingState = typeof onboardingState.$inferSelect
