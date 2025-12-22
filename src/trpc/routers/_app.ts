@@ -5,6 +5,7 @@ import { orgProcedure, protectedProcedure, publicProcedure, router } from '../in
 // Domain routers
 import { alertsRouter } from './alerts'
 import { articlesRouter } from './articles'
+import { billingRouter } from './billing'
 import { dashboardRouter } from './dashboard'
 import { evidencePacksRouter } from './evidence-packs'
 import { integrationsRouter } from './integrations'
@@ -27,6 +28,7 @@ export const appRouter = router({
   search: searchRouter,
   systemMap: systemMapRouter,
   integrations: integrationsRouter,
+  billing: billingRouter,
   onboarding: onboardingRouter,
 
   // Public procedures
