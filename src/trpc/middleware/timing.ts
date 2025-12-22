@@ -95,15 +95,6 @@ export function createTimingMiddleware(opts: TimingMiddlewareOpts = {}) {
   }): Promise<T> {
     const requestId = idGenerator()
     const startTime = performance.now()
-    const startedAt = new Date()
-
-    // Add request context to ctx
-    const requestContext: RequestContext = {
-      requestId,
-      startTime,
-      startedAt,
-      path,
-    }
 
     // Skip logging if configured
     const shouldLog = !skipLogging?.(path)

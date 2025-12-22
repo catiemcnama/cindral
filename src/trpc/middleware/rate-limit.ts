@@ -9,8 +9,8 @@
  * Storage: In-memory by default, Redis adapter available for production
  */
 
-import { TRPCError } from '@trpc/server'
 import { logger } from '@/lib/logger'
+import { TRPCError } from '@trpc/server'
 
 // =============================================================================
 // Types
@@ -21,7 +21,8 @@ interface RateLimitEntry {
   resetAt: number
 }
 
-interface RateLimitConfig {
+/** Rate limit configuration */
+export type RateLimitConfig = {
   /** Requests per window */
   limit: number
   /** Window size in seconds */

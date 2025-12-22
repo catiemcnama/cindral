@@ -68,7 +68,7 @@ const timingMiddleware = t.middleware(
 const queryRateLimitMiddleware = t.middleware(
   createRateLimitMiddleware({
     type: 'query',
-    skip: (ctx) => process.env.NODE_ENV === 'test',
+    skip: () => process.env.NODE_ENV === 'test',
   })
 )
 
@@ -78,7 +78,7 @@ const queryRateLimitMiddleware = t.middleware(
 const mutationRateLimitMiddleware = t.middleware(
   createRateLimitMiddleware({
     type: 'mutation',
-    skip: (ctx) => process.env.NODE_ENV === 'test',
+    skip: () => process.env.NODE_ENV === 'test',
   })
 )
 
@@ -88,7 +88,7 @@ const mutationRateLimitMiddleware = t.middleware(
 const bulkRateLimitMiddleware = t.middleware(
   createRateLimitMiddleware({
     type: 'bulk',
-    skip: (ctx) => process.env.NODE_ENV === 'test',
+    skip: () => process.env.NODE_ENV === 'test',
   })
 )
 

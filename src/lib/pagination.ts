@@ -153,7 +153,7 @@ export function buildCursorResult<T>(
  * Apply cursor to a query condition
  * Returns SQL conditions for "after this cursor" pagination
  */
-export function getCursorCondition<T>(
+export function getCursorCondition(
   cursor: string | null | undefined,
   direction: 'forward' | 'backward' = 'forward'
 ): { value: string | number | Date; id: string; direction: 'forward' | 'backward' } | null {

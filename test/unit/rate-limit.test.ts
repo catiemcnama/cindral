@@ -1,4 +1,3 @@
-import { beforeEach, describe, expect, it } from 'vitest'
 import {
   RATE_LIMITS,
   clearAllRateLimits,
@@ -6,6 +5,7 @@ import {
   getRateLimitStatus,
   resetRateLimit,
 } from '@/trpc/middleware/rate-limit'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 describe('Rate Limiting', () => {
   beforeEach(() => {
