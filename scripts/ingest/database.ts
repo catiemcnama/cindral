@@ -29,7 +29,7 @@ export async function upsertRegulation(
       .set({
         name: regulation.name,
         slug: regulation.slug ?? regulation.id,
-        framework: regulation.framework,
+        framework: regulation.framework ?? regulation.id,
         version: regulation.version,
         fullTitle: regulation.fullTitle,
         jurisdiction: regulation.jurisdiction,
@@ -45,7 +45,7 @@ export async function upsertRegulation(
       id: regulation.id,
       name: regulation.name,
       slug: regulation.slug ?? regulation.id,
-      framework: regulation.framework,
+      framework: regulation.framework ?? regulation.id,
       version: regulation.version,
       fullTitle: regulation.fullTitle,
       jurisdiction: regulation.jurisdiction,
