@@ -105,7 +105,7 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
-          // Send welcome email to new users
+          // Send welcome email to new users (fire-and-forget, don't block signup)
           const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
           logger.info('New user created, sending welcome email', {
@@ -113,10 +113,16 @@ export const auth = betterAuth({
             email: user.email,
           })
 
-          await sendWelcomeEmail({
+          // Don't await - send in background so signup isn't blocked if email fails
+          sendWelcomeEmail({
             to: user.email,
-            name: user.name,
+            name: user.name ?? undefined,
             dashboardUrl: `${appUrl}/dashboard`,
+          }).catch((error) => {
+            logger.error('Failed to send welcome email', {
+              userId: user.id,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            })
           })
         },
       },
