@@ -34,9 +34,9 @@ function VerifyEmailContent() {
           setError(result.error.message || 'Verification failed')
         } else {
           setStatus('success')
-          // Redirect to dashboard after 3 seconds
+          // Redirect to sign-in after 3 seconds (user needs to log in with verified email)
           setTimeout(() => {
-            router.push('/dashboard')
+            router.push('/signin')
           }, 3000)
         }
       } catch (err: unknown) {
@@ -80,11 +80,11 @@ function VerifyEmailContent() {
               <div>
                 <h1 className="text-xl font-semibold text-emerald-600 dark:text-emerald-400">Email verified!</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Your email has been successfully verified. Redirecting to your dashboard...
+                  Your email has been successfully verified. Redirecting to sign in...
                 </p>
               </div>
-              <Link href="/dashboard">
-                <Button className="mt-2">Go to Dashboard</Button>
+              <Link href="/signin">
+                <Button className="mt-2">Sign In</Button>
               </Link>
             </div>
           )}

@@ -171,9 +171,9 @@ export function AppHeader() {
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm leading-none font-medium">{session?.user?.name || 'User'}</p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    {session?.user?.email || 'user@example.com'}
-                  </p>
+                  {session?.user?.email && (
+                    <p className="text-xs leading-none text-muted-foreground">{session.user.email}</p>
+                  )}
                 </div>
               </DropdownMenuLabel>
 
