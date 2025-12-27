@@ -10,14 +10,28 @@ export const authClient = createAuthClient({
 
 export const { signIn, signUp, signOut, useSession, organization, useActiveOrganization } = authClient
 
-// Password reset - use type assertion for forgetPassword method
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const client = authClient as any
-export const requestPasswordReset = (params: { email: string; redirectTo?: string }) =>
-  client.forgetPassword({
-    email: params.email,
-    redirectTo: params.redirectTo || '/reset-password',
-  })
+// Password reset - call the correct endpoint directly
+export const requestPasswordReset = async (params: { email: string; redirectTo?: string }) => {
+  try {
+    const response = await fetch('/api/auth/request-password-reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: params.email,
+        redirectTo: params.redirectTo || '/reset-password',
+      }),
+    })
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}))
+      return { error: { message: data.message || 'Failed to send reset email' } }
+    }
+
+    return { error: null }
+  } catch {
+    return { error: { message: 'Failed to send reset email' } }
+  }
+}
 
 export const resetPassword = (params: { token: string; newPassword: string }) =>
   authClient.resetPassword({ newPassword: params.newPassword, token: params.token })
