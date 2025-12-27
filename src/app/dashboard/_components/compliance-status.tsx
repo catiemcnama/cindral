@@ -83,10 +83,35 @@ export function ComplianceStatus() {
 
   // Error state
   if (error) {
+    const errorObj = error as { data?: { httpStatus?: number; code?: string }; message?: string }
+    const msg = errorObj?.message || ''
+
+    const isNoOrgError =
+      errorObj?.data?.httpStatus === 403 ||
+      errorObj?.data?.code === 'FORBIDDEN' ||
+      msg.includes('403') ||
+      msg.toLowerCase().includes('forbidden') ||
+      msg.toLowerCase().includes('active organization')
+
     const isAuthError =
-      error.message.includes('401') ||
-      error.message.toLowerCase().includes('unauthorized') ||
-      (error as { data?: { httpStatus?: number } })?.data?.httpStatus === 401
+      msg.includes('401') || msg.toLowerCase().includes('unauthorized') || errorObj?.data?.httpStatus === 401
+
+    // No org error - show setup prompt
+    if (isNoOrgError) {
+      return (
+        <Card className="border-dashed border-primary/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-medium">Compliance Status</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+            <p className="text-sm text-muted-foreground">Complete setup to view compliance data</p>
+            <Button size="sm" className="mt-3" asChild>
+              <a href="/dashboard/onboarding">Complete setup</a>
+            </Button>
+          </CardContent>
+        </Card>
+      )
+    }
 
     if (isAuthError) {
       // Show demo data for unauthenticated users

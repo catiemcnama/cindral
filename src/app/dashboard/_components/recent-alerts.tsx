@@ -82,6 +82,17 @@ function isAuthError(err: unknown): boolean {
   return msg.includes('401') || msg.toLowerCase().includes('unauthorized')
 }
 
+function isNoOrgError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false
+  const e = err as { data?: { httpStatus?: number; code?: string }; message?: string }
+  if (e?.data?.httpStatus === 403) return true
+  if (e?.data?.code === 'FORBIDDEN') return true
+  const msg = String(e?.message || '')
+  return (
+    msg.includes('403') || msg.toLowerCase().includes('forbidden') || msg.toLowerCase().includes('active organization')
+  )
+}
+
 function formatRelativeDate(date: Date): string {
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
@@ -152,6 +163,28 @@ export function RecentAlerts() {
         </CardHeader>
         <CardContent>
           <AlertItemSkeleton count={3} />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // No org error - show setup prompt
+  if (error && isNoOrgError(error)) {
+    return (
+      <Card className="border-dashed border-primary/20">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <BellIcon className="size-4" />
+            Recent Alerts
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center py-6 text-center">
+            <p className="text-sm text-muted-foreground">Complete setup to view alerts</p>
+            <Button size="sm" className="mt-3" asChild>
+              <Link href="/dashboard/onboarding">Complete setup</Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     )

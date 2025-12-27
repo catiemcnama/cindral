@@ -41,10 +41,21 @@ const regulationStyles: Record<string, string> = {
 
 function isAuthError(err: unknown): boolean {
   if (!err || typeof err !== 'object') return false
-  const e = err as { data?: { httpStatus?: number }; message?: string }
+  const e = err as { data?: { httpStatus?: number; code?: string }; message?: string }
   if (e?.data?.httpStatus === 401) return true
   const msg = String(e?.message || '')
   return msg.includes('401') || msg.toLowerCase().includes('unauthorized')
+}
+
+function isNoOrgError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false
+  const e = err as { data?: { httpStatus?: number; code?: string }; message?: string }
+  if (e?.data?.httpStatus === 403) return true
+  if (e?.data?.code === 'FORBIDDEN') return true
+  const msg = String(e?.message || '')
+  return (
+    msg.includes('403') || msg.toLowerCase().includes('forbidden') || msg.toLowerCase().includes('active organization')
+  )
 }
 
 function formatRelativeTime(date: Date): string {
@@ -108,6 +119,29 @@ export function RegulatoryFeed() {
           <h2 className="text-xl font-semibold">Regulatory Change Feed</h2>
         </div>
         <FeedItemSkeleton count={3} />
+      </div>
+    )
+  }
+
+  // No org error - show setup prompt
+  if (error && isNoOrgError(error)) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Regulatory Change Feed</h2>
+        </div>
+
+        <Card className="border-dashed border-primary/20 bg-primary/5">
+          <CardContent className="flex items-center justify-between p-4">
+            <div>
+              <p className="font-medium">Complete setup to view your feed</p>
+              <p className="text-sm text-muted-foreground">Set up your organization to see regulatory changes.</p>
+            </div>
+            <Button asChild>
+              <Link href="/dashboard/onboarding">Complete setup</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     )
   }

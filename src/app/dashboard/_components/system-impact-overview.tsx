@@ -54,6 +54,17 @@ function isAuthError(err: unknown): boolean {
   return msg.includes('401') || msg.toLowerCase().includes('unauthorized')
 }
 
+function isNoOrgError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false
+  const e = err as { data?: { httpStatus?: number; code?: string }; message?: string }
+  if (e?.data?.httpStatus === 403) return true
+  if (e?.data?.code === 'FORBIDDEN') return true
+  const msg = String(e?.message || '')
+  return (
+    msg.includes('403') || msg.toLowerCase().includes('forbidden') || msg.toLowerCase().includes('active organization')
+  )
+}
+
 // =============================================================================
 // Component
 // =============================================================================
@@ -78,6 +89,25 @@ export function SystemImpactOverview() {
         </CardHeader>
         <CardContent>
           <StatsGridSkeleton count={4} columns={2} />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // No org error - show setup prompt
+  if (error && isNoOrgError(error)) {
+    return (
+      <Card className="border-dashed border-primary/20">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-medium">System Impact Overview</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center py-6 text-center">
+            <p className="text-sm text-muted-foreground">Complete setup to view system stats</p>
+            <Button size="sm" className="mt-3" asChild>
+              <Link href="/dashboard/onboarding">Complete setup</Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     )

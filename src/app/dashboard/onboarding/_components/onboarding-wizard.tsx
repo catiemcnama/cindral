@@ -10,6 +10,7 @@ import {
   FactoryIcon,
   HardDriveIcon,
   HeartPulseIcon,
+  Loader2Icon,
   MailIcon,
   NetworkIcon,
   ServerIcon,
@@ -31,10 +32,12 @@ import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
+import { organization, useActiveOrganization } from '@/lib/auth-client'
 import { readOnboardingState, writeOnboardingState } from '@/lib/onboarding-storage'
 import { cn } from '@/lib/utils'
 
 const steps = [
+  { id: 0, title: 'Organization', description: 'Name your workspace' },
   { id: 1, title: 'Industry', description: 'Define your sector' },
   { id: 2, title: 'Regulations', description: 'Confirm scope' },
   { id: 3, title: 'Systems', description: 'Map your stack' },
@@ -286,7 +289,10 @@ const regulationIndex = regulations.reduce<Record<string, Regulation>>((acc, reg
 }, {})
 
 export function OnboardingWizard() {
-  const [step, setStep] = useState(1)
+  const { data: activeOrg, isPending: isLoadingOrg } = useActiveOrganization()
+
+  // Start at step 0 (org creation) if user has no org, otherwise step 1
+  const [step, setStep] = useState<number | null>(null)
   const [industryId, setIndustryId] = useState<string | null>(null)
   const [selectedRegulations, setSelectedRegulations] = useState<string[]>([])
   const [regulationsCustomized, setRegulationsCustomized] = useState(false)
@@ -299,6 +305,56 @@ export function OnboardingWizard() {
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState(inviteRoles[2]?.value ?? 'member')
   const [hasLoadedState, setHasLoadedState] = useState(false)
+
+  // Org creation state
+  const [orgName, setOrgName] = useState('')
+  const [isCreatingOrg, setIsCreatingOrg] = useState(false)
+  const [orgError, setOrgError] = useState('')
+
+  // Initialize step based on org status
+  useEffect(() => {
+    if (isLoadingOrg) return
+    if (step !== null) return // Already initialized
+
+    // If user has an org, skip to step 1, otherwise start at step 0
+    setStep(activeOrg ? 1 : 0)
+  }, [isLoadingOrg, activeOrg, step])
+
+  const handleCreateOrg = async () => {
+    const name = orgName.trim()
+    if (!name || name.length < 2) {
+      setOrgError('Organization name must be at least 2 characters')
+      return
+    }
+
+    setIsCreatingOrg(true)
+    setOrgError('')
+
+    try {
+      const slug = name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')
+      const result = await organization.create({ name, slug })
+
+      if (result.error) {
+        setOrgError(result.error.message || 'Failed to create organization')
+        return
+      }
+
+      // Set the new org as active
+      if (result.data?.id) {
+        await organization.setActive({ organizationId: result.data.id })
+      }
+
+      // Move to next step
+      setStep(1)
+    } catch (err) {
+      setOrgError(err instanceof Error ? err.message : 'Failed to create organization')
+    } finally {
+      setIsCreatingOrg(false)
+    }
+  }
 
   const recommendedRegulations = useMemo(() => {
     if (!industryId) return []
@@ -480,6 +536,22 @@ export function OnboardingWizard() {
     setInvites((prev) => prev.filter((invite) => invite.email !== email))
   }
 
+  // Show loading while checking org status
+  if (isLoadingOrg || step === null) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center p-6">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2Icon className="size-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // For display, we show steps 1-5 to user (internally 0-4)
+  const displayStep = step + 1
+  const totalSteps = steps.length
+
   return (
     <div className="p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -488,28 +560,38 @@ export function OnboardingWizard() {
             Onboarding
           </Badge>
           <div>
-            <h1 className="text-2xl font-semibold">Set your regulatory scope</h1>
+            <h1 className="text-2xl font-semibold">
+              {step === 0 ? 'Create your workspace' : 'Set your regulatory scope'}
+            </h1>
             <p className="text-sm text-muted-foreground">
-              Pick your industry and confirm the regulations that apply to your organization.
+              {step === 0
+                ? 'Name your organization to get started with Cindral.'
+                : 'Pick your industry and confirm the regulations that apply to your organization.'}
             </p>
           </div>
         </div>
-        <Button variant="ghost" asChild>
-          <Link href="/dashboard">Exit setup</Link>
-        </Button>
+        {step > 0 && (
+          <Button variant="ghost" asChild>
+            <Link href="/dashboard">Exit setup</Link>
+          </Button>
+        )}
       </div>
 
       <div className="mt-6 rounded-xl border bg-card p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-medium">Step {step} of 4</p>
-            <p className="text-xs text-muted-foreground">Industry + regulations takes about 2 minutes.</p>
+            <p className="text-sm font-medium">
+              Step {displayStep} of {totalSteps}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {step === 0 ? 'Quick setup takes about 2 minutes.' : 'Industry + regulations takes about 2 minutes.'}
+            </p>
           </div>
           <div className="w-full sm:w-64">
-            <Progress value={(step / steps.length) * 100} />
+            <Progress value={(displayStep / totalSteps) * 100} />
           </div>
         </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {steps.map((item) => (
             <div
               key={item.id}
@@ -526,7 +608,7 @@ export function OnboardingWizard() {
                   item.id <= step ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
                 )}
               >
-                {item.id}
+                {item.id + 1}
               </div>
               <div>
                 <div className="font-medium">{item.title}</div>
@@ -539,6 +621,69 @@ export function OnboardingWizard() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-6">
+          {/* Step 0: Organization Creation */}
+          {step === 0 && (
+            <Card>
+              <CardHeader className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <CardTitle>Step 1: Create your organization</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Your organization is your workspace where you&apos;ll manage compliance.
+                    </p>
+                  </div>
+                  <Badge variant="secondary" className="gap-1">
+                    <Building2Icon className="size-3" />
+                    Workspace
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="orgName">Organization name</Label>
+                    <Input
+                      id="orgName"
+                      value={orgName}
+                      onChange={(e) => setOrgName(e.target.value)}
+                      placeholder="Acme Financial Services"
+                      disabled={isCreatingOrg}
+                      className="h-11"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      This is typically your company name. You can change it later.
+                    </p>
+                  </div>
+
+                  {orgError && (
+                    <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{orgError}</div>
+                  )}
+                </div>
+
+                <Separator />
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+                  <Button
+                    onClick={handleCreateOrg}
+                    disabled={!orgName.trim() || orgName.trim().length < 2 || isCreatingOrg}
+                  >
+                    {isCreatingOrg ? (
+                      <>
+                        <Loader2Icon className="mr-2 size-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        Create & continue
+                        <ArrowRightIcon className="size-4" />
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {step === 1 && (
             <Card>
               <CardHeader className="space-y-3">
