@@ -1,4 +1,5 @@
 import { db } from '@/db'
+import { sendInvitationEmail, sendPasswordResetEmail, sendVerificationEmail } from '@/lib/email'
 import { logger } from '@/lib/logger'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
@@ -27,27 +28,21 @@ export const auth = betterAuth({
     requireEmailVerification,
     resetPasswordTokenExpiresIn: 3600, // 1 hour
     verificationTokenExpiresIn: 86400, // 24 hours
-    async sendResetPassword({ user, url, token }) {
+    async sendResetPassword({ user, url }) {
       logger.info('Password reset requested', {
         userId: user.id,
         email: user.email,
-        resetUrl: url,
-        token,
       })
 
-      // In production, integrate with your email provider (Resend, SendGrid, etc.)
-      // await sendEmail({
-      //   to: user.email,
-      //   subject: 'Reset your Cindral password',
-      //   html: getPasswordResetEmailTemplate(user.name, url),
-      // })
-
-      console.log(`[DEV] Password reset link for ${user.email}: ${url}`)
+      await sendPasswordResetEmail({
+        to: user.email,
+        name: user.name,
+        resetUrl: url,
+      })
     },
     async sendVerificationEmail({
       user,
       url,
-      token,
     }: {
       user: { id: string; email: string; name?: string }
       url: string
@@ -56,18 +51,13 @@ export const auth = betterAuth({
       logger.info('Email verification requested', {
         userId: user.id,
         email: user.email,
-        verificationUrl: url,
-        token,
       })
 
-      // In production, integrate with your email provider (Resend, SendGrid, etc.)
-      // await sendEmail({
-      //   to: user.email,
-      //   subject: 'Verify your Cindral email',
-      //   html: getVerificationEmailTemplate(user.name, url),
-      // })
-
-      console.log(`[DEV] Email verification link for ${user.email}: ${url}`)
+      await sendVerificationEmail({
+        to: user.email,
+        name: user.name,
+        verifyUrl: url,
+      })
     },
   },
   socialProviders: {
@@ -117,23 +107,24 @@ export const auth = betterAuth({
       allowUserToCreateOrganization: true,
       // Limit number of organizations a user can create (optional)
       organizationLimit: 10,
-      // Optional: Send invitation emails
+      // Send invitation emails
       async sendInvitationEmail(data) {
-        // TODO: Implement email sending logic
-        // For now, we'll log the invitation
-        console.log('Invitation sent:', {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+        const inviteUrl = `${appUrl}/accept-invitation/${data.id}`
+
+        logger.info('Organization invitation requested', {
           to: data.email,
           organization: data.organization.name,
           inviter: data.inviter.user.name,
-          invitationId: data.id,
         })
 
-        // When you implement email:
-        // await sendEmail({
-        //   to: data.email,
-        //   subject: `Join ${data.organization.name}`,
-        //   html: `${data.inviter.user.name} invited you to join ${data.organization.name}. <a href="${process.env.NEXT_PUBLIC_APP_URL}/accept-invitation/${data.id}">Accept invitation</a>`,
-        // });
+        await sendInvitationEmail({
+          to: data.email,
+          inviterName: data.inviter.user.name || 'A team member',
+          organizationName: data.organization.name,
+          inviteUrl,
+          role: data.role,
+        })
       },
     }),
   ],

@@ -31,6 +31,7 @@
     "test:ui": "dotenv -e .env.local -- vitest --ui",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:email": "dotenv -e .env.local -- tsx scripts/test-email.ts",
     "ingest": "dotenv -e .env.local -- tsx scripts/ingest/main.ts",
     "ingest:demo:finbank": "dotenv -e .env.local -- tsx scripts/ingest/run-demo-finbank.ts",
     "ingest:demo:paytech": "dotenv -e .env.local -- tsx scripts/ingest/run-demo-paytech.ts",

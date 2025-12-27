@@ -29,7 +29,11 @@ GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
 NEXT_PUBLIC_GITHUB_ENABLED=true
 
-# Email Verification
+# Email - Resend (Required)
+RESEND_API_KEY=re_xxxxxxxxxxxx
+EMAIL_FROM=Cindral <notifications@trycindral.com>
+
+# Email Verification (enable when ready)
 REQUIRE_EMAIL_VERIFICATION=true
 
 # AI (Required for AI features)
