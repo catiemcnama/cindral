@@ -35,6 +35,35 @@ export default function RegulationsLoader() {
       return m.includes('401') || m.toLowerCase().includes('unauthorized')
     }
 
+    const isNoOrgError = (err: unknown) => {
+      if (!err) return false
+      const e = err as { data?: { httpStatus?: number; code?: string }; message?: string }
+      if (e?.data?.httpStatus === 403) return true
+      if (e?.data?.code === 'FORBIDDEN') return true
+      const m = (e?.message || '').toString()
+      return (
+        m.includes('403') || m.toLowerCase().includes('forbidden') || m.toLowerCase().includes('active organization')
+      )
+    }
+
+    // No org error - show setup prompt
+    if (isNoOrgError(q.error)) {
+      return (
+        <div className="p-6">
+          <div className="mb-6">
+            <h1 className="text-2xl font-semibold">Regulations</h1>
+            <p className="text-muted-foreground">Browse and manage regulatory frameworks affecting your organization</p>
+          </div>
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <p className="text-sm text-muted-foreground">Complete setup to view regulations</p>
+            <Button className="mt-3" asChild>
+              <Link href="/dashboard/onboarding">Complete setup</Link>
+            </Button>
+          </div>
+        </div>
+      )
+    }
+
     if (isAuthError(q.error)) {
       const demo = [
         { id: 'r1', title: 'DORA', slug: 'dora', percent: 67 },
@@ -55,7 +84,7 @@ export default function RegulationsLoader() {
           ))}
           <div className="mt-3 text-right">
             <Button asChild>
-              <Link href="/auth/signin">Sign in</Link>
+              <Link href="/signin">Sign in</Link>
             </Button>
           </div>
         </div>

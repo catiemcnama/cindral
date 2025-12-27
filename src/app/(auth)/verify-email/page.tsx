@@ -83,7 +83,7 @@ function VerifyEmailContent() {
                   Your email has been successfully verified. Redirecting to your dashboard...
                 </p>
               </div>
-              <Link href="/app">
+              <Link href="/dashboard">
                 <Button className="mt-2">Go to Dashboard</Button>
               </Link>
             </div>

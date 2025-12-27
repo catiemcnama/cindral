@@ -8,7 +8,7 @@ export async function proxy(request: NextRequest) {
   })
 
   // Check if the request is for a protected route
-  const isProtectedRoute = request.nextUrl.pathname.startsWith('/app')
+  const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard')
 
   if (isProtectedRoute && !session) {
     // Redirect to signin if not authenticated
