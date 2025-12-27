@@ -36,7 +36,7 @@ function VerifyEmailContent() {
           setStatus('success')
           // Redirect to dashboard after 3 seconds
           setTimeout(() => {
-            router.push('/app')
+            router.push('/dashboard')
           }, 3000)
         }
       } catch (err: unknown) {

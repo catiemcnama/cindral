@@ -75,7 +75,7 @@ export default function SignInPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (session && !sessionPending) {
-      router.push('/app')
+      router.push('/dashboard')
     }
   }, [session, sessionPending, router])
 
@@ -94,7 +94,7 @@ export default function SignInPage() {
         if (result.error) {
           setError(mapErrorMessage(result.error.message || 'Invalid credentials'))
         } else {
-          router.push('/app')
+          router.push('/dashboard')
         }
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Sign in failed'

@@ -105,7 +105,7 @@ export default function SignUpPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (session && !sessionPending) {
-      router.push('/app')
+      router.push('/dashboard')
     }
   }, [session, sessionPending, router])
 
@@ -115,7 +115,7 @@ export default function SignUpPage() {
 
       // Bot detection - if honeypot is filled, silently "succeed"
       if (honeypot) {
-        router.push('/app')
+        router.push('/dashboard')
         return
       }
 
@@ -138,7 +138,7 @@ export default function SignUpPage() {
         if (result.error) {
           setError(mapErrorMessage(result.error.message || 'Sign up failed'))
         } else {
-          router.push('/app')
+          router.push('/dashboard')
         }
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Sign up failed'
