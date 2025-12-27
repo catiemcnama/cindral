@@ -1,6 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
 
 import { LastUpdated } from '@/components/notification-badge'
 import { Button } from '@/components/ui/button'
@@ -106,7 +107,7 @@ export function ComplianceStatus() {
           <CardContent className="flex flex-col items-center justify-center py-8 text-center">
             <p className="text-sm text-muted-foreground">Complete setup to view compliance data</p>
             <Button size="sm" className="mt-3" asChild>
-              <a href="/dashboard/onboarding">Complete setup</a>
+              <Link href="/dashboard/onboarding">Complete setup</Link>
             </Button>
           </CardContent>
         </Card>
