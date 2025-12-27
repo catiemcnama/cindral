@@ -11,7 +11,7 @@ import {
   UserIcon,
 } from 'lucide-react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 
 import { CommandSearch, SearchTrigger, useCommandSearch } from '@/components/command-search'
 import { NotificationBadge } from '@/components/notification-badge'
@@ -74,7 +74,13 @@ function getBreadcrumbs(pathname: string): { label: string; href: string }[] {
 export function AppHeader() {
   const { data: session } = useSession()
   const pathname = usePathname()
+  const router = useRouter()
   const { open, setOpen } = useCommandSearch()
+
+  const handleSignOut = async () => {
+    await signOut()
+    router.push('/signin')
+  }
 
   const initials =
     session?.user?.name
@@ -208,7 +214,7 @@ export function AppHeader() {
 
               <DropdownMenuSeparator />
 
-              <DropdownMenuItem onClick={() => signOut()} className="gap-2 text-destructive focus:text-destructive">
+              <DropdownMenuItem onClick={handleSignOut} className="gap-2 text-destructive focus:text-destructive">
                 <LogOutIcon className="size-4" />
                 Log out
               </DropdownMenuItem>
