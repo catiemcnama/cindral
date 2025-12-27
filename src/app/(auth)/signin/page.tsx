@@ -7,7 +7,7 @@ import { signIn, signInWithGitHub, signInWithGoogle, signInWithMicrosoft, useSes
 import { cn } from '@/lib/utils'
 import { AlertCircle, Check, Eye, EyeOff, Loader2, Shield, Sparkles, Zap } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 // Check if OAuth providers are configured
@@ -56,12 +56,16 @@ function useDebounce<T>(value: T, delay: number): T {
 export default function SignInPage() {
   const { data: session, isPending: sessionPending } = useSession()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [emailTouched, setEmailTouched] = useState(false)
+
+  // Check if user just registered
+  const justRegistered = searchParams.get('registered') === 'true'
 
   const debouncedEmail = useDebounce(email, EMAIL_VALIDATION_DELAY_MS)
 
@@ -439,6 +443,17 @@ export default function SignInPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Success message - shown after registration */}
+              {justRegistered && !error && (
+                <div
+                  className="flex items-start gap-2 rounded-lg bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400"
+                  role="status"
+                >
+                  <Check className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>Account created successfully! Please sign in with your credentials.</span>
+                </div>
+              )}
 
               {/* Error message */}
               {error && (

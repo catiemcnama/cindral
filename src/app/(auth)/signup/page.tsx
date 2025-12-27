@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { signInWithGitHub, signInWithGoogle, signInWithMicrosoft, signUp, useSession } from '@/lib/auth-client'
+import { signInWithGitHub, signInWithGoogle, signInWithMicrosoft, signOut, signUp, useSession } from '@/lib/auth-client'
 import { cn } from '@/lib/utils'
 import { AlertCircle, Check, Eye, EyeOff, Loader2, Shield, Sparkles, Zap } from 'lucide-react'
 import Link from 'next/link'
@@ -179,7 +179,11 @@ export default function SignUpPage() {
         if (result.error) {
           setError(mapErrorMessage(result.error.message || 'Sign up failed'))
         } else {
-          router.push('/dashboard/onboarding')
+          // Sign out the user so they need to sign in manually
+          // This ensures they verify their credentials work before accessing the app
+          await signOut()
+          // Redirect to sign-in page with success message
+          router.push('/signin?registered=true')
         }
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Sign up failed'

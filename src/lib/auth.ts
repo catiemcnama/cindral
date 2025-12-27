@@ -12,10 +12,14 @@ const secret = process.env.BETTER_AUTH_SECRET || 'build-time-placeholder-secret-
 // Email verification setting - enable in production
 const requireEmailVerification = process.env.REQUIRE_EMAIL_VERIFICATION === 'true'
 
+// Determine the base URL - prefer BETTER_AUTH_URL, fall back to NEXT_PUBLIC_APP_URL, then localhost
+const baseURL = process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
 // #region agent log - Debug auth configuration
 console.log('[DEBUG-AUTH-CONFIG] Auth configuration:', {
-  BETTER_AUTH_URL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
+  BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+  resolvedBaseURL: baseURL,
   NODE_ENV: process.env.NODE_ENV,
   requireEmailVerification,
 })
@@ -23,7 +27,7 @@ console.log('[DEBUG-AUTH-CONFIG] Auth configuration:', {
 
 export const auth = betterAuth({
   secret,
-  baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
+  baseURL,
   trustedOrigins: [
     'https://trycindral.com',
     'https://www.trycindral.com',
