@@ -104,48 +104,7 @@ export default function SignUpPage() {
 
   // Redirect if already logged in
   useEffect(() => {
-    // #region agent log
-    // FIX: Check session?.user instead of just session - empty session objects are truthy!
-    console.log('[DEBUG-SIGNUP] Redirect check:', {
-      hasUser: !!session?.user,
-      sessionPending,
-      willRedirect: !!(session?.user && !sessionPending),
-      sessionData: session,
-    })
-    fetch('http://127.0.0.1:7242/ingest/b450801b-9423-48b0-8ee4-d3ab4ebfc279', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        location: 'signup/page.tsx:redirect-check',
-        message: 'Checking redirect condition on signup',
-        data: {
-          hasUser: !!session?.user,
-          sessionPending: sessionPending,
-          willRedirect: !!(session?.user && !sessionPending),
-          sessionData: session,
-        },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        hypothesisId: 'A,B,E',
-      }),
-    }).catch(() => {})
-    // #endregion
     if (session?.user && !sessionPending) {
-      // #region agent log
-      console.log('[DEBUG-SIGNUP] REDIRECTING - authenticated user detected:', session)
-      fetch('http://127.0.0.1:7242/ingest/b450801b-9423-48b0-8ee4-d3ab4ebfc279', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          location: 'signup/page.tsx:redirecting',
-          message: 'REDIRECTING to onboarding - user authenticated',
-          data: { sessionData: session },
-          timestamp: Date.now(),
-          sessionId: 'debug-session',
-          hypothesisId: 'A',
-        }),
-      }).catch(() => {})
-      // #endregion
       router.push('/dashboard/onboarding')
     }
   }, [session, sessionPending, router])

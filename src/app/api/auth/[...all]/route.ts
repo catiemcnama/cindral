@@ -1,52 +1,54 @@
 import { auth } from '@/lib/auth'
 import { toNextJsHandler } from 'better-auth/next-js'
-import { NextRequest } from 'next/server'
 
-// #region agent log - Server-side auth debugging
 const handler = toNextJsHandler(auth)
 
-export async function GET(request: NextRequest) {
-  const url = new URL(request.url)
-  console.log('[DEBUG-AUTH-API] GET request:', {
-    pathname: url.pathname,
-    searchParams: Object.fromEntries(url.searchParams),
-    origin: request.headers.get('origin'),
-    host: request.headers.get('host'),
-  })
+// #region agent log
+export async function GET(request: Request) {
   return handler.GET(request)
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   const url = new URL(request.url)
-  // Clone request to read body without consuming it
-  const clonedRequest = request.clone()
-  let body: unknown = null
+  const pathname = url.pathname
+
+  // Clone to read body without consuming
+  const cloned = request.clone()
+  let body: Record<string, unknown> = {}
   try {
-    body = await clonedRequest.json()
-    // Remove password from logs for security
-    if (body && typeof body === 'object' && 'password' in body) {
-      body = { ...body, password: '[REDACTED]' }
-    }
+    body = await cloned.json()
   } catch {
-    body = 'Could not parse body'
+    // not JSON
   }
 
-  console.log('[DEBUG-AUTH-API] POST request:', {
-    pathname: url.pathname,
-    origin: request.headers.get('origin'),
-    host: request.headers.get('host'),
-    body,
-    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
-    NODE_ENV: process.env.NODE_ENV,
-  })
+  // Log sign-in attempts
+  if (pathname.includes('sign-in')) {
+    console.log('[AUTH] Sign-in attempt:', {
+      email: body.email,
+      hasPassword: !!body.password,
+      pathname,
+    })
+  }
 
   const response = await handler.POST(request)
 
-  // Log response status
-  console.log('[DEBUG-AUTH-API] POST response:', {
-    status: response.status,
-    statusText: response.statusText,
-  })
+  // Log result
+  if (pathname.includes('sign-in')) {
+    // Try to get response body for error details
+    const resClone = response.clone()
+    let resBody: unknown = null
+    try {
+      resBody = await resClone.json()
+    } catch {
+      // not JSON
+    }
+
+    console.log('[AUTH] Sign-in result:', {
+      status: response.status,
+      email: body.email,
+      responseBody: resBody,
+    })
+  }
 
   return response
 }
