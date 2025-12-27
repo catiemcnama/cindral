@@ -12,6 +12,15 @@ const secret = process.env.BETTER_AUTH_SECRET || 'build-time-placeholder-secret-
 // Email verification setting - enable in production
 const requireEmailVerification = process.env.REQUIRE_EMAIL_VERIFICATION === 'true'
 
+// #region agent log - Debug auth configuration
+console.log('[DEBUG-AUTH-CONFIG] Auth configuration:', {
+  BETTER_AUTH_URL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
+  NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+  NODE_ENV: process.env.NODE_ENV,
+  requireEmailVerification,
+})
+// #endregion
+
 export const auth = betterAuth({
   secret,
   baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
