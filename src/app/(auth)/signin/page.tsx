@@ -72,9 +72,77 @@ export default function SignInPage() {
     return null
   }, [debouncedEmail, emailTouched])
 
+  // #region agent log
+  useEffect(() => {
+    console.log('[DEBUG-SIGNIN] useSession state:', {
+      session,
+      sessionPending,
+      hasSession: !!session,
+      sessionKeys: session ? Object.keys(session) : null,
+    })
+    fetch('http://127.0.0.1:7242/ingest/b450801b-9423-48b0-8ee4-d3ab4ebfc279', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: 'signin/page.tsx:useSession-effect',
+        message: 'useSession state on signin page load',
+        data: {
+          session: session,
+          sessionPending: sessionPending,
+          hasSession: !!session,
+          sessionKeys: session ? Object.keys(session) : null,
+        },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        hypothesisId: 'A,B,E',
+      }),
+    }).catch(() => {})
+  }, [session, sessionPending])
+  // #endregion
+
   // Redirect if already logged in
   useEffect(() => {
-    if (session && !sessionPending) {
+    // #region agent log
+    // FIX: Check session?.user instead of just session - empty session objects are truthy!
+    console.log('[DEBUG-SIGNIN] Redirect check:', {
+      hasUser: !!session?.user,
+      sessionPending,
+      willRedirect: !!(session?.user && !sessionPending),
+      sessionData: session,
+    })
+    fetch('http://127.0.0.1:7242/ingest/b450801b-9423-48b0-8ee4-d3ab4ebfc279', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: 'signin/page.tsx:redirect-check',
+        message: 'Checking redirect condition',
+        data: {
+          hasUser: !!session?.user,
+          sessionPending: sessionPending,
+          willRedirect: !!(session?.user && !sessionPending),
+        },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        hypothesisId: 'A,B,E',
+      }),
+    }).catch(() => {})
+    // #endregion
+    if (session?.user && !sessionPending) {
+      // #region agent log
+      console.log('[DEBUG-SIGNIN] REDIRECTING - authenticated user detected:', session)
+      fetch('http://127.0.0.1:7242/ingest/b450801b-9423-48b0-8ee4-d3ab4ebfc279', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: 'signin/page.tsx:redirecting',
+          message: 'REDIRECTING to dashboard - user authenticated',
+          data: { sessionData: session },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          hypothesisId: 'A',
+        }),
+      }).catch(() => {})
+      // #endregion
       router.push('/dashboard')
     }
   }, [session, sessionPending, router])
@@ -84,12 +152,47 @@ export default function SignInPage() {
       e.preventDefault()
       setLoading(true)
       setError('')
+      // #region agent log
+      console.log('[DEBUG-SIGNIN] Form submitted:', { email: email.trim() })
+      fetch('http://127.0.0.1:7242/ingest/b450801b-9423-48b0-8ee4-d3ab4ebfc279', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: 'signin/page.tsx:handleSubmit-start',
+          message: 'Sign in form submitted',
+          data: { email: email.trim() },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          hypothesisId: 'C,D',
+        }),
+      }).catch(() => {})
+      // #endregion
 
       try {
         const result = await signIn.email({
           email: email.trim(),
           password,
         })
+        // #region agent log
+        console.log('[DEBUG-SIGNIN] signIn.email result:', {
+          hasError: !!result.error,
+          errorMessage: result.error?.message,
+          resultKeys: Object.keys(result),
+          fullResult: result,
+        })
+        fetch('http://127.0.0.1:7242/ingest/b450801b-9423-48b0-8ee4-d3ab4ebfc279', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            location: 'signin/page.tsx:signIn-result',
+            message: 'signIn.email result received',
+            data: { hasError: !!result.error, errorMessage: result.error?.message, resultKeys: Object.keys(result) },
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            hypothesisId: 'C,D',
+          }),
+        }).catch(() => {})
+        // #endregion
 
         if (result.error) {
           setError(mapErrorMessage(result.error.message || 'Invalid credentials'))
@@ -97,6 +200,24 @@ export default function SignInPage() {
           router.push('/dashboard')
         }
       } catch (err: unknown) {
+        // #region agent log
+        console.error('[DEBUG-SIGNIN] signIn.email exception:', err)
+        fetch('http://127.0.0.1:7242/ingest/b450801b-9423-48b0-8ee4-d3ab4ebfc279', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            location: 'signin/page.tsx:signIn-catch',
+            message: 'signIn.email threw exception',
+            data: {
+              errorMessage: err instanceof Error ? err.message : 'Unknown error',
+              errorType: err?.constructor?.name,
+            },
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            hypothesisId: 'C,D',
+          }),
+        }).catch(() => {})
+        // #endregion
         const errorMessage = err instanceof Error ? err.message : 'Sign in failed'
         setError(mapErrorMessage(errorMessage))
       } finally {
