@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import { AlertCircle, Check, Eye, EyeOff, Loader2, Shield, Sparkles, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 
 // Check if OAuth providers are configured
 const OAUTH_PROVIDERS = {
@@ -53,7 +53,7 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue
 }
 
-export default function SignInPage() {
+function SignInContent() {
   const { data: session, isPending: sessionPending } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -581,5 +581,23 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// Wrap in Suspense to handle useSearchParams
+export default function SignInPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-950 dark:to-zinc-900">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <SignInContent />
+    </Suspense>
   )
 }
