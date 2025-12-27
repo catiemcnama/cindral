@@ -20,6 +20,7 @@ import {
   UsersIcon,
 } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
@@ -35,6 +36,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { organization, useActiveOrganization } from '@/lib/auth-client'
 import { readOnboardingState, writeOnboardingState } from '@/lib/onboarding-storage'
 import { cn } from '@/lib/utils'
+import { useTRPC } from '@/trpc/client'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 const steps = [
   { id: 0, title: 'Organization', description: 'Name your workspace' },
@@ -289,6 +292,9 @@ const regulationIndex = regulations.reduce<Record<string, Regulation>>((acc, reg
 }, {})
 
 export function OnboardingWizard() {
+  const router = useRouter()
+  const trpc = useTRPC()
+  const queryClient = useQueryClient()
   const { data: activeOrg, isPending: isLoadingOrg } = useActiveOrganization()
 
   // Start at step 0 (org creation) if user has no org, otherwise step 1
@@ -310,6 +316,18 @@ export function OnboardingWizard() {
   const [orgName, setOrgName] = useState('')
   const [isCreatingOrg, setIsCreatingOrg] = useState(false)
   const [orgError, setOrgError] = useState('')
+
+  // Completion state
+  const [isCompleting, setIsCompleting] = useState(false)
+
+  // Completion mutation
+  const completeMutation = useMutation({
+    ...trpc.onboarding.complete.mutationOptions(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: trpc.onboarding.isComplete.queryKey() })
+      router.push('/dashboard')
+    },
+  })
 
   // Initialize step based on org status
   useEffect(() => {
@@ -534,6 +552,20 @@ export function OnboardingWizard() {
 
   const handleRemoveInvite = (email: string) => {
     setInvites((prev) => prev.filter((invite) => invite.email !== email))
+  }
+
+  const handleFinishOnboarding = async () => {
+    if (!activeOrg) return
+
+    setIsCompleting(true)
+    try {
+      await completeMutation.mutateAsync()
+    } catch (err) {
+      // Error is handled by mutation, but we can log it
+      console.error('Failed to complete onboarding:', err)
+    } finally {
+      setIsCompleting(false)
+    }
   }
 
   // Show loading while checking org status
@@ -1116,11 +1148,18 @@ export function OnboardingWizard() {
                     <Button variant="ghost" asChild>
                       <Link href="/dashboard">Finish later</Link>
                     </Button>
-                    <Button asChild>
-                      <Link href="/dashboard/regulations">
-                        Finish onboarding
-                        <ArrowRightIcon className="size-4" />
-                      </Link>
+                    <Button onClick={handleFinishOnboarding} disabled={isCompleting || !activeOrg}>
+                      {isCompleting ? (
+                        <>
+                          <Loader2Icon className="size-4 animate-spin" />
+                          Finishing...
+                        </>
+                      ) : (
+                        <>
+                          Finish onboarding
+                          <ArrowRightIcon className="size-4" />
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>

@@ -24,7 +24,10 @@ export const resetPassword = (params: { token: string; newPassword: string }) =>
 
 export const verifyEmail = (params: { query: { token: string } }) => authClient.verifyEmail(params)
 
-// OAuth sign-in helpers
-export const signInWithGoogle = () => authClient.signIn.social({ provider: 'google' })
-export const signInWithMicrosoft = () => authClient.signIn.social({ provider: 'microsoft' })
-export const signInWithGitHub = () => authClient.signIn.social({ provider: 'github' })
+// OAuth sign-in helpers - redirect to dashboard after auth
+export const signInWithGoogle = (callbackURL = '/dashboard') =>
+  authClient.signIn.social({ provider: 'google', callbackURL })
+export const signInWithMicrosoft = (callbackURL = '/dashboard') =>
+  authClient.signIn.social({ provider: 'microsoft', callbackURL })
+export const signInWithGitHub = (callbackURL = '/dashboard') =>
+  authClient.signIn.social({ provider: 'github', callbackURL })

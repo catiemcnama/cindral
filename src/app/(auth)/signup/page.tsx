@@ -485,7 +485,7 @@ export default function SignUpPage() {
                     <Button
                       variant="outline"
                       className="h-11 w-full"
-                      onClick={() => signInWithGoogle()}
+                      onClick={() => signInWithGoogle('/dashboard/onboarding')}
                       disabled={loading}
                     >
                       <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -514,7 +514,7 @@ export default function SignUpPage() {
                     <Button
                       variant="outline"
                       className="h-11 w-full"
-                      onClick={() => signInWithMicrosoft()}
+                      onClick={() => signInWithMicrosoft('/dashboard/onboarding')}
                       disabled={loading}
                     >
                       <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -531,7 +531,7 @@ export default function SignUpPage() {
                     <Button
                       variant="outline"
                       className="h-11 w-full"
-                      onClick={() => signInWithGitHub()}
+                      onClick={() => signInWithGitHub('/dashboard/onboarding')}
                       disabled={loading}
                     >
                       <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
