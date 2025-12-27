@@ -437,3 +437,83 @@ function getAlertAssignmentTemplate(
     <p class="muted">Please review and take appropriate action.</p>
   `)
 }
+function getWelcomeTemplate(name: string, dashboardUrl: string): string {
+  return wrapTemplate(`
+    <h1>Welcome to Cindral! 🎉</h1>
+    <p>Hi ${name},</p>
+    <p>Thanks for joining Cindral — your new home for regulatory compliance management.</p>
+    <p>Here's what you can do:</p>
+    <ul style="color: #4a4a4a; padding-left: 20px;">
+      <li><strong>Track regulations</strong> — DORA, GDPR, AI Act, and more</li>
+      <li><strong>Monitor obligations</strong> — Know what's due and when</li>
+      <li><strong>Map systems</strong> — Visualize regulatory impact</li>
+      <li><strong>Generate evidence packs</strong> — Audit-ready documentation</li>
+    </ul>
+    <a href="${dashboardUrl}" class="button">Go to Dashboard</a>
+    <p class="muted">Questions? Just reply to this email — we're here to help.</p>
+  `)
+}
+
+function getDueDateReminderTemplate(
+  userName: string,
+  obligations: Array<{ title: string; dueDate: string; regulation: string; url: string }>,
+  dashboardUrl: string
+): string {
+  const obligationsList = obligations
+    .map(
+      (obl) => `
+    <tr>
+      <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
+        <a href="${obl.url}" style="color: #0ea5e9; text-decoration: none; font-weight: 500;">${obl.title}</a>
+        <div style="color: #6b7280; font-size: 13px; margin-top: 4px;">${obl.regulation}</div>
+      </td>
+      <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right; white-space: nowrap;">
+        <span style="color: #dc2626; font-weight: 500;">${obl.dueDate}</span>
+      </td>
+    </tr>
+  `
+    )
+    .join('')
+
+  return wrapTemplate(`
+    <h1>⏰ Obligations Due Soon</h1>
+    <p>Hi ${userName},</p>
+    <p>You have ${obligations.length} obligation${obligations.length > 1 ? 's' : ''} coming due:</p>
+    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+      <thead>
+        <tr style="background: #f9fafb;">
+          <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e5e7eb;">Obligation</th>
+          <th style="padding: 12px; text-align: right; font-weight: 600; border-bottom: 2px solid #e5e7eb;">Due Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${obligationsList}
+      </tbody>
+    </table>
+    <a href="${dashboardUrl}/obligations" class="button">View All Obligations</a>
+    <p class="muted">Update statuses to mark progress and stay compliant.</p>
+  `)
+}
+
+function getEvidencePackReadyTemplate(
+  userName: string,
+  packTitle: string,
+  regulation: string,
+  downloadUrl: string,
+  dashboardUrl: string
+): string {
+  return wrapTemplate(`
+    <h1>📦 Your Evidence Pack is Ready</h1>
+    <p>Hi ${userName},</p>
+    <p>Great news! Your evidence pack has been generated and is ready for download.</p>
+    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px; margin: 20px 0;">
+      <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 18px;">${packTitle}</p>
+      <p style="margin: 0; color: #166534; font-size: 14px;">Regulation: ${regulation}</p>
+    </div>
+    <a href="${downloadUrl}" class="button">Download Evidence Pack</a>
+    <p class="muted" style="margin-top: 24px;">
+      You can also access all your evidence packs from the 
+      <a href="${dashboardUrl}/evidence-packs" class="link">Evidence Packs</a> page.
+    </p>
+  `)
+}

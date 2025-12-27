@@ -1,5 +1,5 @@
 import { db } from '@/db'
-import { sendInvitationEmail, sendPasswordResetEmail, sendVerificationEmail } from '@/lib/email'
+import { sendInvitationEmail, sendPasswordResetEmail, sendVerificationEmail, sendWelcomeEmail } from '@/lib/email'
 import { logger } from '@/lib/logger'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
@@ -99,6 +99,28 @@ export const auth = betterAuth({
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24, // Update session every 24 hours
+  },
+  // Hooks for post-auth actions
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          // Send welcome email to new users
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+          logger.info('New user created, sending welcome email', {
+            userId: user.id,
+            email: user.email,
+          })
+
+          await sendWelcomeEmail({
+            to: user.email,
+            name: user.name,
+            dashboardUrl: `${appUrl}/dashboard`,
+          })
+        },
+      },
+    },
   },
   plugins: [
     organization({
