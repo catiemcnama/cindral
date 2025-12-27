@@ -118,6 +118,14 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
+          // #region agent log
+          console.log('[DEBUG-AUTH-HOOK] User created hook fired:', {
+            userId: user.id,
+            email: user.email,
+            name: user.name,
+          })
+          // #endregion
+
           // Send welcome email to new users (fire-and-forget, don't block signup)
           const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
@@ -126,12 +134,23 @@ export const auth = betterAuth({
             email: user.email,
           })
 
+          // #region agent log
+          console.log('[DEBUG-AUTH-HOOK] Calling sendWelcomeEmail with:', {
+            to: user.email,
+            name: user.name,
+            dashboardUrl: `${appUrl}/dashboard`,
+          })
+          // #endregion
+
           // Don't await - send in background so signup isn't blocked if email fails
           sendWelcomeEmail({
             to: user.email,
             name: user.name ?? undefined,
             dashboardUrl: `${appUrl}/dashboard`,
           }).catch((error) => {
+            // #region agent log
+            console.error('[DEBUG-AUTH-HOOK] sendWelcomeEmail FAILED:', error)
+            // #endregion
             logger.error('Failed to send welcome email', {
               userId: user.id,
               error: error instanceof Error ? error.message : 'Unknown error',

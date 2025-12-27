@@ -33,6 +33,14 @@ export interface SendResult {
 const FROM_EMAIL = process.env.EMAIL_FROM || 'Cindral <notifications@trycindral.com>'
 const RESEND_API_KEY = process.env.RESEND_API_KEY
 
+// #region agent log
+console.log('[DEBUG-EMAIL] Email configuration:', {
+  FROM_EMAIL,
+  RESEND_API_KEY_SET: !!RESEND_API_KEY,
+  RESEND_API_KEY_PREFIX: RESEND_API_KEY?.substring(0, 6) || 'NOT_SET',
+})
+// #endregion
+
 function isConfigured(): boolean {
   return Boolean(RESEND_API_KEY)
 }
@@ -209,12 +217,27 @@ export async function sendWelcomeEmail(params: {
   const { to, name, dashboardUrl } = params
   const displayName = name || 'there'
 
-  return sendEmail({
+  // #region agent log
+  console.log('[DEBUG-EMAIL] sendWelcomeEmail called:', {
+    to,
+    name: displayName,
+    dashboardUrl,
+    isConfigured: isConfigured(),
+  })
+  // #endregion
+
+  const result = await sendEmail({
     to,
     subject: 'Welcome to Cindral! 🎉',
     html: getWelcomeTemplate(displayName, dashboardUrl),
     tags: [{ name: 'category', value: 'welcome' }],
   })
+
+  // #region agent log
+  console.log('[DEBUG-EMAIL] sendWelcomeEmail result:', result)
+  // #endregion
+
+  return result
 }
 
 /**
