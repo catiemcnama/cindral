@@ -1,4 +1,4 @@
-import { articles, obligations } from '@/db/schema'
+import { articles, articleSystemImpacts, obligations } from '@/db/schema'
 import { withAudit, withCreateAudit, withDeleteAudit } from '@/lib/audit'
 import { NotFoundError } from '@/lib/errors'
 import { requireAdmin, requireMutatePermission, scopedAnd } from '@/lib/tenancy'
@@ -73,7 +73,7 @@ export const articlesRouter = router({
           where: eq(obligations.organizationId, ctx.activeOrganizationId),
         },
         systemImpacts: {
-          where: eq(articles.organizationId, ctx.activeOrganizationId),
+          where: eq(articleSystemImpacts.organizationId, ctx.activeOrganizationId),
           with: {
             system: true,
           },

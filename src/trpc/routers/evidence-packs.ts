@@ -2,7 +2,7 @@ import { auditLog, evidencePacks, obligations, regulations } from '@/db/schema'
 import { withAudit, withCreateAudit, withDeleteAudit } from '@/lib/audit'
 import { NotFoundError } from '@/lib/errors'
 import { requireMutatePermission, scopedAnd } from '@/lib/tenancy'
-import { and, desc, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { orgProcedure, router } from '../init'
 
@@ -334,7 +334,7 @@ export const evidencePacksRouter = router({
    */
   getStats: orgProcedure.query(async ({ ctx }) => {
     const packs = await ctx.db.query.evidencePacks.findMany({
-      where: eq(evidencePacks.organizationId, ctx.activeOrganizationId),
+      where: and(eq(evidencePacks.organizationId, ctx.activeOrganizationId), isNull(evidencePacks.deletedAt)),
       columns: {
         exportFormat: true,
         regulationId: true,

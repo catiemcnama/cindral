@@ -1,5 +1,6 @@
 import {
   alerts,
+  articles,
   articleSystemImpacts,
   evidencePacks,
   obligations,
@@ -101,14 +102,15 @@ export const dashboardRouter = router({
    * Cached for 60s
    */
   getComplianceByRegulation: orgProcedure.query(async ({ ctx }) => {
-    // Get all regulations for this org
+    // Get all regulations for this org (with soft-delete filter)
     const regs = await ctx.db.query.regulations.findMany({
-      where: eq(regulations.organizationId, ctx.activeOrganizationId),
+      where: and(eq(regulations.organizationId, ctx.activeOrganizationId), isNull(regulations.deletedAt)),
       with: {
         articles: {
+          where: isNull(articles.deletedAt),
           with: {
             obligations: {
-              where: eq(obligations.organizationId, ctx.activeOrganizationId),
+              where: and(eq(obligations.organizationId, ctx.activeOrganizationId), isNull(obligations.deletedAt)),
             },
           },
         },
@@ -155,7 +157,7 @@ export const dashboardRouter = router({
       const limit = input?.limit ?? 5
 
       const recentAlerts = await ctx.db.query.alerts.findMany({
-        where: eq(alerts.organizationId, ctx.activeOrganizationId),
+        where: and(eq(alerts.organizationId, ctx.activeOrganizationId), isNull(alerts.deletedAt)),
         limit,
         orderBy: desc(alerts.createdAt),
         with: {
@@ -201,7 +203,7 @@ export const dashboardRouter = router({
    */
   getSystemImpactOverview: orgProcedure.query(async ({ ctx }) => {
     const systemsList = await ctx.db.query.systems.findMany({
-      where: eq(systems.organizationId, ctx.activeOrganizationId),
+      where: and(eq(systems.organizationId, ctx.activeOrganizationId), isNull(systems.deletedAt)),
       with: {
         articleImpacts: {
           where: eq(articleSystemImpacts.organizationId, ctx.activeOrganizationId),
@@ -270,7 +272,7 @@ export const dashboardRouter = router({
    */
   getEvidencePackSummary: orgProcedure.query(async ({ ctx }) => {
     const packs = await ctx.db.query.evidencePacks.findMany({
-      where: eq(evidencePacks.organizationId, ctx.activeOrganizationId),
+      where: and(eq(evidencePacks.organizationId, ctx.activeOrganizationId), isNull(evidencePacks.deletedAt)),
       with: {
         regulation: {
           columns: { id: true, name: true, framework: true },
@@ -309,22 +311,23 @@ export const dashboardRouter = router({
   getQuickSummary: orgProcedure.query(async ({ ctx }) => {
     const [regsCount, obligationsCount, alertsCount, systemsCount] = await Promise.all([
       ctx.db.query.regulations.findMany({
-        where: eq(regulations.organizationId, ctx.activeOrganizationId),
+        where: and(eq(regulations.organizationId, ctx.activeOrganizationId), isNull(regulations.deletedAt)),
         columns: { id: true },
       }),
       ctx.db.query.obligations.findMany({
-        where: eq(obligations.organizationId, ctx.activeOrganizationId),
+        where: and(eq(obligations.organizationId, ctx.activeOrganizationId), isNull(obligations.deletedAt)),
         columns: { status: true },
       }),
       ctx.db.query.alerts.findMany({
         where: and(
           eq(alerts.organizationId, ctx.activeOrganizationId),
+          isNull(alerts.deletedAt),
           sql`${alerts.status} NOT IN ('resolved', 'wont_fix')`
         ),
         columns: { severity: true },
       }),
       ctx.db.query.systems.findMany({
-        where: eq(systems.organizationId, ctx.activeOrganizationId),
+        where: and(eq(systems.organizationId, ctx.activeOrganizationId), isNull(systems.deletedAt)),
         columns: { id: true },
       }),
     ])

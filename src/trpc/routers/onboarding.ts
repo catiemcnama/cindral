@@ -239,9 +239,11 @@ export const onboardingRouter = router({
       columns: { completedAt: true },
     })
 
+    // Use !! to properly check for truthy completedAt
+    // (state?.completedAt !== null would return true for undefined)
     return {
-      isComplete: state?.completedAt !== null,
-      completedAt: state?.completedAt,
+      isComplete: !!state?.completedAt,
+      completedAt: state?.completedAt ?? null,
     }
   }),
 })

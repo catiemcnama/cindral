@@ -328,8 +328,10 @@ export function OnboardingWizard() {
   // Completion mutation
   const completeMutation = useMutation({
     ...trpc.onboarding.complete.mutationOptions(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: trpc.onboarding.isComplete.queryKey() })
+    onSuccess: async () => {
+      // Wait for the isComplete query to actually refetch before redirecting
+      // This ensures the sidebar will show the correct state
+      await queryClient.refetchQueries({ queryKey: trpc.onboarding.isComplete.queryKey() })
       router.push('/dashboard')
     },
   })

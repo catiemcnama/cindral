@@ -77,9 +77,9 @@ export const obligationsRouter = router({
         .from(obligations)
         .where(and(...conditions))
 
-      // Get stats for all org obligations
+      // Get stats for all org obligations (with soft-delete filter)
       const allObls = await ctx.db.query.obligations.findMany({
-        where: eq(obligations.organizationId, ctx.activeOrganizationId),
+        where: and(eq(obligations.organizationId, ctx.activeOrganizationId), isNull(obligations.deletedAt)),
         columns: { status: true },
       })
 
