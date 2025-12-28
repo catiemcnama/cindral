@@ -5,7 +5,6 @@
  */
 
 import { onboardingState, systems } from '@/db/schema'
-import { NotFoundError } from '@/lib/errors'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 

@@ -130,7 +130,7 @@ export default function EvidencePackDetailPage() {
         <FileTextIcon className="size-12 text-muted-foreground/50" />
         <h2 className="mt-4 text-lg font-medium">Evidence pack not found</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          The evidence pack you're looking for doesn't exist or you don't have access to it.
+          The evidence pack you&apos;re looking for doesn&apos;t exist or you don&apos;t have access to it.
         </p>
         <Button asChild className="mt-4">
           <Link href="/dashboard/evidence-packs">
@@ -266,7 +266,7 @@ export default function EvidencePackDetailPage() {
                       <TableRow key={obligation.id}>
                         <TableCell className="font-medium">{obligation.title}</TableCell>
                         <TableCell className="text-muted-foreground">
-                          {obligation.article?.articleNumber || '-'}
+                          {obligation.articleId || '-'}
                         </TableCell>
                         <TableCell>
                           <Badge
