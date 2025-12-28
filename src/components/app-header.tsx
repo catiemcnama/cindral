@@ -14,7 +14,6 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 
 import { CommandSearch, SearchTrigger, useCommandSearch } from '@/components/command-search'
-import { NotificationBadge } from '@/components/notification-badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -140,9 +139,7 @@ export function AppHeader() {
           {/* Notifications */}
           <Button variant="ghost" size="icon" className="relative" asChild>
             <Link href="/dashboard/alerts">
-              <NotificationBadge count={3} size="sm">
-                <BellIcon className="size-4" />
-              </NotificationBadge>
+              <BellIcon className="size-4" />
               <span className="sr-only">Notifications</span>
             </Link>
           </Button>
