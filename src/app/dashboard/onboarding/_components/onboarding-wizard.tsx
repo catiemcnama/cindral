@@ -320,6 +320,11 @@ export function OnboardingWizard() {
   // Completion state
   const [isCompleting, setIsCompleting] = useState(false)
 
+  // Update step mutation - saves progress to server
+  const updateStepMutation = useMutation({
+    ...trpc.onboarding.updateStep.mutationOptions(),
+  })
+
   // Completion mutation
   const completeMutation = useMutation({
     ...trpc.onboarding.complete.mutationOptions(),
@@ -328,6 +333,21 @@ export function OnboardingWizard() {
       router.push('/dashboard')
     },
   })
+
+  // Save current progress to server
+  const saveProgressToServer = async () => {
+    if (!activeOrg) return
+    await updateStepMutation.mutateAsync({
+      currentStep: step ?? 1,
+      industry: industryId ?? undefined,
+      selectedRegulations: selectedRegulations,
+      regulationsCustomized,
+      selectedSystemTemplates: selectedSystems,
+      customSystems: customSystems.map((s) => ({ id: s.id, name: s.name, description: s.description })),
+      systemsCustomized,
+      pendingInvites: invites.map((i) => ({ email: i.email, role: i.role as 'owner' | 'admin' | 'member' })),
+    })
+  }
 
   // Initialize step based on org status
   useEffect(() => {
@@ -559,6 +579,9 @@ export function OnboardingWizard() {
 
     setIsCompleting(true)
     try {
+      // Save current progress to server first
+      await saveProgressToServer()
+      // Then complete onboarding
       await completeMutation.mutateAsync()
     } catch (err) {
       // Error is handled by mutation, but we can log it
@@ -566,6 +589,15 @@ export function OnboardingWizard() {
     } finally {
       setIsCompleting(false)
     }
+  }
+
+  const handleFinishLater = async () => {
+    try {
+      await saveProgressToServer()
+    } catch {
+      // Silently fail - localStorage backup exists
+    }
+    router.push('/dashboard')
   }
 
   // Show loading while checking org status
@@ -1145,8 +1177,8 @@ export function OnboardingWizard() {
                     Back to systems
                   </Button>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                    <Button variant="ghost" asChild>
-                      <Link href="/dashboard">Finish later</Link>
+                    <Button variant="ghost" onClick={handleFinishLater}>
+                      Finish later
                     </Button>
                     <Button onClick={handleFinishOnboarding} disabled={isCompleting || !activeOrg}>
                       {isCompleting ? (
