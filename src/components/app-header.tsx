@@ -14,6 +14,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 
 import { CommandSearch, SearchTrigger, useCommandSearch } from '@/components/command-search'
+import { NotificationBadge } from '@/components/notification-badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -36,6 +37,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { signOut, useSession } from '@/lib/auth-client'
+import { useTRPC } from '@/trpc/client'
+import { useQuery } from '@tanstack/react-query'
 
 // =============================================================================
 // Breadcrumb Configuration
@@ -75,6 +78,15 @@ export function AppHeader() {
   const pathname = usePathname()
   const router = useRouter()
   const { open, setOpen } = useCommandSearch()
+  const trpc = useTRPC()
+
+  // Query for active alert count
+  const { data: quickSummary } = useQuery({
+    ...trpc.dashboard.getQuickSummary.queryOptions(),
+    refetchInterval: 60000, // Refresh every minute
+    staleTime: 30000,
+  })
+  const activeAlertCount = quickSummary?.activeAlerts ?? 0
 
   const handleSignOut = async () => {
     await signOut()
@@ -139,8 +151,10 @@ export function AppHeader() {
           {/* Notifications */}
           <Button variant="ghost" size="icon" className="relative" asChild>
             <Link href="/dashboard/alerts">
-              <BellIcon className="size-4" />
-              <span className="sr-only">Notifications</span>
+              <NotificationBadge count={activeAlertCount} size="sm">
+                <BellIcon className="size-4" />
+              </NotificationBadge>
+              <span className="sr-only">Notifications ({activeAlertCount})</span>
             </Link>
           </Button>
 

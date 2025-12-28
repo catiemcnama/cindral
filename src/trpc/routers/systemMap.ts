@@ -1,4 +1,4 @@
-import { articles, articleSystemImpacts, regulations, systems } from '@/db/schema'
+import { articles, articleSystemImpacts, regulations, systems, userPreferences } from '@/db/schema'
 import { recordAudit } from '@/lib/audit'
 import { NotFoundError } from '@/lib/errors'
 import { requireMutatePermission } from '@/lib/tenancy'
@@ -83,10 +83,17 @@ export const systemMapRouter = router({
   /**
    * Get saved node positions for the map
    */
-  getPositions: orgProcedure.query(async () => {
-    // For now, return empty - positions can be stored in localStorage
-    // In production, you'd store this in a dedicated table
-    return { positions: [] as Array<{ nodeId: string; x: number; y: number }> }
+  getPositions: orgProcedure.query(async ({ ctx }) => {
+    const prefs = await ctx.db.query.userPreferences.findFirst({
+      where: and(
+        eq(userPreferences.userId, ctx.session.userId),
+        eq(userPreferences.organizationId, ctx.activeOrganizationId)
+      ),
+    })
+
+    return {
+      positions: (prefs?.systemMapPositions ?? []) as Array<{ nodeId: string; x: number; y: number }>,
+    }
   }),
 
   /**
@@ -104,9 +111,33 @@ export const systemMapRouter = router({
         ),
       })
     )
-    .mutation(async ({ input }) => {
-      // In production, save to database
-      // For now, this is a no-op as we use localStorage
+    .mutation(async ({ ctx, input }) => {
+      // Check if preferences exist for this user+org
+      const existing = await ctx.db.query.userPreferences.findFirst({
+        where: and(
+          eq(userPreferences.userId, ctx.session.userId),
+          eq(userPreferences.organizationId, ctx.activeOrganizationId)
+        ),
+      })
+
+      if (existing) {
+        // Update existing
+        await ctx.db
+          .update(userPreferences)
+          .set({
+            systemMapPositions: input.positions,
+            updatedAt: new Date(),
+          })
+          .where(eq(userPreferences.id, existing.id))
+      } else {
+        // Create new
+        await ctx.db.insert(userPreferences).values({
+          userId: ctx.session.userId,
+          organizationId: ctx.activeOrganizationId,
+          systemMapPositions: input.positions,
+        })
+      }
+
       return { success: true, savedCount: input.positions.length }
     }),
 

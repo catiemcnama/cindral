@@ -869,3 +869,47 @@ export type NewAuditLogEntry = typeof auditLog.$inferInsert
 
 export type OnboardingState = typeof onboardingState.$inferSelect
 export type NewOnboardingState = typeof onboardingState.$inferInsert
+
+/**
+ * User Preferences - store user-specific settings per organization
+ * Used for things like system map node positions, UI preferences, etc.
+ */
+export const userPreferences = pgTable(
+  'user_preferences',
+  {
+    id: serial('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    organizationId: text('organization_id')
+      .notNull()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    // System map node positions
+    systemMapPositions: json('system_map_positions').$type<Array<{ nodeId: string; x: number; y: number }>>(),
+    // Other UI preferences can be stored here
+    preferences: json('preferences').$type<Record<string, unknown>>(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('user_preferences_user_org_idx').on(table.userId, table.organizationId),
+    index('user_preferences_org_idx').on(table.organizationId),
+  ]
+)
+
+export const userPreferencesRelations = relations(userPreferences, ({ one }) => ({
+  user: one(user, {
+    fields: [userPreferences.userId],
+    references: [user.id],
+  }),
+  organization: one(organization, {
+    fields: [userPreferences.organizationId],
+    references: [organization.id],
+  }),
+}))
+
+export type UserPreferences = typeof userPreferences.$inferSelect
+export type NewUserPreferences = typeof userPreferences.$inferInsert
