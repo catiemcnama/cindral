@@ -220,7 +220,34 @@ export default function AlertsPage() {
             <RefreshCwIcon className={cn('mr-2 size-4', isFetching && 'animate-spin')} />
             Refresh
           </Button>
-          <Button variant="outline" size="sm">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              // Export alerts as CSV
+              if (!items || items.length === 0) {
+                alert('No alerts to export')
+                return
+              }
+              const headers = ['ID', 'Title', 'Severity', 'Status', 'Regulation', 'Created']
+              const rows = items.map((a) => [
+                a.id,
+                a.title,
+                a.severity,
+                a.status,
+                a.regulation?.name || '',
+                new Date(a.createdAt).toLocaleDateString(),
+              ])
+              const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n')
+              const blob = new Blob([csv], { type: 'text/csv' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `alerts-${new Date().toISOString().split('T')[0]}.csv`
+              a.click()
+              URL.revokeObjectURL(url)
+            }}
+          >
             <DownloadIcon className="mr-2 size-4" />
             Export
           </Button>
@@ -382,7 +409,14 @@ export default function AlertsPage() {
               <DropdownMenuItem onClick={() => handleBulkStatus('wont_fix')}>Won&apos;t Fix</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button variant="outline" size="sm">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              // TODO: In production, this would open a user picker dialog
+              alert(`Bulk assignment coming soon!\n\nSelected ${selectedIds.size} alert(s) for assignment.`)
+            }}
+          >
             <UserIcon className="mr-2 size-4" />
             Assign
           </Button>

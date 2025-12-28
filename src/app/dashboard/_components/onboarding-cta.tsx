@@ -1,11 +1,21 @@
+'use client'
+
 import Link from 'next/link'
 import { ArrowRightIcon, ShieldCheckIcon, SparklesIcon } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { useOnboardingStatus } from '@/hooks/use-onboarding'
 
 export function OnboardingCta() {
+  const { isComplete, isLoading } = useOnboardingStatus()
+
+  // Don't show if loading or if onboarding is complete
+  if (isLoading || isComplete) {
+    return null
+  }
+
   return (
     <Card className="relative overflow-hidden border bg-gradient-to-br from-primary/10 via-background to-background">
       <CardContent className="flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between">

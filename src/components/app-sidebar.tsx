@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useMemo } from 'react'
 
 import { Progress } from '@/components/ui/progress'
 import {
@@ -28,7 +29,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { useOnboardingStatus } from '@/hooks/use-onboarding'
+import { useOnboardingStatus, useOnboardingState } from '@/hooks/use-onboarding'
 import { cn } from '@/lib/utils'
 
 // =============================================================================
@@ -49,12 +50,27 @@ const navigation = [
 // Component
 // =============================================================================
 
+// Total onboarding steps (org, industry, regulations, systems, team)
+const TOTAL_STEPS = 5
+
 export function AppSidebar() {
   const pathname = usePathname()
   const { toggleSidebar, state } = useSidebar()
   const { isComplete, isLoading } = useOnboardingStatus()
+  const { state: onboardingState } = useOnboardingState()
 
   const isCollapsed = state === 'collapsed'
+
+  // Calculate actual progress from onboarding state
+  const { currentStep, progressPercent } = useMemo(() => {
+    if (!onboardingState) {
+      return { currentStep: 1, progressPercent: 20 }
+    }
+    // currentStep is 0-indexed, so add 1 for display
+    const step = (onboardingState.currentStep ?? 0) + 1
+    const percent = Math.round((step / TOTAL_STEPS) * 100)
+    return { currentStep: step, progressPercent: percent }
+  }, [onboardingState])
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -81,8 +97,8 @@ export function AppSidebar() {
                 <span className="text-sm font-medium">Complete Setup</span>
               </div>
               <div className="mt-2">
-                <Progress value={25} className="h-1.5" />
-                <p className="mt-1 text-xs text-muted-foreground">1 of 4 steps</p>
+                <Progress value={progressPercent} className="h-1.5" />
+                <p className="mt-1 text-xs text-muted-foreground">{currentStep} of {TOTAL_STEPS} steps</p>
               </div>
             </Link>
           </SidebarGroup>

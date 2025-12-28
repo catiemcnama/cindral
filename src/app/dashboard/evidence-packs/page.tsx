@@ -374,7 +374,12 @@ export default function EvidencePacksPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           {pack.status === 'ready' && (
-                            <DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                // In production, this would trigger actual file download
+                                alert(`Download for "${pack.title}" coming soon!\n\nFormat: ${pack.exportFormat?.toUpperCase() || 'JSON'}`)
+                              }}
+                            >
                               <DownloadIcon className="mr-2 size-4" />
                               Download
                             </DropdownMenuItem>
