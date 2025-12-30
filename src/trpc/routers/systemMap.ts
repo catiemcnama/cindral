@@ -86,7 +86,7 @@ export const systemMapRouter = router({
   getPositions: orgProcedure.query(async ({ ctx }) => {
     const prefs = await ctx.db.query.userPreferences.findFirst({
       where: and(
-        eq(userPreferences.userId, ctx.session.userId),
+        eq(userPreferences.userId, ctx.session.user.id),
         eq(userPreferences.organizationId, ctx.activeOrganizationId)
       ),
     })
@@ -115,7 +115,7 @@ export const systemMapRouter = router({
       // Check if preferences exist for this user+org
       const existing = await ctx.db.query.userPreferences.findFirst({
         where: and(
-          eq(userPreferences.userId, ctx.session.userId),
+          eq(userPreferences.userId, ctx.session.user.id),
           eq(userPreferences.organizationId, ctx.activeOrganizationId)
         ),
       })
@@ -132,7 +132,7 @@ export const systemMapRouter = router({
       } else {
         // Create new
         await ctx.db.insert(userPreferences).values({
-          userId: ctx.session.userId,
+          userId: ctx.session.user.id,
           organizationId: ctx.activeOrganizationId,
           systemMapPositions: input.positions,
         })
