@@ -4,11 +4,61 @@
  * Handles onboarding wizard persistence and completion.
  */
 
-import { onboardingState, systems } from '@/db/schema'
+import { ingestJobs, onboardingState, regulations, systems } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { orgProcedure, router } from '../init'
+
+// =============================================================================
+// Regulation Seed Data (matches onboarding-wizard.tsx)
+// =============================================================================
+
+const REGULATION_SEEDS: Record<
+  string,
+  {
+    name: string
+    fullTitle: string
+    jurisdiction: string
+    framework: string
+    sourceUrl?: string
+  }
+> = {
+  dora: {
+    name: 'DORA',
+    fullTitle: 'Digital Operational Resilience Act (EU) 2022/2554',
+    jurisdiction: 'European Union',
+    framework: 'DORA',
+    sourceUrl: 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32022R2554',
+  },
+  gdpr: {
+    name: 'GDPR',
+    fullTitle: 'General Data Protection Regulation (EU) 2016/679',
+    jurisdiction: 'European Union',
+    framework: 'GDPR',
+    sourceUrl: 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32016R0679',
+  },
+  'ai-act': {
+    name: 'AI Act',
+    fullTitle: 'Artificial Intelligence Act (EU) 2024/1689',
+    jurisdiction: 'European Union',
+    framework: 'AI Act',
+    sourceUrl: 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32024R1689',
+  },
+  'basel-iii': {
+    name: 'Basel III',
+    fullTitle: 'Basel III: International Regulatory Framework for Banks',
+    jurisdiction: 'International',
+    framework: 'Basel III',
+  },
+  nis2: {
+    name: 'NIS2',
+    fullTitle: 'Network and Information Security Directive 2 (EU) 2022/2555',
+    jurisdiction: 'European Union',
+    framework: 'NIS2',
+    sourceUrl: 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32022L2555',
+  },
+}
 
 // =============================================================================
 // Input Schemas
@@ -220,10 +270,58 @@ export const onboardingRouter = router({
       }
     }
 
+    // Create regulations from selected IDs
+    const selectedRegulationIds = state.selectedRegulations ?? []
+    let regulationsCreated = 0
+
+    // Create ingest job for provenance
+    const ingestJobId = `${ctx.activeOrganizationId}-onboarding-${Date.now()}`
+    await ctx.db
+      .insert(ingestJobs)
+      .values({
+        id: ingestJobId,
+        organizationId: ctx.activeOrganizationId,
+        source: 'onboarding',
+        status: 'succeeded',
+        startedAt: new Date(),
+        finishedAt: new Date(),
+        log: JSON.stringify({ selectedRegulations: selectedRegulationIds }),
+      })
+      .onConflictDoNothing()
+
+    for (const regId of selectedRegulationIds) {
+      const seed = REGULATION_SEEDS[regId]
+      if (seed) {
+        try {
+          await ctx.db
+            .insert(regulations)
+            .values({
+              id: `${ctx.activeOrganizationId}-${regId}`,
+              organizationId: ctx.activeOrganizationId,
+              name: seed.name,
+              slug: regId,
+              framework: seed.framework,
+              version: '1.0',
+              fullTitle: seed.fullTitle,
+              jurisdiction: seed.jurisdiction,
+              sourceType: 'manual',
+              sourceUrl: seed.sourceUrl,
+              status: 'active',
+              ingestJobId,
+              ingestTimestamp: new Date(),
+            })
+            .onConflictDoNothing()
+          regulationsCreated++
+        } catch {
+          // Ignore duplicate/conflict errors
+        }
+      }
+    }
+
     return {
       success: true,
       message: 'Onboarding completed successfully',
-      regulationsSelected: state.selectedRegulations?.length ?? 0,
+      regulationsCreated,
       systemsCreated,
       invitesPending: (state.pendingInvites as Array<unknown>)?.length ?? 0,
     }
