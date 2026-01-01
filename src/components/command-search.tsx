@@ -325,7 +325,7 @@ export function SearchTrigger({ onClick }: SearchTriggerProps) {
   return (
     <Button
       variant="outline"
-      className="relative h-9 w-full justify-start bg-muted/50 pl-9 text-sm text-muted-foreground hover:bg-muted md:w-64 lg:w-80"
+      className="relative h-9 w-full justify-start bg-muted/50 pl-10 text-sm text-muted-foreground hover:bg-muted md:w-64 lg:w-80"
       onClick={onClick}
     >
       <SearchIcon className="absolute left-3 size-4" />
