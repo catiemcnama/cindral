@@ -140,9 +140,9 @@ export function AppHeader() {
 
         {/* Right side actions */}
         <div className="flex items-center gap-1">
-          {/* Help */}
+          {/* Help - Links to contact page since docs not yet available */}
           <Button variant="ghost" size="icon" className="hidden sm:inline-flex" asChild>
-            <Link href="/docs">
+            <Link href="/contact">
               <HelpCircleIcon className="size-4" />
               <span className="sr-only">Help</span>
             </Link>

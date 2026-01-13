@@ -240,14 +240,14 @@ export default function ContactPage() {
           <div className="text-center">
             <h2 className="mb-4 text-2xl font-bold text-zinc-900 dark:text-white">Looking for quick answers?</h2>
             <p className="mb-6 text-zinc-600 dark:text-zinc-400">
-              Check out our FAQ section or browse our documentation.
+              Check out our FAQ section or book a demo to learn more.
             </p>
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link href="/#faq">
                 <Button variant="outline">View FAQ</Button>
               </Link>
-              <Link href="/docs">
-                <Button variant="outline">Documentation</Button>
+              <Link href="/demo">
+                <Button variant="outline">Book a Demo</Button>
               </Link>
             </div>
           </div>

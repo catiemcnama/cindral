@@ -113,24 +113,18 @@ const footerLinks = {
     { href: '/features', label: 'Features' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/demo', label: 'Book a Demo' },
-    { href: '/changelog', label: 'Changelog' },
   ],
   company: [
     { href: '/about', label: 'About' },
     { href: '/contact', label: 'Contact' },
-    { href: '/careers', label: 'Careers' },
-    { href: '/blog', label: 'Blog' },
   ],
   resources: [
-    { href: '/docs', label: 'Documentation' },
-    { href: '/guides', label: 'Guides' },
-    { href: '/security', label: 'Security' },
-    { href: '/status', label: 'Status' },
+    { href: '/contact', label: 'Support' },
+    { href: '/demo', label: 'Get Started' },
   ],
   legal: [
     { href: '/privacy', label: 'Privacy Policy' },
     { href: '/terms', label: 'Terms of Service' },
-    { href: '/cookies', label: 'Cookie Policy' },
   ],
 }
 

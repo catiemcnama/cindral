@@ -225,9 +225,9 @@ export default function AboutPage() {
               to make a real impact.
             </p>
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Link href="/careers">
+              <Link href="/contact">
                 <Button size="lg" className="gap-2">
-                  View Open Positions
+                  Get in Touch
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>

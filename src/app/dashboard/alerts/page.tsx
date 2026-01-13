@@ -139,6 +139,13 @@ export default function AlertsPage() {
     },
   })
 
+  const deleteMutation = useMutation({
+    ...trpc.alerts.delete.mutationOptions(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: trpc.alerts.list.queryKey() })
+    },
+  })
+
   // Handlers
   const handleSelectAll = useCallback(() => {
     if (!items) return
@@ -183,6 +190,15 @@ export default function AlertsPage() {
     setDetailAlertId(null)
     router.push('/dashboard/alerts', { scroll: false })
   }, [router])
+
+  const handleDelete = useCallback(
+    (id: string) => {
+      if (confirm('Are you sure you want to delete this alert? This action cannot be undone.')) {
+        deleteMutation.mutate({ id })
+      }
+    },
+    [deleteMutation]
+  )
 
   // Filter and search
   const filteredAlerts = useMemo(() => {
@@ -530,7 +546,11 @@ export default function AlertsPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleOpenDetail(alert.id)}>View Details</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive">
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => handleDelete(alert.id)}
+                          disabled={deleteMutation.isPending}
+                        >
                           <Trash2Icon className="mr-2 size-4" />
                           Delete
                         </DropdownMenuItem>
