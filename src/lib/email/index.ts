@@ -55,11 +55,17 @@ export async function sendEmail(options: EmailOptions): Promise<SendResult> {
       preview: html.substring(0, 200),
     })
 
-    // In dev, also log to console for easy access
+    // In dev, log to console with masked email for privacy
+    const maskEmail = (email: string) => {
+      const [local, domain] = email.split('@')
+      return `${local.substring(0, 2)}***@${domain}`
+    }
+    const maskedTo = Array.isArray(to) ? to.map(maskEmail).join(', ') : maskEmail(to)
+
     console.log('\n' + '='.repeat(60))
     console.log('📧 EMAIL (dev mode - not actually sent)')
     console.log('='.repeat(60))
-    console.log(`To: ${Array.isArray(to) ? to.join(', ') : to}`)
+    console.log(`To: ${maskedTo}`)
     console.log(`Subject: ${subject}`)
     console.log(`Body preview: ${html.replace(/<[^>]*>/g, '').substring(0, 300)}...`)
     console.log('='.repeat(60) + '\n')

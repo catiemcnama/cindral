@@ -5,9 +5,21 @@ import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { organization } from 'better-auth/plugins'
 
-// Provide a dummy secret during build time to prevent BetterAuthError
-// The real secret from env vars is used at runtime
-const secret = process.env.BETTER_AUTH_SECRET || 'build-time-placeholder-secret-not-used-in-production'
+// Get auth secret - fail fast in production if not configured
+const secret = (() => {
+  const envSecret = process.env.BETTER_AUTH_SECRET
+
+  // Production requires a real secret
+  if (process.env.NODE_ENV === 'production') {
+    if (!envSecret || envSecret.length < 32) {
+      throw new Error('BETTER_AUTH_SECRET must be set to a secure value (min 32 chars) in production')
+    }
+    return envSecret
+  }
+
+  // Development/build: use env var or placeholder (never used for real auth in dev without env)
+  return envSecret || 'development-only-secret-not-for-production-use'
+})()
 
 // Email verification setting - enable in production
 const requireEmailVerification = process.env.REQUIRE_EMAIL_VERIFICATION === 'true'

@@ -33,8 +33,9 @@ export const searchRouter = router({
     const { query, types, limit } = input
     const orgId = ctx.activeOrganizationId
 
-    // Prepare search pattern for ILIKE
-    const pattern = `%${query}%`
+    // Escape LIKE special characters and prepare search pattern
+    const escapedQuery = query.replace(/[%_\\]/g, '\\$&')
+    const pattern = `%${escapedQuery}%`
 
     // Determine which types to search
     const searchTypes = types ?? ['regulations', 'articles', 'obligations', 'systems', 'alerts']

@@ -53,8 +53,10 @@ export const regulationsRouter = router({
       }
 
       if (search) {
+        // Escape LIKE special characters to prevent pattern injection
+        const escapedSearch = search.replace(/[%_\\]/g, '\\$&')
         conditions.push(
-          sql`(${regulations.name} ILIKE ${`%${search}%`} OR ${regulations.fullTitle} ILIKE ${`%${search}%`})`
+          sql`(${regulations.name} ILIKE ${`%${escapedSearch}%`} OR ${regulations.fullTitle} ILIKE ${`%${escapedSearch}%`})`
         )
       }
 

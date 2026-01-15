@@ -37,7 +37,11 @@ export const systemsRouter = router({
       }
 
       if (search) {
-        conditions.push(sql`(${systems.name} ILIKE ${`%${search}%`} OR ${systems.description} ILIKE ${`%${search}%`})`)
+        // Escape LIKE special characters to prevent pattern injection
+        const escapedSearch = search.replace(/[%_\\]/g, '\\$&')
+        conditions.push(
+          sql`(${systems.name} ILIKE ${`%${escapedSearch}%`} OR ${systems.description} ILIKE ${`%${escapedSearch}%`})`
+        )
       }
 
       const systemsList = await ctx.db.query.systems.findMany({

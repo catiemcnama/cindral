@@ -5,6 +5,21 @@ import { logger } from '@/lib/logger'
 import { eq } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
 
+/**
+ * Safely parse organization metadata JSON
+ * Returns empty object on parse error instead of throwing
+ */
+function safeParseMetadata(metadata: string | null | undefined): Record<string, unknown> {
+  if (!metadata) return {}
+  try {
+    const parsed = JSON.parse(metadata)
+    return typeof parsed === 'object' && parsed !== null ? parsed : {}
+  } catch {
+    logger.warn('Failed to parse organization metadata', { metadata: metadata.substring(0, 100) })
+    return {}
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const payload = await req.text()
@@ -38,7 +53,7 @@ export async function POST(req: NextRequest) {
           })
 
           if (org) {
-            const existingMetadata = org.metadata ? JSON.parse(org.metadata) : {}
+            const existingMetadata = safeParseMetadata(org.metadata)
             await db
               .update(organization)
               .set({
@@ -75,7 +90,7 @@ export async function POST(req: NextRequest) {
           })
 
           if (org) {
-            const existingMetadata = org.metadata ? JSON.parse(org.metadata) : {}
+            const existingMetadata = safeParseMetadata(org.metadata)
             await db
               .update(organization)
               .set({
@@ -109,7 +124,7 @@ export async function POST(req: NextRequest) {
           })
 
           if (org) {
-            const existingMetadata = org.metadata ? JSON.parse(org.metadata) : {}
+            const existingMetadata = safeParseMetadata(org.metadata)
             await db
               .update(organization)
               .set({
