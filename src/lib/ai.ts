@@ -41,17 +41,19 @@ const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 
 /**
  * Generate cache key from inputs
+ * Includes organizationId to ensure tenant isolation
  */
-function getCacheKey(operation: string, input: string): string {
+function getCacheKey(operation: string, input: string, organizationId?: string): string {
   // Simple hash function for cache key
   let hash = 0
-  const str = `${operation}:${input}`
+  // Include organizationId in hash to scope by tenant
+  const str = `${organizationId || 'global'}:${operation}:${input}`
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i)
     hash = (hash << 5) - hash + char
     hash = hash & hash
   }
-  return `ai:${operation}:${hash.toString(36)}`
+  return `ai:${organizationId || 'global'}:${operation}:${hash.toString(36)}`
 }
 
 /**
@@ -140,10 +142,17 @@ async function callClaude(params: {
 
 /**
  * Summarize regulatory text
+ * @param text - The regulatory text to summarize
+ * @param options - Summarization options
+ * @param organizationId - Optional org ID for cache scoping (prevents cross-tenant cache leakage)
  */
-export async function summarize(text: string, options: SummarizeOptions = {}): Promise<AIResponse<string>> {
+export async function summarize(
+  text: string,
+  options: SummarizeOptions = {},
+  organizationId?: string
+): Promise<AIResponse<string>> {
   const { maxLength = 200, format = 'paragraph' } = options
-  const cacheKey = getCacheKey('summarize', `${text}:${maxLength}:${format}`)
+  const cacheKey = getCacheKey('summarize', `${text}:${maxLength}:${format}`, organizationId)
 
   // Check cache
   const cached = getFromCache<string>(cacheKey)
@@ -185,9 +194,14 @@ export async function summarize(text: string, options: SummarizeOptions = {}): P
 
 /**
  * Extract obligations from article text
+ * @param articleText - The article text to extract obligations from
+ * @param organizationId - Optional org ID for cache scoping (prevents cross-tenant cache leakage)
  */
-export async function extractObligations(articleText: string): Promise<AIResponse<ExtractedObligation[]>> {
-  const cacheKey = getCacheKey('extractObligations', articleText)
+export async function extractObligations(
+  articleText: string,
+  organizationId?: string
+): Promise<AIResponse<ExtractedObligation[]>> {
+  const cacheKey = getCacheKey('extractObligations', articleText, organizationId)
 
   const cached = getFromCache<ExtractedObligation[]>(cacheKey)
   if (cached) {
@@ -245,12 +259,16 @@ Respond with a JSON array of obligations. Only include actual compliance require
 
 /**
  * Assess impact of a regulation article on a system
+ * @param articleText - The regulatory article text
+ * @param systemDescription - Description of the system to assess
+ * @param organizationId - Optional org ID for cache scoping (prevents cross-tenant cache leakage)
  */
 export async function assessImpact(
   articleText: string,
-  systemDescription: string
+  systemDescription: string,
+  organizationId?: string
 ): Promise<AIResponse<ImpactAssessment>> {
-  const cacheKey = getCacheKey('assessImpact', `${articleText}:${systemDescription}`)
+  const cacheKey = getCacheKey('assessImpact', `${articleText}:${systemDescription}`, organizationId)
 
   const cached = getFromCache<ImpactAssessment>(cacheKey)
   if (cached) {

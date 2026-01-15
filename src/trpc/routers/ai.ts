@@ -42,11 +42,15 @@ export const aiRouter = router({
         throw new Error('Article has no text content to summarize')
       }
 
-      // Generate summary
-      const result = await summarize(textToSummarize, {
-        maxLength: input.maxLength,
-        format: input.format,
-      })
+      // Generate summary (pass orgId for cache scoping)
+      const result = await summarize(
+        textToSummarize,
+        {
+          maxLength: input.maxLength,
+          format: input.format,
+        },
+        ctx.activeOrganizationId
+      )
 
       // Optionally update article with AI summary
       if (!article.aiSummary && !result.cached) {
@@ -87,7 +91,8 @@ export const aiRouter = router({
         throw new Error('Article has no text content to analyze')
       }
 
-      const result = await extractObligations(textToAnalyze)
+      // Pass orgId for cache scoping
+      const result = await extractObligations(textToAnalyze, ctx.activeOrganizationId)
 
       return {
         articleId: input.articleId,
@@ -141,7 +146,8 @@ Description: ${system.description || 'No description provided'}
 Owner: ${system.ownerTeam || 'Not specified'}
       `.trim()
 
-      const result = await assessImpact(articleText, systemDescription)
+      // Pass orgId for cache scoping
+      const result = await assessImpact(articleText, systemDescription, ctx.activeOrganizationId)
 
       return {
         articleId: input.articleId,
@@ -200,10 +206,14 @@ Key Articles:
 ${articleTexts}
       `.trim()
 
-      const result = await summarize(textToSummarize, {
-        maxLength: input.maxLength,
-        format: 'structured',
-      })
+      const result = await summarize(
+        textToSummarize,
+        {
+          maxLength: input.maxLength,
+          format: 'structured',
+        },
+        ctx.activeOrganizationId
+      )
 
       return {
         regulationId: input.regulationId,

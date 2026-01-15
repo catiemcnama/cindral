@@ -1,7 +1,9 @@
 import { integrations } from '@/db/schema'
 import { recordAudit } from '@/lib/audit'
+import { decryptObject, encryptObject, storeOAuthState, verifyOAuthState } from '@/lib/crypto'
 import { NotFoundError } from '@/lib/errors'
 import { getIntegration, PROVIDER_INFO, type IntegrationProvider } from '@/lib/integrations'
+import type { IntegrationConfig } from '@/lib/integrations/types'
 import { requireMutatePermission } from '@/lib/tenancy'
 import { and, eq } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
@@ -36,22 +38,17 @@ export const integrationsRouter = router({
   /**
    * Get details of a specific integration
    */
-  getById: orgProcedure
-    .input(z.object({ id: z.string() }))
-    .query(async ({ ctx, input }) => {
-      const integration = await ctx.db.query.integrations.findFirst({
-        where: and(
-          eq(integrations.id, input.id),
-          eq(integrations.organizationId, ctx.activeOrganizationId)
-        ),
-      })
+  getById: orgProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
+    const integration = await ctx.db.query.integrations.findFirst({
+      where: and(eq(integrations.id, input.id), eq(integrations.organizationId, ctx.activeOrganizationId)),
+    })
 
-      if (!integration) {
-        throw new NotFoundError('Integration', input.id)
-      }
+    if (!integration) {
+      throw new NotFoundError('Integration', input.id)
+    }
 
-      return integration
-    }),
+    return integration
+  }),
 
   /**
    * Initiate OAuth connection for a provider
@@ -69,10 +66,7 @@ export const integrationsRouter = router({
 
       // Check if already connected
       const existing = await ctx.db.query.integrations.findFirst({
-        where: and(
-          eq(integrations.provider, provider),
-          eq(integrations.organizationId, ctx.activeOrganizationId)
-        ),
+        where: and(eq(integrations.provider, provider), eq(integrations.organizationId, ctx.activeOrganizationId)),
       })
 
       if (existing && existing.status === 'connected') {
@@ -86,6 +80,9 @@ export const integrationsRouter = router({
       // Get the integration handler
       const integration = getIntegration(provider)
       const authUrl = integration.getAuthUrl(redirectUri, state)
+
+      // Store OAuth state for CSRF verification on callback
+      storeOAuthState(state, ctx.activeOrganizationId, provider)
 
       // Store pending integration
       const id = nanoid()
@@ -137,7 +134,13 @@ export const integrationsRouter = router({
     .mutation(async ({ ctx, input }) => {
       requireMutatePermission(ctx)
 
+      // Verify OAuth state to prevent CSRF attacks
       const provider = input.provider as IntegrationProvider
+      const isValidState = verifyOAuthState(input.state, ctx.activeOrganizationId, provider)
+
+      if (!isValidState) {
+        throw new Error('Invalid or expired OAuth state. Please try connecting again.')
+      }
       const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/callback`
 
       // Get the integration handler
@@ -162,11 +165,15 @@ export const integrationsRouter = router({
         throw new NotFoundError('Pending integration', provider)
       }
 
-      // Update with connection details
+      // Encrypt tokens before storing
+      const encryptedConfig = encryptObject(config)
+
+      // Update with encrypted connection details
+      // Store encrypted config as a wrapper object
       await ctx.db
         .update(integrations)
         .set({
-          config,
+          config: { encrypted: encryptedConfig } as unknown as IntegrationConfig,
           status: testResult.success ? 'connected' : 'error',
           lastError: testResult.error,
           lastSyncAt: testResult.success ? new Date() : null,
@@ -182,110 +189,124 @@ export const integrationsRouter = router({
   /**
    * Disconnect an integration
    */
-  disconnect: orgProcedure
-    .input(z.object({ id: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      requireMutatePermission(ctx)
+  disconnect: orgProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
+    requireMutatePermission(ctx)
 
-      const integration = await ctx.db.query.integrations.findFirst({
-        where: and(
-          eq(integrations.id, input.id),
-          eq(integrations.organizationId, ctx.activeOrganizationId)
-        ),
+    const integration = await ctx.db.query.integrations.findFirst({
+      where: and(eq(integrations.id, input.id), eq(integrations.organizationId, ctx.activeOrganizationId)),
+    })
+
+    if (!integration) {
+      throw new NotFoundError('Integration', input.id)
+    }
+
+    // Soft-disconnect (keep record for re-connection)
+    await ctx.db
+      .update(integrations)
+      .set({
+        status: 'disconnected',
+        config: null,
+        lastSyncAt: null,
       })
+      .where(eq(integrations.id, input.id))
 
-      if (!integration) {
-        throw new NotFoundError('Integration', input.id)
-      }
+    await recordAudit({
+      ctx,
+      action: 'delete_regulation', // Reusing existing action type
+      entityType: 'organization',
+      entityId: ctx.activeOrganizationId,
+      before: { action: 'integration_disconnected', provider: integration.provider },
+    })
 
-      // Soft-disconnect (keep record for re-connection)
-      await ctx.db
-        .update(integrations)
-        .set({
-          status: 'disconnected',
-          config: null,
-          lastSyncAt: null,
-        })
-        .where(eq(integrations.id, input.id))
-
-      await recordAudit({
-        ctx,
-        action: 'delete_regulation', // Reusing existing action type
-        entityType: 'organization',
-        entityId: ctx.activeOrganizationId,
-        before: { action: 'integration_disconnected', provider: integration.provider },
-      })
-
-      return { success: true }
-    }),
+    return { success: true }
+  }),
 
   /**
    * Trigger manual sync for an integration
    */
-  sync: orgProcedure
-    .input(z.object({ id: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      requireMutatePermission(ctx)
+  sync: orgProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
+    requireMutatePermission(ctx)
 
-      const integration = await ctx.db.query.integrations.findFirst({
-        where: and(
-          eq(integrations.id, input.id),
-          eq(integrations.organizationId, ctx.activeOrganizationId)
-        ),
+    const integration = await ctx.db.query.integrations.findFirst({
+      where: and(eq(integrations.id, input.id), eq(integrations.organizationId, ctx.activeOrganizationId)),
+    })
+
+    if (!integration) {
+      throw new NotFoundError('Integration', input.id)
+    }
+
+    if (integration.status !== 'connected') {
+      throw new Error('Integration is not connected')
+    }
+
+    if (!integration.config) {
+      throw new Error('Integration config is missing')
+    }
+
+    // Decrypt the stored config
+    const storedConfig = integration.config as { encrypted?: string } | IntegrationConfig
+    let decryptedConfig: IntegrationConfig
+
+    if ('encrypted' in storedConfig && storedConfig.encrypted) {
+      const decrypted = decryptObject<IntegrationConfig>(storedConfig.encrypted)
+      if (!decrypted) {
+        throw new Error('Failed to decrypt integration config')
+      }
+      decryptedConfig = decrypted
+    } else {
+      // Legacy unencrypted config (for backwards compatibility)
+      decryptedConfig = storedConfig as IntegrationConfig
+    }
+
+    // Get the integration handler and sync
+    const handler = getIntegration(integration.provider as IntegrationProvider)
+    const result = await handler.sync(decryptedConfig)
+
+    // Update sync timestamp
+    await ctx.db
+      .update(integrations)
+      .set({
+        lastSyncAt: result.syncedAt,
+        lastError: result.errors.length > 0 ? result.errors.join('; ') : null,
+        status: result.success ? 'connected' : 'error',
       })
+      .where(eq(integrations.id, input.id))
 
-      if (!integration) {
-        throw new NotFoundError('Integration', input.id)
-      }
-
-      if (integration.status !== 'connected') {
-        throw new Error('Integration is not connected')
-      }
-
-      if (!integration.config) {
-        throw new Error('Integration config is missing')
-      }
-
-      // Get the integration handler and sync
-      const handler = getIntegration(integration.provider as IntegrationProvider)
-      const result = await handler.sync(integration.config)
-
-      // Update sync timestamp
-      await ctx.db
-        .update(integrations)
-        .set({
-          lastSyncAt: result.syncedAt,
-          lastError: result.errors.length > 0 ? result.errors.join('; ') : null,
-          status: result.success ? 'connected' : 'error',
-        })
-        .where(eq(integrations.id, input.id))
-
-      return result
-    }),
+    return result
+  }),
 
   /**
    * Test integration connection
    */
-  test: orgProcedure
-    .input(z.object({ id: z.string() }))
-    .query(async ({ ctx, input }) => {
-      const integration = await ctx.db.query.integrations.findFirst({
-        where: and(
-          eq(integrations.id, input.id),
-          eq(integrations.organizationId, ctx.activeOrganizationId)
-        ),
-      })
+  test: orgProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
+    const integration = await ctx.db.query.integrations.findFirst({
+      where: and(eq(integrations.id, input.id), eq(integrations.organizationId, ctx.activeOrganizationId)),
+    })
 
-      if (!integration) {
-        throw new NotFoundError('Integration', input.id)
+    if (!integration) {
+      throw new NotFoundError('Integration', input.id)
+    }
+
+    if (!integration.config) {
+      return { success: false, error: 'Not configured' }
+    }
+
+    // Decrypt the stored config
+    const storedConfig = integration.config as { encrypted?: string } | IntegrationConfig
+    let decryptedConfig: IntegrationConfig
+
+    if ('encrypted' in storedConfig && storedConfig.encrypted) {
+      const decrypted = decryptObject<IntegrationConfig>(storedConfig.encrypted)
+      if (!decrypted) {
+        return { success: false, error: 'Failed to decrypt config' }
       }
+      decryptedConfig = decrypted
+    } else {
+      // Legacy unencrypted config
+      decryptedConfig = storedConfig as IntegrationConfig
+    }
 
-      if (!integration.config) {
-        return { success: false, error: 'Not configured' }
-      }
-
-      const handler = getIntegration(integration.provider as IntegrationProvider)
-      return handler.testConnection(integration.config)
-    }),
+    const handler = getIntegration(integration.provider as IntegrationProvider)
+    return handler.testConnection(decryptedConfig)
+  }),
 })
-

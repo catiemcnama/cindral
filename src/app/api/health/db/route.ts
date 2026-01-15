@@ -11,10 +11,15 @@ import {
   regulations,
   systems,
 } from '@/db/schema'
+import { auth } from '@/lib/auth'
 import { desc, eq, sql } from 'drizzle-orm'
 import fs from 'fs'
+import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
 import path from 'path'
+
+// Admin secret for internal health checks (e.g., from orchestrators)
+const HEALTH_CHECK_SECRET = process.env.HEALTH_CHECK_SECRET
 
 interface OrgSnapshot {
   organizationId: string
@@ -81,9 +86,44 @@ interface HealthResponse {
  * - Latest migration info
  * - Per-organization counts
  * - Compliance statistics
+ *
+ * Access restricted to:
+ * - Authenticated admin users
+ * - Requests with valid HEALTH_CHECK_SECRET header
+ * - Development environment (unrestricted)
  */
-export async function GET() {
+export async function GET(request: Request) {
   const startTime = Date.now()
+
+  // In production, require authentication or secret
+  if (process.env.NODE_ENV === 'production') {
+    const reqHeaders = await headers()
+
+    // Check for health check secret (for orchestrators/load balancers)
+    const authHeader = request.headers.get('authorization')
+    const hasValidSecret = HEALTH_CHECK_SECRET && authHeader === `Bearer ${HEALTH_CHECK_SECRET}`
+
+    if (!hasValidSecret) {
+      // Fall back to session auth - require OrgAdmin role
+      const session = await auth.api.getSession({ headers: reqHeaders })
+
+      if (!session) {
+        return NextResponse.json(
+          { error: 'Authentication required. Use /api/health for public health checks.' },
+          { status: 401 }
+        )
+      }
+
+      // Check if user has admin access to any organization
+      const membership = await db.query.member.findFirst({
+        where: (member, { eq, and }) => and(eq(member.userId, session.user.id), eq(member.role, 'OrgAdmin')),
+      })
+
+      if (!membership) {
+        return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+      }
+    }
+  }
 
   try {
     // Test DB connectivity

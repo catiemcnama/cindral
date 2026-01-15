@@ -3,6 +3,19 @@ import type { NextConfig } from 'next'
 // Dynamic CORS origin based on environment
 const corsOrigin = process.env.NEXT_PUBLIC_APP_URL || 'https://www.trycindral.com'
 
+// Content Security Policy - adjust based on your third-party services
+const cspDirectives = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // unsafe-eval needed for Next.js dev
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: https: blob:",
+  "font-src 'self' data:",
+  "connect-src 'self' https://api.resend.com https://api.stripe.com https://*.sentry.io",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+]
+
 const nextConfig: NextConfig = {
   async redirects() {
     return [
@@ -28,6 +41,11 @@ const nextConfig: NextConfig = {
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()',
+          },
+          // Content Security Policy
+          {
+            key: 'Content-Security-Policy',
+            value: cspDirectives.join('; '),
           },
           // HSTS - enable in production
           ...(process.env.NODE_ENV === 'production'
