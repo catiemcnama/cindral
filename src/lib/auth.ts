@@ -6,19 +6,29 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { organization } from 'better-auth/plugins'
 
 // Get auth secret - fail fast in production if not configured
+// Note: During Vercel build, NODE_ENV is 'production' but secrets aren't available yet.
+// We use a placeholder during build and validate at runtime instead.
 const secret = (() => {
   const envSecret = process.env.BETTER_AUTH_SECRET
 
-  // Production requires a real secret
-  if (process.env.NODE_ENV === 'production') {
-    if (!envSecret || envSecret.length < 32) {
-      throw new Error('BETTER_AUTH_SECRET must be set to a secure value (min 32 chars) in production')
-    }
+  // If we have a valid secret, use it
+  if (envSecret && envSecret.length >= 32) {
     return envSecret
   }
 
-  // Development/build: use env var or placeholder (never used for real auth in dev without env)
-  return envSecret || 'development-only-secret-not-for-production-use'
+  // During build phase (no runtime yet), allow a placeholder
+  // The actual secret validation happens at runtime in auth handlers
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return 'build-time-placeholder-secret-not-used-at-runtime'
+  }
+
+  // Development: use env var or development placeholder
+  if (process.env.NODE_ENV !== 'production') {
+    return envSecret || 'development-only-secret-not-for-production-use'
+  }
+
+  // Production runtime without proper secret - this is a real error
+  throw new Error('BETTER_AUTH_SECRET must be set to a secure value (min 32 chars) in production')
 })()
 
 // Email verification setting - enable in production
