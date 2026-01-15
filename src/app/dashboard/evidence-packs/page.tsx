@@ -16,7 +16,18 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useCallback, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -99,6 +110,7 @@ export default function EvidencePacksPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<PackStatus | 'all'>('all')
   const [audienceFilter, setAudienceFilter] = useState<PackAudience | 'all'>('all')
+  const [deleteId, setDeleteId] = useState<number | null>(null)
 
   // Query
   const packsQuery = useQuery({
@@ -118,6 +130,12 @@ export default function EvidencePacksPage() {
     ...trpc.evidencePacks.delete.mutationOptions(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: trpc.evidencePacks.list.queryKey() })
+      toast.success('Evidence pack deleted')
+    },
+    onError: (error) => {
+      toast.error('Failed to delete evidence pack', {
+        description: error instanceof Error ? error.message : 'Please try again.',
+      })
     },
   })
 
@@ -135,19 +153,38 @@ export default function EvidencePacksPage() {
     )
   }, [items, searchQuery])
 
-  const handleDelete = useCallback(
-    (id: number) => {
-      if (confirm('Are you sure you want to delete this evidence pack?')) {
-        deleteMutation.mutate({ id })
-      }
-    },
-    [deleteMutation]
-  )
+  const handleDelete = useCallback(() => {
+    if (deleteId !== null) {
+      deleteMutation.mutate({ id: deleteId })
+      setDeleteId(null)
+    }
+  }, [deleteMutation, deleteId])
 
   const stats = data?.stats ?? { draft: 0, ready: 0, failed: 0 }
 
   return (
     <div className="flex flex-col gap-6 p-6">
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Evidence Pack?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this evidence pack. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="text-destructive-foreground bg-destructive hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -377,7 +414,9 @@ export default function EvidencePacksPage() {
                             <DropdownMenuItem
                               onClick={() => {
                                 // In production, this would trigger actual file download
-                                alert(`Download for "${pack.title}" coming soon!\n\nFormat: ${pack.exportFormat?.toUpperCase() || 'JSON'}`)
+                                alert(
+                                  `Download for "${pack.title}" coming soon!\n\nFormat: ${pack.exportFormat?.toUpperCase() || 'JSON'}`
+                                )
                               }}
                             >
                               <DownloadIcon className="mr-2 size-4" />
@@ -390,7 +429,7 @@ export default function EvidencePacksPage() {
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-destructive"
-                            onClick={() => handleDelete(pack.id)}
+                            onClick={() => setDeleteId(pack.id)}
                             disabled={deleteMutation.isPending}
                           >
                             <Trash2Icon className="mr-2 size-4" />

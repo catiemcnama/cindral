@@ -22,6 +22,7 @@ import {
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -332,7 +333,15 @@ export function OnboardingWizard() {
       // Wait for the isComplete query to actually refetch before redirecting
       // This ensures the sidebar will show the correct state
       await queryClient.refetchQueries({ queryKey: trpc.onboarding.isComplete.queryKey() })
+      toast.success('Setup complete! 🎉', {
+        description: "Your workspace is ready. Let's get started!",
+      })
       router.push('/dashboard')
+    },
+    onError: (error) => {
+      toast.error('Failed to complete setup', {
+        description: error instanceof Error ? error.message : 'Please try again.',
+      })
     },
   })
 

@@ -16,18 +16,24 @@ import {
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useCallback, useState } from 'react'
+import { toast } from 'sonner'
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
@@ -91,9 +97,18 @@ export default function ObligationDetailPage() {
   // Mutations
   const updateStatusMutation = useMutation({
     ...trpc.obligations.updateStatus.mutationOptions(),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: trpc.obligations.getById.queryKey({ id: obligationId }) })
       queryClient.invalidateQueries({ queryKey: trpc.obligations.list.queryKey() })
+      const statusLabel = statusLabels[variables.status as ObligationStatus] || variables.status
+      toast.success('Status updated', {
+        description: `Changed to "${statusLabel}"`,
+      })
+    },
+    onError: (error) => {
+      toast.error('Failed to update status', {
+        description: error instanceof Error ? error.message : 'Please try again.',
+      })
     },
   })
 
@@ -101,7 +116,14 @@ export default function ObligationDetailPage() {
     ...trpc.obligations.delete.mutationOptions(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: trpc.obligations.list.queryKey() })
+      toast.success('Obligation deleted')
       router.push('/dashboard/obligations')
+    },
+    onError: (error) => {
+      setIsDeleting(false)
+      toast.error('Failed to delete obligation', {
+        description: error instanceof Error ? error.message : 'Please try again.',
+      })
     },
   })
 
@@ -113,10 +135,8 @@ export default function ObligationDetailPage() {
   )
 
   const handleDelete = useCallback(() => {
-    if (confirm('Are you sure you want to delete this obligation? This action cannot be undone.')) {
-      setIsDeleting(true)
-      deleteMutation.mutate({ id: obligationId })
-    }
+    setIsDeleting(true)
+    deleteMutation.mutate({ id: obligationId })
   }, [deleteMutation, obligationId])
 
   // Loading state
@@ -217,15 +237,35 @@ export default function ObligationDetailPage() {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleDelete}
-            disabled={isDeleting || deleteMutation.isPending}
-          >
-            {isDeleting ? <Loader2Icon className="mr-2 size-4 animate-spin" /> : <Trash2Icon className="mr-2 size-4" />}
-            Delete
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" disabled={isDeleting || deleteMutation.isPending}>
+                {isDeleting ? (
+                  <Loader2Icon className="mr-2 size-4 animate-spin" />
+                ) : (
+                  <Trash2Icon className="mr-2 size-4" />
+                )}
+                Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Obligation?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete this obligation and all associated data. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  className="text-destructive-foreground bg-destructive hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 

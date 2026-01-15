@@ -1,5 +1,16 @@
 'use client'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -17,6 +28,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Loader2Icon, RefreshCwIcon, SettingsIcon, SparklesIcon } from 'lucide-react'
 import Image from 'next/image'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 /**
  * Demo Banner Component
@@ -69,9 +81,15 @@ export function DemoBanner() {
       // Invalidate all queries to refresh data
       queryClient.invalidateQueries()
       setIsResetting(false)
+      toast.success('Demo data reset successfully', {
+        description: 'All data has been restored to the initial demo state.',
+      })
     },
-    onError: () => {
+    onError: (error) => {
       setIsResetting(false)
+      toast.error('Failed to reset demo data', {
+        description: error instanceof Error ? error.message : 'Please try again.',
+      })
     },
   })
 
@@ -82,9 +100,13 @@ export function DemoBanner() {
         queryClient.invalidateQueries({ queryKey: trpc.demo.getConfig.queryKey() })
         setIsSaving(false)
         setIsOpen(false)
+        toast.success('Demo customization saved')
       },
-      onError: () => {
+      onError: (error) => {
         setIsSaving(false)
+        toast.error('Failed to save customization', {
+          description: error instanceof Error ? error.message : 'Please try again.',
+        })
       },
     })
   )
@@ -193,17 +215,33 @@ export function DemoBanner() {
           </DialogContent>
         </Dialog>
 
-        {/* Reset Button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 gap-1.5 text-white hover:bg-white/20 hover:text-white"
-          onClick={handleReset}
-          disabled={isResetting}
-        >
-          {isResetting ? <Loader2Icon className="size-3.5 animate-spin" /> : <RefreshCwIcon className="size-3.5" />}
-          Reset Demo Data
-        </Button>
+        {/* Reset Button with Confirmation */}
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1.5 text-white hover:bg-white/20 hover:text-white"
+              disabled={isResetting}
+            >
+              {isResetting ? <Loader2Icon className="size-3.5 animate-spin" /> : <RefreshCwIcon className="size-3.5" />}
+              Reset Demo Data
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Reset Demo Data?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will reset all data to the initial demo state. Regulations, obligations, alerts, and evidence packs
+                will be restored. Your user account and organization will be preserved.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleReset}>Reset Data</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   )

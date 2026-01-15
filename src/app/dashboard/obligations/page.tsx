@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useCallback, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -114,9 +115,19 @@ export default function ObligationsPage() {
   // Mutations
   const bulkStatusMutation = useMutation({
     ...trpc.obligations.bulkUpdateStatus.mutationOptions(),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: trpc.obligations.list.queryKey() })
+      const count = variables.ids.length
+      const statusLabel = statusLabels[variables.status as ObligationStatus] || variables.status
+      toast.success(`Updated ${count} obligation${count === 1 ? '' : 's'}`, {
+        description: `Status changed to "${statusLabel}"`,
+      })
       setSelectedIds(new Set())
+    },
+    onError: (error) => {
+      toast.error('Failed to update obligations', {
+        description: error instanceof Error ? error.message : 'Please try again.',
+      })
     },
   })
 
@@ -404,7 +415,7 @@ export default function ObligationsPage() {
                 const isDue = obligation.dueDate && new Date(obligation.dueDate) < new Date()
 
                 return (
-                  <TableRow key={obligation.id}>
+                  <TableRow key={obligation.id} className="cursor-pointer">
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <Checkbox
                         checked={selectedIds.has(obligation.id)}
@@ -412,12 +423,18 @@ export default function ObligationsPage() {
                         aria-label={`Select ${obligation.id}`}
                       />
                     </TableCell>
-                    <TableCell className="font-mono text-xs">{obligation.id}</TableCell>
+                    <TableCell className="font-mono text-xs">
+                      <Link href={`/dashboard/obligations/${obligation.id}`} className="hover:underline">
+                        {obligation.id}
+                      </Link>
+                    </TableCell>
                     <TableCell>
-                      <p className="max-w-md truncate font-medium">{obligation.title}</p>
-                      {obligation.summary && (
-                        <p className="max-w-md truncate text-xs text-muted-foreground">{obligation.summary}</p>
-                      )}
+                      <Link href={`/dashboard/obligations/${obligation.id}`} className="block">
+                        <p className="max-w-md truncate font-medium hover:underline">{obligation.title}</p>
+                        {obligation.summary && (
+                          <p className="max-w-md truncate text-xs text-muted-foreground">{obligation.summary}</p>
+                        )}
+                      </Link>
                     </TableCell>
                     <TableCell>
                       {obligation.article?.regulation?.name && (

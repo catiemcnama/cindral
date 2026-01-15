@@ -1,7 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
 import { CheckIcon, Loader2Icon, XIcon } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
-import { useSession, useActiveOrganization, organization } from '@/lib/auth-client'
+import { organization, useActiveOrganization, useSession } from '@/lib/auth-client'
 
 type SaveStatus = 'idle' | 'saving' | 'success' | 'error'
 
@@ -96,6 +97,7 @@ export default function SettingsPage() {
     if (!name.trim()) {
       setProfileStatus('error')
       setProfileError('Name is required')
+      toast.error('Name is required')
       return
     }
 
@@ -108,9 +110,11 @@ export default function SettingsPage() {
       // For now, just show success (the name is client-side only)
       await new Promise((resolve) => setTimeout(resolve, 500)) // Simulate save
       setProfileStatus('success')
+      toast.success('Profile saved')
     } catch {
       setProfileStatus('error')
       setProfileError('Failed to save')
+      toast.error('Failed to save profile')
     }
   }, [name])
 
@@ -118,12 +122,14 @@ export default function SettingsPage() {
     if (!orgName.trim()) {
       setOrgStatus('error')
       setOrgError('Organization name is required')
+      toast.error('Organization name is required')
       return
     }
 
     if (!activeOrg?.id) {
       setOrgStatus('error')
       setOrgError('No active organization')
+      toast.error('No active organization')
       return
     }
 
@@ -141,9 +147,14 @@ export default function SettingsPage() {
       }
 
       setOrgStatus('success')
+      toast.success('Organization settings saved')
     } catch (error) {
       setOrgStatus('error')
-      setOrgError(error instanceof Error ? error.message : 'Failed to save')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save'
+      setOrgError(errorMessage)
+      toast.error('Failed to save organization settings', {
+        description: errorMessage,
+      })
     }
   }, [orgName, activeOrg?.id])
 
@@ -177,22 +188,11 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full name</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Your name"
-              />
+              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                disabled
-                className="bg-muted"
-              />
+              <Input id="email" type="email" value={email} disabled className="bg-muted" />
               <p className="text-xs text-muted-foreground">
                 Email cannot be changed. Contact support if you need to update it.
               </p>
@@ -221,10 +221,7 @@ export default function SettingsPage() {
                   Receive email alerts for critical regulatory changes
                 </div>
               </div>
-              <Switch
-                checked={emailNotifications}
-                onCheckedChange={setEmailNotifications}
-              />
+              <Switch checked={emailNotifications} onCheckedChange={setEmailNotifications} />
             </div>
             <Separator />
             <div className="flex items-center justify-between">
@@ -232,10 +229,7 @@ export default function SettingsPage() {
                 <div className="font-medium">Weekly Digest</div>
                 <div className="text-sm text-muted-foreground">Get a weekly summary of compliance status</div>
               </div>
-              <Switch
-                checked={weeklyDigest}
-                onCheckedChange={setWeeklyDigest}
-              />
+              <Switch checked={weeklyDigest} onCheckedChange={setWeeklyDigest} />
             </div>
             <Separator />
             <div className="flex items-center justify-between">
@@ -243,12 +237,9 @@ export default function SettingsPage() {
                 <div className="font-medium">Deadline Reminders</div>
                 <div className="text-sm text-muted-foreground">Receive reminders before compliance deadlines</div>
               </div>
-              <Switch
-                checked={deadlineReminders}
-                onCheckedChange={setDeadlineReminders}
-              />
+              <Switch checked={deadlineReminders} onCheckedChange={setDeadlineReminders} />
             </div>
-            <p className="text-xs text-muted-foreground pt-2">
+            <p className="pt-2 text-xs text-muted-foreground">
               Note: Notification preferences are stored locally. Full notification system coming soon.
             </p>
           </CardContent>
@@ -273,11 +264,7 @@ export default function SettingsPage() {
               </div>
               <div className="space-y-2">
                 <Label>Organization ID</Label>
-                <Input
-                  value={activeOrg.id}
-                  disabled
-                  className="bg-muted font-mono text-sm"
-                />
+                <Input value={activeOrg.id} disabled className="bg-muted font-mono text-sm" />
               </div>
               <div className="flex items-center gap-3">
                 <Button onClick={handleSaveOrg} disabled={orgStatus === 'saving'}>

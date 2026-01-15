@@ -1,6 +1,7 @@
 import { TRPCProvider } from '@/trpc/client'
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
+import { Toaster } from 'sonner'
 import './globals.css'
 
 const geistSans = Geist({
@@ -131,6 +132,7 @@ export default function RootLayout({
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
         <TRPCProvider>{children}</TRPCProvider>
+        <Toaster position="bottom-right" richColors closeButton />
       </body>
     </html>
   )
