@@ -40,6 +40,9 @@ const envSchema = z.object({
   ENABLE_AI_FEATURES: z.coerce.boolean().default(false),
   ENABLE_REALTIME: z.coerce.boolean().default(false),
 
+  // Demo mode - when true, enables demo banner and reset functionality
+  IS_DEMO: z.coerce.boolean().default(false),
+
   // Runtime
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 })

@@ -869,8 +869,9 @@ export function OnboardingWizard() {
                       return (
                         <div
                           key={regulation.id}
+                          onClick={() => handleToggleRegulation(regulation.id)}
                           className={cn(
-                            'flex flex-col gap-3 rounded-xl border p-4 transition md:flex-row md:items-start',
+                            'flex cursor-pointer flex-col gap-3 rounded-xl border p-4 transition md:flex-row md:items-start',
                             isSelected
                               ? 'border-primary/60 bg-primary/5'
                               : 'border-border hover:border-muted-foreground/40'
@@ -881,10 +882,11 @@ export function OnboardingWizard() {
                               id={`reg-${regulation.id}`}
                               checked={isSelected}
                               onCheckedChange={() => handleToggleRegulation(regulation.id)}
+                              onClick={(e) => e.stopPropagation()}
                             />
                             <div className="space-y-2">
                               <div className="flex flex-wrap items-center gap-2">
-                                <label htmlFor={`reg-${regulation.id}`} className="text-sm font-medium">
+                                <label htmlFor={`reg-${regulation.id}`} className="cursor-pointer text-sm font-medium">
                                   {regulation.name}
                                 </label>
                                 <Badge variant="outline">{regulation.jurisdiction}</Badge>
@@ -959,8 +961,9 @@ export function OnboardingWizard() {
                     return (
                       <div
                         key={system.id}
+                        onClick={() => handleToggleSystem(system.id)}
                         className={cn(
-                          'flex gap-3 rounded-xl border p-4 transition',
+                          'flex cursor-pointer gap-3 rounded-xl border p-4 transition',
                           isSelected
                             ? 'border-primary/60 bg-primary/5'
                             : 'border-border hover:border-muted-foreground/40'
@@ -970,12 +973,13 @@ export function OnboardingWizard() {
                           id={`system-${system.id}`}
                           checked={isSelected}
                           onCheckedChange={() => handleToggleSystem(system.id)}
+                          onClick={(e) => e.stopPropagation()}
                         />
                         <div className="flex-1 space-y-2">
                           <div className="flex flex-wrap items-center gap-2">
                             <label
                               htmlFor={`system-${system.id}`}
-                              className="flex items-center gap-2 text-sm font-medium"
+                              className="flex cursor-pointer items-center gap-2 text-sm font-medium"
                             >
                               <Icon className="size-4 text-muted-foreground" />
                               {system.name}

@@ -7,6 +7,7 @@ import { alertsRouter } from './alerts'
 import { articlesRouter } from './articles'
 import { billingRouter } from './billing'
 import { dashboardRouter } from './dashboard'
+import { demoRouter } from './demo'
 import { evidencePacksRouter } from './evidence-packs'
 import { integrationsRouter } from './integrations'
 import { obligationsRouter } from './obligations'
@@ -31,6 +32,7 @@ export const appRouter = router({
   billing: billingRouter,
   onboarding: onboardingRouter,
   ai: aiRouter,
+  demo: demoRouter,
 
   // Public procedures
   hello: publicProcedure

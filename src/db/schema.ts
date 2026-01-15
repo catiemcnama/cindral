@@ -1,5 +1,6 @@
 import { relations, sql } from 'drizzle-orm'
 import {
+  boolean,
   index,
   integer,
   json,
@@ -95,6 +96,36 @@ export const sourceTypeEnum = pgEnum('source_type', ['eur-lex', 'manual-upload',
 
 // Ingest job status
 export const ingestJobStatusEnum = pgEnum('ingest_job_status', ['pending', 'running', 'succeeded', 'failed', 'partial'])
+
+/**
+ * Demo configuration for organizations
+ * Stores demo mode settings and customizations for demo/sales presentations
+ */
+export const demoConfig = pgTable(
+  'demo_config',
+  {
+    id: text('id').primaryKey(), // Same as organization ID
+    organizationId: text('organization_id')
+      .notNull()
+      .unique()
+      .references(() => organization.id, { onDelete: 'cascade' }),
+    isDemo: boolean('is_demo').default(false).notNull(),
+    // Customization for demos
+    displayName: text('display_name'), // Override org name for demo
+    displayLogo: text('display_logo'), // Override logo URL for demo
+    displayDomain: text('display_domain'), // Domain used to fetch logo
+    // Demo data seeding
+    lastResetAt: timestamp('last_reset_at'),
+    resetCount: integer('reset_count').default(0).notNull(),
+    // Timestamps
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [index('demo_config_org_idx').on(table.organizationId)]
+)
 
 /**
  * Ingest jobs - track ingestion work
@@ -913,3 +944,17 @@ export const userPreferencesRelations = relations(userPreferences, ({ one }) => 
 
 export type UserPreferences = typeof userPreferences.$inferSelect
 export type NewUserPreferences = typeof userPreferences.$inferInsert
+
+// =============================================================================
+// Demo Config Relations
+// =============================================================================
+
+export const demoConfigRelations = relations(demoConfig, ({ one }) => ({
+  organization: one(organization, {
+    fields: [demoConfig.organizationId],
+    references: [organization.id],
+  }),
+}))
+
+export type DemoConfig = typeof demoConfig.$inferSelect
+export type NewDemoConfig = typeof demoConfig.$inferInsert

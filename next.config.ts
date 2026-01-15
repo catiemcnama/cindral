@@ -75,6 +75,17 @@ const nextConfig: NextConfig = {
       },
     ]
   },
+
+  // Image optimization domains for external logos
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'logo.clearbit.com',
+        pathname: '/**',
+      },
+    ],
+  },
 }
 
 export default nextConfig

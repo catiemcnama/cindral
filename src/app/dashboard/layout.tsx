@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 
 import { AppHeader } from '@/components/app-header'
 import { AppSidebar } from '@/components/app-sidebar'
+import { DemoBanner } from '@/components/demo-banner'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { auth } from '@/lib/auth'
 
@@ -19,6 +20,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
+        <DemoBanner />
         <AppHeader />
         <div className="flex-1 overflow-auto">{children}</div>
       </SidebarInset>
