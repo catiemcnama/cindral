@@ -3,10 +3,15 @@ import type { NextConfig } from 'next'
 // Dynamic CORS origin based on environment
 const corsOrigin = process.env.NEXT_PUBLIC_APP_URL || 'https://www.trycindral.com'
 
-// Content Security Policy - adjust based on your third-party services
+// Determine if we're in development mode
+const isDev = process.env.NODE_ENV !== 'production'
+
+// Content Security Policy - stricter in production
+// unsafe-inline for styles is needed for Next.js inline styles
+// unsafe-eval only allowed in development for Next.js HMR
 const cspDirectives = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // unsafe-eval needed for Next.js dev
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https: blob:",
   "font-src 'self' data:",
@@ -14,6 +19,7 @@ const cspDirectives = [
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
+  'upgrade-insecure-requests',
 ]
 
 const nextConfig: NextConfig = {

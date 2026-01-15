@@ -1,9 +1,11 @@
 import { db } from '@/db'
 import { auditLog } from '@/db/schema'
+import { logger } from '@/lib/logger'
 import { and, eq, gte, lte } from 'drizzle-orm'
 
 /**
  * Audit action types for type safety
+ * Includes security-related events per OWASP A09:2021
  */
 export type AuditAction =
   // Obligations
@@ -42,6 +44,27 @@ export type AuditAction =
   // Generic
   | 'bulk_update'
   | 'test_create'
+  // Security events (OWASP A09:2021)
+  | 'login_success'
+  | 'login_failure'
+  | 'logout'
+  | 'password_reset_request'
+  | 'password_reset_complete'
+  | 'password_change'
+  | 'mfa_enabled'
+  | 'mfa_disabled'
+  | 'session_revoked'
+  | 'api_key_created'
+  | 'api_key_revoked'
+  | 'permission_change'
+  | 'user_invited'
+  | 'user_removed'
+  | 'org_created'
+  | 'org_deleted'
+  | 'integration_connected'
+  | 'integration_disconnected'
+  | 'data_export'
+  | 'suspicious_activity'
 
 export type AuditEntityType =
   | 'obligation'
@@ -250,4 +273,81 @@ export async function getAuditLogCount(organizationId: string, entityType?: Audi
   })
 
   return result.length
+}
+
+/**
+ * Security event types that should always be logged (OWASP A09:2021)
+ */
+const SECURITY_ACTIONS: AuditAction[] = [
+  'login_success',
+  'login_failure',
+  'logout',
+  'password_reset_request',
+  'password_reset_complete',
+  'password_change',
+  'mfa_enabled',
+  'mfa_disabled',
+  'session_revoked',
+  'api_key_created',
+  'api_key_revoked',
+  'permission_change',
+  'user_invited',
+  'user_removed',
+  'org_created',
+  'org_deleted',
+  'integration_connected',
+  'integration_disconnected',
+  'data_export',
+  'suspicious_activity',
+]
+
+/**
+ * Log a security event (OWASP A09:2021)
+ * Always logs to structured logger in addition to audit log
+ * Can be called without organization context for pre-auth events
+ */
+export async function logSecurityEvent(params: {
+  action: (typeof SECURITY_ACTIONS)[number]
+  userId?: string | null
+  email?: string | null
+  organizationId?: string | null
+  ipAddress?: string | null
+  userAgent?: string | null
+  success: boolean
+  reason?: string
+  metadata?: Record<string, unknown>
+}): Promise<void> {
+  const { action, userId, email, organizationId, ipAddress, userAgent, success, reason, metadata } = params
+
+  // Always log to structured logger for SIEM/monitoring
+  logger.info(`[SECURITY] ${action}`, {
+    action,
+    userId: userId ?? undefined,
+    // Mask email for privacy
+    email: email ? `${email.slice(0, 2)}***@${email.split('@')[1]}` : undefined,
+    organizationId: organizationId ?? undefined,
+    ipAddress: ipAddress ?? undefined,
+    success,
+    reason: reason ?? undefined,
+    ...metadata,
+  })
+
+  // If we have org context, also write to audit log
+  if (organizationId) {
+    await db.insert(auditLog).values({
+      organizationId,
+      actorUserId: userId ?? null,
+      action,
+      entityType: 'user',
+      entityId: userId ?? null,
+      diff: {
+        success,
+        reason: reason ?? null,
+        email: email ? `${email.slice(0, 2)}***@${email.split('@')[1]}` : null,
+        ...metadata,
+      },
+      ipAddress: ipAddress ?? null,
+      userAgent: userAgent ?? null,
+    })
+  }
 }

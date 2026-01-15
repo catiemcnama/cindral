@@ -17,8 +17,8 @@ const OAUTH_PROVIDERS = {
   github: !!process.env.NEXT_PUBLIC_GITHUB_ENABLED,
 }
 
-// Constants
-const MIN_PASSWORD_LENGTH = 6
+// Constants - OWASP minimum password length is 8 characters
+const MIN_PASSWORD_LENGTH = 8
 const FORM_MAX_WIDTH = 360
 const EMAIL_VALIDATION_DELAY_MS = 500
 
