@@ -605,7 +605,7 @@ export function OnboardingWizard() {
   // Show loading while checking org status
   if (isLoadingOrg || step === null) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center p-6">
+      <div className="flex min-h-100 items-center justify-center p-6">
         <div className="flex flex-col items-center gap-3">
           <Loader2Icon className="size-8 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">Loading...</p>

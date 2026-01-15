@@ -1,32 +1,36 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import {
-  ReactFlow,
   Background,
+  BackgroundVariant,
   Controls,
   MiniMap,
   Panel,
-  useNodesState,
+  ReactFlow,
   useEdgesState,
+  useNodesState,
   useReactFlow,
-  type OnNodesChange,
-  type NodeMouseHandler,
   type EdgeMouseHandler,
-  BackgroundVariant,
+  type NodeMouseHandler,
+  type OnNodesChange,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useRouter } from 'next/navigation'
 import { toPng, toSvg } from 'html-to-image'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { useTRPC, useTRPCClient } from '@/trpc/client'
 
-import { nodeTypes } from './nodes'
-import { edgeTypes } from './edges'
-import { SystemMapToolbar } from './toolbar'
 import { IMPACT_COLORS } from './constants'
+import { AddSystemDialog } from './dialogs/add-system-dialog'
+import { ConnectDialog } from './dialogs/connect-dialog'
+import { ImpactLevelDialog } from './dialogs/impact-level-dialog'
+import { edgeTypes } from './edges'
+import { nodeTypes } from './nodes'
+import { SystemMapToolbar } from './toolbar'
+import type { ImpactEdgeData, MapEdge, MapFilters, MapNode } from './types'
 import {
   buildNodesAndEdges,
   extractCategories,
@@ -35,10 +39,6 @@ import {
   parseNodeId,
   savePositionsToStorage,
 } from './utils'
-import type { ImpactEdgeData, MapEdge, MapFilters, MapNode } from './types'
-import { AddSystemDialog } from './dialogs/add-system-dialog'
-import { ConnectDialog } from './dialogs/connect-dialog'
-import { ImpactLevelDialog } from './dialogs/impact-level-dialog'
 
 interface SystemMapProps {
   organizationId: string
@@ -81,8 +81,7 @@ export function SystemMap({ organizationId }: SystemMapProps) {
 
   // Mutations
   const deleteImpact = useMutation({
-    mutationFn: (input: { articleId: string; systemId: string }) =>
-      trpcClient.systemMap.deleteImpact.mutate(input),
+    mutationFn: (input: { articleId: string; systemId: string }) => trpcClient.systemMap.deleteImpact.mutate(input),
     onSuccess: () => {
       toast.success('Connection removed')
       refetch()
@@ -134,9 +133,7 @@ export function SystemMap({ organizationId }: SystemMapProps) {
       onNodesChange(changes)
 
       // Save positions on drag end
-      const hasDragEnd = changes.some(
-        (c) => c.type === 'position' && c.dragging === false
-      )
+      const hasDragEnd = changes.some((c) => c.type === 'position' && c.dragging === false)
       if (hasDragEnd) {
         const currentNodes = getNodes()
         const positions = currentNodes.map((n) => ({
@@ -177,24 +174,21 @@ export function SystemMap({ organizationId }: SystemMapProps) {
   )
 
   // Edge click handler for editing
-  const handleEdgeClick: EdgeMouseHandler<MapEdge> = useCallback(
-    (_, edge) => {
-      const parsed = parseImpactEdgeId(edge.id)
-      if (!parsed) return
+  const handleEdgeClick: EdgeMouseHandler<MapEdge> = useCallback((_, edge) => {
+    const parsed = parseImpactEdgeId(edge.id)
+    if (!parsed) return
 
-      const edgeData = edge.data as ImpactEdgeData | undefined
-      if (edgeData && 'impactLevel' in edgeData) {
-        setImpactLevelDialog({
-          open: true,
-          edgeId: edge.id,
-          articleId: parsed.articleId,
-          systemId: parsed.systemId,
-          currentLevel: edgeData.impactLevel,
-        })
-      }
-    },
-    []
-  )
+    const edgeData = edge.data as ImpactEdgeData | undefined
+    if (edgeData && 'impactLevel' in edgeData) {
+      setImpactLevelDialog({
+        open: true,
+        edgeId: edge.id,
+        articleId: parsed.articleId,
+        systemId: parsed.systemId,
+        currentLevel: edgeData.impactLevel,
+      })
+    }
+  }, [])
 
   const handleDeleteConnection = useCallback(
     (edgeId: string) => {
@@ -221,39 +215,36 @@ export function SystemMap({ organizationId }: SystemMapProps) {
     setTimeout(() => fitView({ padding: 0.2 }), 100)
   }, [data, filters, organizationId, setNodes, setEdges, fitView])
 
-  const handleExport = useCallback(
-    async (format: 'png' | 'svg') => {
-      if (!reactFlowWrapper.current) return
+  const handleExport = useCallback(async (format: 'png' | 'svg') => {
+    if (!reactFlowWrapper.current) return
 
-      const viewport = reactFlowWrapper.current.querySelector('.react-flow__viewport')
-      if (!viewport) return
+    const viewport = reactFlowWrapper.current.querySelector('.react-flow__viewport')
+    if (!viewport) return
 
-      try {
-        let dataUrl: string
-        if (format === 'png') {
-          dataUrl = await toPng(viewport as HTMLElement, {
-            backgroundColor: '#fff',
-            quality: 1,
-          })
-        } else {
-          dataUrl = await toSvg(viewport as HTMLElement, {
-            backgroundColor: '#fff',
-          })
-        }
-
-        // Download
-        const link = document.createElement('a')
-        link.download = `system-map.${format}`
-        link.href = dataUrl
-        link.click()
-
-        toast.success(`Exported as ${format.toUpperCase()}`)
-      } catch {
-        toast.error('Export failed')
+    try {
+      let dataUrl: string
+      if (format === 'png') {
+        dataUrl = await toPng(viewport as HTMLElement, {
+          backgroundColor: '#fff',
+          quality: 1,
+        })
+      } else {
+        dataUrl = await toSvg(viewport as HTMLElement, {
+          backgroundColor: '#fff',
+        })
       }
-    },
-    []
-  )
+
+      // Download
+      const link = document.createElement('a')
+      link.download = `system-map.${format}`
+      link.href = dataUrl
+      link.click()
+
+      toast.success(`Exported as ${format.toUpperCase()}`)
+    } catch {
+      toast.error('Export failed')
+    }
+  }, [])
 
   // Loading state
   if (isLoading) {
@@ -303,10 +294,10 @@ export function SystemMap({ organizationId }: SystemMapProps) {
             return '#94a3b8'
           }}
           maskColor="rgba(0, 0, 0, 0.1)"
-          className="!bg-white/80"
+          className="bg-white/80!"
         />
 
-        <Panel position="top-left" className="!m-2">
+        <Panel position="top-left" className="m-2!">
           <SystemMapToolbar
             filters={filters}
             onFiltersChange={setFilters}
@@ -323,16 +314,13 @@ export function SystemMap({ organizationId }: SystemMapProps) {
         </Panel>
 
         {/* Legend */}
-        <Panel position="bottom-left" className="!m-2">
+        <Panel position="bottom-left" className="m-2!">
           <div className="rounded-lg border bg-white/80 px-3 py-2 text-xs backdrop-blur-sm">
             <div className="mb-1 font-medium">Impact Level</div>
             <div className="flex gap-3">
               {(['critical', 'high', 'medium', 'low'] as const).map((level) => (
                 <div key={level} className="flex items-center gap-1">
-                  <div
-                    className="size-3 rounded-full"
-                    style={{ backgroundColor: IMPACT_COLORS[level].stroke }}
-                  />
+                  <div className="size-3 rounded-full" style={{ backgroundColor: IMPACT_COLORS[level].stroke }} />
                   <span className="capitalize">{level}</span>
                 </div>
               ))}
@@ -353,9 +341,7 @@ export function SystemMap({ organizationId }: SystemMapProps) {
 
       <ConnectDialog
         open={connectDialog.open}
-        onOpenChange={(open) =>
-          setConnectDialog({ open, fromNodeId: null, fromType: null })
-        }
+        onOpenChange={(open) => setConnectDialog({ open, fromNodeId: null, fromType: null })}
         fromNodeId={connectDialog.fromNodeId}
         fromType={connectDialog.fromType}
         articles={data?.articles ?? []}

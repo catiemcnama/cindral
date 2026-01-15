@@ -1,4 +1,3 @@
-import { user } from '@/db/schema'
 import { z } from 'zod'
 import { orgProcedure, protectedProcedure, publicProcedure, router } from '../init'
 
@@ -75,13 +74,6 @@ export const appRouter = router({
     })
 
     return members
-  }),
-
-  // Admin examples
-  getAllUsers: publicProcedure.query(async (opts) => {
-    // Note: In production, this should be protected and check for admin role
-    const allUsers = await opts.ctx.db.select().from(user)
-    return allUsers
   }),
 })
 

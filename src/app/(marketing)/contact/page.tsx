@@ -75,7 +75,7 @@ export default function ContactPage() {
       {/* Hero */}
       <section className="relative overflow-hidden pt-32 pb-20 lg:pt-40 lg:pb-28">
         <div className="absolute inset-0 -z-10">
-          <div className="absolute top-0 right-1/3 h-[500px] w-[500px] rounded-full bg-gradient-to-r from-blue-500/15 to-cyan-500/15 blur-3xl" />
+          <div className="absolute top-0 right-1/3 h-125 w-125 rounded-full bg-linear-to-r from-blue-500/15 to-cyan-500/15 blur-3xl" />
         </div>
 
         <Container>
