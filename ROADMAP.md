@@ -1,6 +1,6 @@
 # Cindral — 7-Day Production Launch Roadmap
 
-> **Philosophy:** This is not an MVP. This is a production-grade GRC platform that would satisfy Gary Tan, Elon Musk, and Sam Altman. Every line of code should be enterprise-ready. No "Day 1" naming, no shortcuts, no TODO comments left behind.
+> **Philosophy:** This is a production-grade GRC platform. Every line of code should be enterprise-ready.
 
 ---
 

@@ -313,6 +313,7 @@ export function OnboardingWizard() {
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState(inviteRoles[2]?.value ?? 'member')
   const [hasLoadedState, setHasLoadedState] = useState(false)
+  const [showMagicSetup, setShowMagicSetup] = useState(true)
 
   // Org creation state
   const [orgName, setOrgName] = useState('')
@@ -628,8 +629,102 @@ export function OnboardingWizard() {
   const displayStep = step + 1
   const totalSteps = steps.length
 
+  const handleMagicSetup = async (industry: Industry) => {
+    if (!activeOrg) return
+
+    // Set industry
+    setIndustryId(industry.id)
+
+    // Auto-select recommended regulations for this industry
+    const recommendedRegs = industryRecommendations[industry.id] ?? []
+    setSelectedRegulations(recommendedRegs)
+
+    // Auto-select first 5 systems as defaults
+    const defaultSystems = systemTemplates.slice(0, 5).map((s) => s.id)
+    setSelectedSystems(defaultSystems)
+
+    // Save state and redirect (let them complete later if needed)
+    writeOnboardingState({
+      industryId: industry.id,
+      regulations: recommendedRegs,
+      regulationsCustomized: false,
+      systems: {
+        templates: defaultSystems,
+        custom: [],
+      },
+      systemsCustomized: false,
+      invites: [],
+      updatedAt: new Date().toISOString(),
+    })
+
+    toast.success('Workspace configured! 🎉', {
+      description: `Set up for ${industry.name} with ${recommendedRegs.length} regulations`,
+    })
+
+    // Redirect to dashboard immediately for the "magic moment"
+    router.push('/dashboard')
+  }
+
   return (
     <div className="p-6">
+      {showMagicSetup && step === 1 && (
+        <Card className="mb-6 border-2 border-primary/20 bg-linear-to-r from-primary/5 to-transparent">
+          <CardContent className="flex flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                <SparklesIcon className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold">⚡ 60-Second Magic Setup</h3>
+                <p className="text-sm text-muted-foreground">
+                  Pick your industry and we&apos;ll auto-configure regulations, systems, and alerts. Start seeing value
+                  immediately.
+                </p>
+              </div>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setShowMagicSetup(false)}>
+              Use detailed setup →
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {showMagicSetup && step === 1 && (
+        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {industries.slice(0, 4).map((industry) => (
+            <Card
+              key={industry.id}
+              className="cursor-pointer transition-all hover:border-primary hover:shadow-md"
+              onClick={() => handleMagicSetup(industry)}
+            >
+              <CardContent className="flex items-center gap-3 py-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                  <industry.icon className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <div className="font-medium">{industry.name}</div>
+                  <div className="text-xs text-muted-foreground">Click to auto-setup →</div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {isCompleting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <Card className="w-full max-w-md">
+            <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
+              <Loader2Icon className="h-8 w-8 animate-spin text-primary" />
+              <div>
+                <h3 className="font-semibold">Setting up your workspace...</h3>
+                <p className="text-sm text-muted-foreground">AI is configuring your compliance environment</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-2">
           <Badge variant="outline" className="w-fit">

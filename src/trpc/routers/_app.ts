@@ -2,17 +2,16 @@ import { z } from 'zod'
 import { orgProcedure, protectedProcedure, publicProcedure, router } from '../init'
 
 /**
- * Consolidated Router Structure (Elon's "delete half" directive)
+ * Consolidated Router Structure
  *
- * 15 routers → 8 logical domains:
- *
- * 1. regulations  - Regulations + Articles (content domain)
- * 2. compliance   - Obligations + Evidence Packs (compliance work)
- * 3. systems      - Systems + System Map (infrastructure)
- * 4. ai           - AI Agent + AI operations (intelligence)
- * 5. alerts       - Alerts + Search (notifications/discovery)
- * 6. dashboard    - Dashboard + Onboarding (UX)
- * 7. admin        - Billing + Integrations + Demo (ops)
+ * 8 logical domains:
+ * 1. regulations  - Regulations + Articles
+ * 2. compliance   - Obligations + Evidence Packs
+ * 3. systems      - Systems + System Map
+ * 4. ai           - AI Agent + AI operations
+ * 5. alerts       - Alerts + Search
+ * 6. dashboard    - Dashboard + Onboarding
+ * 7. admin        - Billing + Integrations + Demo
  * 8. (root)       - User/org management
  */
 

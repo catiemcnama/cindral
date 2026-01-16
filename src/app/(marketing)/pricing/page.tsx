@@ -1,76 +1,83 @@
 import { Container, GradientText, Section, SectionHeader } from '@/components/marketing/sections'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { ArrowRight, Check, HelpCircle } from 'lucide-react'
+import { ArrowRight, Calculator, Check, HelpCircle, TrendingUp } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'Pricing - Cindral',
-  description: 'Simple, transparent pricing for teams of all sizes. Start free, upgrade as you grow.',
+  description:
+    'Enterprise GRC platform pricing. ROI-focused plans for financial institutions and regulated enterprises.',
 }
 
 const plans = [
   {
-    name: 'Starter',
-    description: 'Perfect for teams saving 20+ hours/month on compliance.',
-    price: '$99',
-    period: 'per month',
-    cta: 'Start Free Trial',
-    ctaLink: '/signup?plan=starter',
+    name: 'Growth',
+    description: 'For compliance teams ready to automate gap detection.',
+    price: '$2,500',
+    period: 'per month, billed annually',
+    annualPrice: '$30,000/year',
+    cta: 'Talk to Sales',
+    ctaLink: '/contact?plan=growth',
     highlighted: false,
-    outcome: 'Average teams save 20 hours/month',
+    outcome: 'Avg. 120 hours saved per quarter',
+    roi: '4.2x ROI in Year 1',
     features: [
-      'Up to 5 team members',
-      '25 systems tracked',
-      '10 regulatory sources',
-      'Smart alerts',
-      'Basic reporting',
-      'Email support',
-    ],
-  },
-  {
-    name: 'Professional',
-    description: 'For teams preventing $50K+ in compliance gaps annually.',
-    price: '$499',
-    period: 'per month',
-    cta: 'Start Free Trial',
-    ctaLink: '/signup?plan=pro',
-    highlighted: true,
-    outcome: 'Customers find 3x more gaps before audits',
-    features: [
-      'Up to 25 team members',
+      'Up to 15 team members',
       'Unlimited systems',
-      '50 regulatory sources',
-      'AI-powered analysis',
+      '25 regulatory sources',
+      'AI-powered gap detection',
       'System impact mapping',
       'Evidence pack generation',
-      'Jira & Confluence export',
-      'Priority support',
-      'Audit trail & compliance reports',
+      'Slack & Teams alerts',
+      'Implementation support',
     ],
   },
   {
     name: 'Enterprise',
-    description: 'For organizations turning compliance into competitive advantage.',
-    price: 'Custom',
-    period: 'annual contract',
-    cta: 'Contact Sales',
+    description: 'For institutions with complex, multi-jurisdiction requirements.',
+    price: '$6,500',
+    period: 'per month, billed annually',
+    annualPrice: '$78,000/year',
+    cta: 'Talk to Sales',
     ctaLink: '/contact?plan=enterprise',
-    highlighted: false,
-    outcome: '200+ hours saved per quarter on average',
+    highlighted: true,
+    outcome: 'Avg. 400 hours saved per quarter',
+    roi: '6.8x ROI in Year 1',
     features: [
       'Unlimited team members',
       'Unlimited systems',
       'All regulatory sources',
       'Custom regulatory sources',
-      'Advanced analytics & dashboards',
-      'SSO & SCIM provisioning',
+      'Advanced AI compliance agent',
       'Full API access',
-      'Custom integrations',
+      'SSO & SCIM provisioning',
       'Dedicated success manager',
+      'Custom integrations',
       '99.9% SLA guarantee',
+    ],
+  },
+  {
+    name: 'Strategic',
+    description: 'For global institutions requiring on-premise or custom deployment.',
+    price: 'Custom',
+    period: 'tailored engagement',
+    annualPrice: 'Starting at $150,000/year',
+    cta: 'Contact Sales',
+    ctaLink: '/contact?plan=strategic',
+    highlighted: false,
+    outcome: 'Dedicated compliance transformation',
+    roi: 'Guaranteed ROI commitment',
+    features: [
+      'Everything in Enterprise',
       'On-premise deployment option',
+      'Custom AI model training',
+      'White-label capability',
+      'Regulatory advisory access',
+      'Executive business reviews',
+      'Multi-year pricing',
+      'Co-development roadmap',
     ],
   },
 ]
@@ -79,88 +86,79 @@ const comparisonFeatures = [
   {
     category: 'Regulatory Coverage',
     features: [
-      { name: 'Regulatory sources', starter: '10', pro: '50', enterprise: 'Unlimited' },
-      { name: 'Custom sources', starter: false, pro: false, enterprise: true },
-      { name: 'Real-time updates', starter: true, pro: true, enterprise: true },
-      { name: 'Multi-jurisdiction', starter: true, pro: true, enterprise: true },
+      { name: 'Regulatory sources', growth: '25', enterprise: 'All 50+', strategic: 'Custom' },
+      { name: 'Custom sources', growth: false, enterprise: true, strategic: true },
+      { name: 'Real-time updates', growth: true, enterprise: true, strategic: true },
+      { name: 'Multi-jurisdiction', growth: true, enterprise: true, strategic: true },
+    ],
+  },
+  {
+    category: 'AI & Automation',
+    features: [
+      { name: 'Gap detection', growth: true, enterprise: true, strategic: true },
+      { name: 'Auto-mapping', growth: true, enterprise: true, strategic: true },
+      { name: 'Autonomous agent', growth: false, enterprise: true, strategic: true },
+      { name: 'Custom AI training', growth: false, enterprise: false, strategic: true },
     ],
   },
   {
     category: 'System Mapping',
     features: [
-      { name: 'Systems tracked', starter: '25', pro: 'Unlimited', enterprise: 'Unlimited' },
-      { name: 'Visual mapping', starter: true, pro: true, enterprise: true },
-      { name: 'Impact analysis', starter: false, pro: true, enterprise: true },
-      { name: 'AI gap detection', starter: false, pro: true, enterprise: true },
+      { name: 'Systems tracked', growth: 'Unlimited', enterprise: 'Unlimited', strategic: 'Unlimited' },
+      { name: 'Visual impact map', growth: true, enterprise: true, strategic: true },
+      { name: 'API integrations', growth: '5', enterprise: 'Unlimited', strategic: 'Custom' },
     ],
   },
   {
-    category: 'Alerts & Notifications',
+    category: 'Security & Compliance',
     features: [
-      { name: 'Email alerts', starter: true, pro: true, enterprise: true },
-      { name: 'Slack integration', starter: false, pro: true, enterprise: true },
-      { name: 'Teams integration', starter: false, pro: true, enterprise: true },
-      { name: 'Custom rules', starter: false, pro: true, enterprise: true },
+      { name: 'SOC 2 Type II', growth: true, enterprise: true, strategic: true },
+      { name: 'SSO & SCIM', growth: false, enterprise: true, strategic: true },
+      { name: 'On-premise option', growth: false, enterprise: false, strategic: true },
+      { name: 'Custom SLA', growth: false, enterprise: true, strategic: true },
     ],
   },
   {
-    category: 'Evidence & Reporting',
+    category: 'Support & Success',
     features: [
-      { name: 'Evidence packs', starter: true, pro: true, enterprise: true },
-      { name: 'PDF export', starter: true, pro: true, enterprise: true },
-      { name: 'Confluence export', starter: false, pro: true, enterprise: true },
-      { name: 'Custom templates', starter: false, pro: false, enterprise: true },
-    ],
-  },
-  {
-    category: 'Team & Security',
-    features: [
-      { name: 'Team members', starter: '5', pro: '25', enterprise: 'Unlimited' },
-      { name: 'Role-based access', starter: true, pro: true, enterprise: true },
-      { name: 'SSO & SCIM', starter: false, pro: false, enterprise: true },
-      { name: 'Full audit trail', starter: true, pro: true, enterprise: true },
-    ],
-  },
-  {
-    category: 'Support',
-    features: [
-      { name: 'Documentation', starter: true, pro: true, enterprise: true },
-      { name: 'Email support', starter: true, pro: true, enterprise: true },
-      { name: 'Priority support', starter: false, pro: true, enterprise: true },
-      { name: 'Dedicated CSM', starter: false, pro: false, enterprise: true },
+      { name: 'Implementation', growth: 'Self-serve', enterprise: 'White-glove', strategic: 'Dedicated team' },
+      { name: 'Success manager', growth: false, enterprise: true, strategic: true },
+      { name: 'Training hours', growth: '4', enterprise: '16', strategic: 'Unlimited' },
+      { name: 'Executive reviews', growth: false, enterprise: 'Quarterly', strategic: 'Monthly' },
     ],
   },
 ]
 
 const faqs = [
   {
-    question: 'Can I try Cindral before committing?',
+    question: 'Who is Cindral built for?',
     answer:
-      'Yes! Our Starter plan is free forever, and Professional comes with a 14-day free trial. No credit card required to get started.',
+      'Cindral is purpose-built for regulated enterprises—banks, fintechs, insurance companies, and any organization with significant compliance obligations. We focus on financial services regulations like DORA, GDPR, Basel III, and the EU AI Act.',
   },
   {
-    question: 'What happens if I exceed my plan limits?',
+    question: 'How long does implementation take?',
     answer:
-      "We'll notify you when you're approaching limits. You can upgrade anytime, and we won't cut off your access suddenly.",
+      'Most Enterprise customers are fully operational within 2-4 weeks. Our team handles system integration, regulatory scope configuration, and initial mapping. You see value in the first week.',
   },
   {
-    question: 'Can I switch plans later?',
+    question: 'What ROI can I expect?',
     answer:
-      "Absolutely. You can upgrade or downgrade at any time. When upgrading, you'll be prorated for the remainder of your billing period.",
+      'Customers typically see 4-7x ROI in Year 1. This comes from: reduced manual mapping time (120-400 hours/quarter saved), earlier gap detection (avoiding $50K-$500K fine risk), and faster audit preparation.',
   },
   {
-    question: 'Do you offer annual billing?',
+    question: 'Do you offer a pilot program?',
     answer:
-      'Yes, annual billing comes with a 20% discount. Contact us for details or select annual billing during checkout.',
+      'Yes. We offer a 30-day paid pilot for qualified enterprises. You get full platform access with a single regulation scope, letting you validate ROI before committing to an annual contract.',
   },
   {
-    question: 'What payment methods do you accept?',
-    answer: 'We accept all major credit cards, and Enterprise customers can pay via invoice with NET 30 terms.',
+    question: 'How does pricing work for multi-year deals?',
+    answer:
+      'Multi-year commitments (2-3 years) receive significant discounts and can include custom roadmap commitments. Contact our enterprise sales team for tailored pricing.',
   },
   {
-    question: 'Is there a discount for nonprofits or startups?',
+    question: 'What makes Cindral different from legacy GRC tools?',
     answer:
-      'Yes! We offer special pricing for nonprofits, educational institutions, and early-stage startups. Contact us to learn more.',
+      'Unlike legacy GRC tools that are document repositories, Cindral is an active compliance system. Our AI agent automatically maps regulations to your systems, generates evidence packs, and alerts you to gaps—before auditors find them.',
   },
 ]
 
@@ -181,17 +179,49 @@ export default function PricingPage() {
       {/* Hero */}
       <section className="relative overflow-hidden pt-32 pb-20 lg:pt-40 lg:pb-28">
         <div className="absolute inset-0 -z-10">
-          <div className="absolute top-0 right-1/4 h-[500px] w-[500px] rounded-full bg-gradient-to-r from-emerald-500/15 to-blue-500/15 blur-3xl" />
+          <div className="absolute top-0 right-1/4 h-125 w-125 rounded-full bg-linear-to-r from-emerald-500/15 to-blue-500/15 blur-3xl" />
         </div>
 
         <Container>
           <div className="mx-auto max-w-3xl text-center">
+            {/* Enterprise badge */}
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-1.5 text-sm shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <TrendingUp className="h-4 w-4 text-emerald-500" />
+              <span className="text-zinc-600 dark:text-zinc-400">4-7x ROI in Year 1 for enterprise customers</span>
+            </div>
+
             <h1 className="mb-6 text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl lg:text-6xl dark:text-white">
-              Save <GradientText>200+ hours</GradientText> per year
+              Enterprise <GradientText>compliance automation</GradientText>
             </h1>
-            <p className="mx-auto mb-10 max-w-2xl text-lg text-zinc-600 lg:text-xl dark:text-zinc-400">
-              Customers find 3x more compliance gaps before audits catch them. Start free, see value in minutes.
+            <p className="mx-auto mb-6 max-w-2xl text-lg text-zinc-600 lg:text-xl dark:text-zinc-400">
+              Purpose-built for regulated financial institutions. Annual contracts with white-glove implementation and
+              guaranteed ROI.
             </p>
+
+            {/* ROI Stats */}
+            <div className="mx-auto mb-10 flex max-w-xl flex-wrap justify-center gap-8 text-sm">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-zinc-900 dark:text-white">400+</div>
+                <div className="text-zinc-500">Hours saved/quarter</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-zinc-900 dark:text-white">3x</div>
+                <div className="text-zinc-500">More gaps found</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-zinc-900 dark:text-white">$500K+</div>
+                <div className="text-zinc-500">Fine risk avoided</div>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+              <Link href="/try">
+                <Button size="lg" variant="outline" className="gap-2">
+                  <Calculator className="h-4 w-4" />
+                  See Your Industry&apos;s Gaps (No signup)
+                </Button>
+              </Link>
+            </div>
           </div>
         </Container>
       </section>
@@ -221,16 +251,20 @@ export default function PricingPage() {
                 <div className="mb-6">
                   <h3 className="text-xl font-bold text-zinc-900 dark:text-white">{plan.name}</h3>
                   <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{plan.description}</p>
-                  {'outcome' in plan && plan.outcome && (
+                  {'roi' in plan && plan.roi && (
                     <div className="mt-3 inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                      ✓ {plan.outcome}
+                      <TrendingUp className="mr-1 h-3 w-3" />
+                      {plan.roi}
                     </div>
                   )}
                 </div>
 
-                <div className="mb-6">
+                <div className="mb-2">
                   <span className="text-4xl font-bold text-zinc-900 dark:text-white">{plan.price}</span>
-                  {plan.period && <span className="text-zinc-600 dark:text-zinc-400"> / {plan.period}</span>}
+                </div>
+                <div className="mb-6 text-sm text-zinc-500">
+                  {plan.period}
+                  {'annualPrice' in plan && <span className="block text-xs">{plan.annualPrice}</span>}
                 </div>
 
                 <Link href={plan.ctaLink} className="block">
@@ -248,10 +282,14 @@ export default function PricingPage() {
                   </Button>
                 </Link>
 
+                {'outcome' in plan && plan.outcome && (
+                  <p className="mt-4 text-center text-xs text-zinc-500">{plan.outcome}</p>
+                )}
+
                 <ul className="mt-8 space-y-3">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-3">
-                      <Check className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-500" />
+                      <Check className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
                       <span className="text-sm text-zinc-600 dark:text-zinc-400">{feature}</span>
                     </li>
                   ))}
@@ -265,16 +303,19 @@ export default function PricingPage() {
       {/* Feature Comparison */}
       <Section variant="muted">
         <Container>
-          <SectionHeader title="Compare plans in detail" subtitle="Find the perfect plan for your compliance needs." />
+          <SectionHeader
+            title="Compare plans in detail"
+            subtitle="Choose the right level for your compliance maturity."
+          />
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[600px]">
+            <table className="w-full min-w-150">
               <thead>
                 <tr className="border-b border-zinc-200 dark:border-zinc-800">
                   <th className="py-4 text-left text-sm font-medium text-zinc-600 dark:text-zinc-400">Features</th>
-                  <th className="py-4 text-center text-sm font-medium text-zinc-900 dark:text-white">Starter</th>
-                  <th className="py-4 text-center text-sm font-medium text-zinc-900 dark:text-white">Professional</th>
+                  <th className="py-4 text-center text-sm font-medium text-zinc-900 dark:text-white">Growth</th>
                   <th className="py-4 text-center text-sm font-medium text-zinc-900 dark:text-white">Enterprise</th>
+                  <th className="py-4 text-center text-sm font-medium text-zinc-900 dark:text-white">Strategic</th>
                 </tr>
               </thead>
               <tbody>
@@ -290,17 +331,17 @@ export default function PricingPage() {
                         <td className="py-3 text-sm text-zinc-600 dark:text-zinc-400">{feature.name}</td>
                         <td className="py-3 text-center">
                           <div className="flex justify-center">
-                            <FeatureValue value={feature.starter} />
-                          </div>
-                        </td>
-                        <td className="py-3 text-center">
-                          <div className="flex justify-center">
-                            <FeatureValue value={feature.pro} />
+                            <FeatureValue value={feature.growth} />
                           </div>
                         </td>
                         <td className="py-3 text-center">
                           <div className="flex justify-center">
                             <FeatureValue value={feature.enterprise} />
+                          </div>
+                        </td>
+                        <td className="py-3 text-center">
+                          <div className="flex justify-center">
+                            <FeatureValue value={feature.strategic} />
                           </div>
                         </td>
                       </tr>
@@ -325,7 +366,7 @@ export default function PricingPage() {
                 className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900"
               >
                 <div className="flex items-start gap-3">
-                  <HelpCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-500" />
+                  <HelpCircle className="mt-0.5 h-5 w-5 shrink-0 text-blue-500" />
                   <div>
                     <h3 className="font-medium text-zinc-900 dark:text-white">{faq.question}</h3>
                     <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{faq.answer}</p>

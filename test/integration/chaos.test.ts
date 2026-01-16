@@ -1,17 +1,3 @@
-/**
- * Chaos & Race Condition Tests
- *
- * "If you haven't stress-tested multi-tenant concurrent writes,
- * you don't have a product, you have a lawsuit."
- * - Elon Musk (paraphrased)
- *
- * These tests simulate real-world chaos scenarios:
- * - Concurrent writes from multiple tenants
- * - Race conditions in obligation status updates
- * - Soft delete consistency
- * - Database connection exhaustion
- */
-
 import { beforeAll, describe, expect, it } from 'vitest'
 import { TEST_ORGS } from '../helpers'
 

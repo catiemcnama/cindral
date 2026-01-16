@@ -44,39 +44,40 @@ export const metadata: Metadata = {
 
 const features = [
   {
+    icon: Map,
+    title: 'System Impact Map',
+    description:
+      'See exactly which systems are affected by which regulations. The visual map shows compliance status at a glance—your unfair advantage.',
+    color: 'amber' as const,
+    badge: 'Core Differentiator',
+  },
+  {
+    icon: Sparkles,
+    title: 'AI Compliance Agent',
+    description:
+      'Autonomous AI that maps regulations to your systems, generates evidence, and alerts you to gaps—before auditors find them.',
+    color: 'purple' as const,
+  },
+  {
     icon: Shield,
     title: 'Live Regulatory Feed',
     description:
-      'Stay ahead with real-time updates from DORA, AI Act, GDPR, Basel III, and 50+ regulatory sources. Never miss a change.',
+      'Real-time updates from DORA, AI Act, GDPR, Basel III, and 50+ regulatory sources. Know the moment something changes.',
     color: 'blue' as const,
-  },
-  {
-    icon: Map,
-    title: 'System Mapping',
-    description:
-      'Visualize how regulations connect to your APIs, databases, cloud infrastructure, and teams with intelligent dependency graphs.',
-    color: 'amber' as const,
-  },
-  {
-    icon: Bell,
-    title: 'Smart Alerts',
-    description:
-      'Get notified when regulatory changes impact your systems. Severity-based prioritization ensures you focus on what matters.',
-    color: 'rose' as const,
   },
   {
     icon: FileCheck,
     title: 'Evidence Packs',
     description:
-      'Generate audit-ready documentation and export to Confluence, Jira, or PDF in one click. Auditors love it.',
+      'One-click audit-ready documentation. Export to Confluence, Jira, or PDF. Stop scrambling before audits.',
     color: 'emerald' as const,
   },
   {
     icon: GitBranch,
     title: 'Change Impact Analysis',
     description:
-      'Instantly see which systems, teams, and processes are affected when regulations change. No manual mapping required.',
-    color: 'purple' as const,
+      'When regulations change, instantly see which systems, teams, and processes are affected. No manual mapping.',
+    color: 'rose' as const,
   },
   {
     icon: Globe,
@@ -159,9 +160,9 @@ export default function HomePage() {
       <section className="relative overflow-hidden pt-32 pb-20 lg:pt-40 lg:pb-32">
         {/* Gradient background */}
         <div className="absolute inset-0 -z-10">
-          <div className="absolute top-0 left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 blur-3xl" />
-          <div className="absolute top-1/4 right-0 h-[400px] w-[400px] rounded-full bg-gradient-to-l from-amber-500/20 to-orange-500/20 blur-3xl" />
-          <div className="absolute bottom-0 left-0 h-[300px] w-[300px] rounded-full bg-gradient-to-r from-emerald-500/10 to-blue-500/10 blur-3xl" />
+          <div className="absolute top-0 left-1/2 h-150 w-150 -translate-x-1/2 rounded-full bg-linear-to-r from-blue-500/20 to-purple-500/20 blur-3xl" />
+          <div className="absolute top-1/4 right-0 h-100 w-100 rounded-full bg-linear-to-l from-amber-500/20 to-orange-500/20 blur-3xl" />
+          <div className="absolute bottom-0 left-0 h-75 w-75 rounded-full bg-linear-to-r from-emerald-500/10 to-blue-500/10 blur-3xl" />
         </div>
 
         <Container>
@@ -185,26 +186,28 @@ export default function HomePage() {
 
             {/* CTAs */}
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Link href="/signup">
+              <Link href="/try">
                 <Button size="lg" className="gap-2 text-base">
-                  Start Free Trial
+                  See Your Compliance Gaps
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
-              <Link href="/demo">
+              <Link href="/contact">
                 <Button variant="outline" size="lg" className="text-base">
-                  Book a Demo
+                  Talk to Sales
                 </Button>
               </Link>
             </div>
 
             {/* Social proof */}
-            <p className="mt-8 text-sm text-zinc-500">No credit card required • 14-day free trial • Cancel anytime</p>
+            <p className="mt-8 text-sm text-zinc-500">
+              No signup required • See results in 10 seconds • Enterprise-ready
+            </p>
           </div>
 
           {/* Hero Image */}
           <div className="relative mt-16 lg:mt-24">
-            <div className="absolute inset-0 -z-10 translate-y-8 rounded-3xl bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-amber-500/10 blur-2xl" />
+            <div className="absolute inset-0 -z-10 translate-y-8 rounded-3xl bg-linear-to-r from-blue-500/10 via-purple-500/10 to-amber-500/10 blur-2xl" />
             <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-900 shadow-2xl ring-1 ring-zinc-900/5 dark:border-zinc-800">
               <Image
                 src="/screenshots/dashboard.png"
@@ -322,7 +325,7 @@ export default function HomePage() {
                   'Export to architecture tools',
                 ].map((item) => (
                   <li key={item} className="flex items-center gap-3 text-zinc-600 dark:text-zinc-400">
-                    <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-emerald-500" />
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
                     {item}
                   </li>
                 ))}
@@ -374,7 +377,7 @@ export default function HomePage() {
                   'Actionable recommendations',
                 ].map((item) => (
                   <li key={item} className="flex items-center gap-3 text-zinc-600 dark:text-zinc-400">
-                    <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-emerald-500" />
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
                     {item}
                   </li>
                 ))}
@@ -469,7 +472,7 @@ export default function HomePage() {
       {/* Final CTA */}
       <Section className="border-none">
         <Container>
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 px-8 py-16 text-center lg:px-16 lg:py-24">
+          <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-zinc-900 via-zinc-800 to-zinc-900 px-8 py-16 text-center lg:px-16 lg:py-24">
             {/* Background decoration */}
             <div className="absolute inset-0 -z-10">
               <div className="absolute top-0 right-1/4 h-64 w-64 rounded-full bg-blue-500/30 blur-3xl" />
