@@ -13,12 +13,13 @@ export const metadata: Metadata = {
 const plans = [
   {
     name: 'Starter',
-    description: 'For teams getting started with compliance tracking.',
+    description: 'Perfect for teams saving 20+ hours/month on compliance.',
     price: '$99',
     period: 'per month',
-    cta: 'Start 14-Day Trial',
+    cta: 'Start Free Trial',
     ctaLink: '/signup?plan=starter',
     highlighted: false,
+    outcome: 'Average teams save 20 hours/month',
     features: [
       'Up to 5 team members',
       '25 systems tracked',
@@ -30,12 +31,13 @@ const plans = [
   },
   {
     name: 'Professional',
-    description: 'For growing teams with comprehensive compliance needs.',
+    description: 'For teams preventing $50K+ in compliance gaps annually.',
     price: '$499',
     period: 'per month',
-    cta: 'Start 14-Day Trial',
+    cta: 'Start Free Trial',
     ctaLink: '/signup?plan=pro',
     highlighted: true,
+    outcome: 'Customers find 3x more gaps before audits',
     features: [
       'Up to 25 team members',
       'Unlimited systems',
@@ -50,12 +52,13 @@ const plans = [
   },
   {
     name: 'Enterprise',
-    description: 'For organizations with complex compliance requirements.',
+    description: 'For organizations turning compliance into competitive advantage.',
     price: 'Custom',
     period: 'annual contract',
     cta: 'Contact Sales',
     ctaLink: '/contact?plan=enterprise',
     highlighted: false,
+    outcome: '200+ hours saved per quarter on average',
     features: [
       'Unlimited team members',
       'Unlimited systems',
@@ -184,10 +187,10 @@ export default function PricingPage() {
         <Container>
           <div className="mx-auto max-w-3xl text-center">
             <h1 className="mb-6 text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl lg:text-6xl dark:text-white">
-              Simple, <GradientText>transparent</GradientText> pricing
+              Save <GradientText>200+ hours</GradientText> per year
             </h1>
             <p className="mx-auto mb-10 max-w-2xl text-lg text-zinc-600 lg:text-xl dark:text-zinc-400">
-              Start free, upgrade as you grow. No hidden fees, no surprises. Cancel anytime.
+              Customers find 3x more compliance gaps before audits catch them. Start free, see value in minutes.
             </p>
           </div>
         </Container>
@@ -218,6 +221,11 @@ export default function PricingPage() {
                 <div className="mb-6">
                   <h3 className="text-xl font-bold text-zinc-900 dark:text-white">{plan.name}</h3>
                   <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{plan.description}</p>
+                  {'outcome' in plan && plan.outcome && (
+                    <div className="mt-3 inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                      ✓ {plan.outcome}
+                    </div>
+                  )}
                 </div>
 
                 <div className="mb-6">

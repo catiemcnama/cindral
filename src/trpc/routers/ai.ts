@@ -2,16 +2,79 @@
  * AI Router
  *
  * Provides AI-powered features for the compliance platform.
+ * Includes the autonomous Compliance Agent for proactive compliance work.
  */
 
 import { articles, regulations, systems } from '@/db/schema'
 import { assessImpact, clearCache, extractObligations, getCacheStats, summarize } from '@/lib/ai'
+import { getAgent, runQuickScan } from '@/lib/ai-agent'
 import { NotFoundError } from '@/lib/errors'
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { orgProcedure, router } from '../init'
 
 export const aiRouter = router({
+  // ===========================================================================
+  // AGENT: Autonomous Compliance Operations
+  // ===========================================================================
+
+  /**
+   * Run full compliance scan - THE MAGIC BUTTON
+   * One click to map all regulations to all systems
+   */
+  runFullScan: orgProcedure.mutation(async ({ ctx }) => {
+    const agent = getAgent(ctx.activeOrganizationId)
+    return agent.runFullScan()
+  }),
+
+  /**
+   * Quick scan for dashboard metrics
+   */
+  quickScan: orgProcedure.query(async ({ ctx }) => {
+    return runQuickScan(ctx.activeOrganizationId)
+  }),
+
+  /**
+   * Auto-map a specific regulation to all systems
+   */
+  autoMapRegulation: orgProcedure.input(z.object({ regulationId: z.string() })).mutation(async ({ ctx, input }) => {
+    const agent = getAgent(ctx.activeOrganizationId)
+    const mappings = await agent.autoMapRegulation(input.regulationId)
+    return {
+      mappingsCreated: mappings.length,
+      mappings,
+      message: `Created ${mappings.length} system mappings automatically`,
+    }
+  }),
+
+  /**
+   * Generate evidence pack automatically
+   */
+  generateEvidencePack: orgProcedure.input(z.object({ regulationId: z.string() })).mutation(async ({ ctx, input }) => {
+    const agent = getAgent(ctx.activeOrganizationId)
+    return agent.generateEvidencePack(input.regulationId)
+  }),
+
+  /**
+   * Process a regulatory change and assess impact
+   */
+  processChange: orgProcedure.input(z.object({ changeId: z.number() })).mutation(async ({ ctx, input }) => {
+    const agent = getAgent(ctx.activeOrganizationId)
+    return agent.processRegulatoryChange(input.changeId)
+  }),
+
+  /**
+   * Get agent metrics (hours saved, etc.)
+   */
+  getAgentMetrics: orgProcedure.query(async ({ ctx }) => {
+    const agent = getAgent(ctx.activeOrganizationId)
+    return agent.getMetrics()
+  }),
+
+  // ===========================================================================
+  // LEGACY: Individual AI Operations (kept for backward compatibility)
+  // ===========================================================================
+
   /**
    * Summarize an article
    */

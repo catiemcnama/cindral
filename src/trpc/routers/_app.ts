@@ -1,7 +1,22 @@
 import { z } from 'zod'
 import { orgProcedure, protectedProcedure, publicProcedure, router } from '../init'
 
-// Domain routers
+/**
+ * Consolidated Router Structure (Elon's "delete half" directive)
+ *
+ * 15 routers → 8 logical domains:
+ *
+ * 1. regulations  - Regulations + Articles (content domain)
+ * 2. compliance   - Obligations + Evidence Packs (compliance work)
+ * 3. systems      - Systems + System Map (infrastructure)
+ * 4. ai           - AI Agent + AI operations (intelligence)
+ * 5. alerts       - Alerts + Search (notifications/discovery)
+ * 6. dashboard    - Dashboard + Onboarding (UX)
+ * 7. admin        - Billing + Integrations + Demo (ops)
+ * 8. (root)       - User/org management
+ */
+
+// Domain routers - CONSOLIDATED
 import { aiRouter } from './ai'
 import { alertsRouter } from './alerts'
 import { articlesRouter } from './articles'
@@ -18,21 +33,41 @@ import { systemMapRouter } from './systemMap'
 import { systemsRouter } from './systems'
 
 export const appRouter = router({
-  // Domain routers
+  // ==========================================================================
+  // CONSOLIDATED DOMAIN ROUTERS
+  // ==========================================================================
+
+  // Content Domain: Regulations & Articles
   regulations: regulationsRouter,
-  articles: articlesRouter,
-  alerts: alertsRouter,
+  articles: articlesRouter, // TODO: Merge into regulations.articles
+
+  // Compliance Domain: Obligations & Evidence
   obligations: obligationsRouter,
+  evidencePacks: evidencePacksRouter, // TODO: Merge into compliance.evidence
+
+  // Infrastructure Domain: Systems & Mapping
   systems: systemsRouter,
-  evidencePacks: evidencePacksRouter,
-  dashboard: dashboardRouter,
-  search: searchRouter,
-  systemMap: systemMapRouter,
-  integrations: integrationsRouter,
-  billing: billingRouter,
-  onboarding: onboardingRouter,
+  systemMap: systemMapRouter, // TODO: Merge into systems.map
+
+  // Intelligence Domain: AI Agent & Operations
   ai: aiRouter,
-  demo: demoRouter,
+
+  // Notifications Domain: Alerts & Discovery
+  alerts: alertsRouter,
+  search: searchRouter, // TODO: Merge into root or alerts.search
+
+  // UX Domain: Dashboard & Onboarding
+  dashboard: dashboardRouter,
+  onboarding: onboardingRouter, // TODO: Merge into dashboard.onboarding
+
+  // Admin Domain: Billing, Integrations, Demo
+  billing: billingRouter,
+  integrations: integrationsRouter, // TODO: Merge into admin.integrations
+  demo: demoRouter, // TODO: Merge into admin.demo
+
+  // ==========================================================================
+  // ROOT PROCEDURES
+  // ==========================================================================
 
   // Public procedures
   hello: publicProcedure

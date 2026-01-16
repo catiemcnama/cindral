@@ -37,8 +37,8 @@ const envSchema = z.object({
   SENTRY_DSN: z.string().url().optional(),
 
   // Feature flags
-  ENABLE_AI_FEATURES: z.coerce.boolean().default(false),
-  ENABLE_REALTIME: z.coerce.boolean().default(false),
+  ENABLE_AI_FEATURES: z.coerce.boolean().default(true),
+  ENABLE_REALTIME: z.coerce.boolean().default(true),
 
   // Demo mode - when true, enables demo banner and reset functionality
   IS_DEMO: z.coerce.boolean().default(false),
