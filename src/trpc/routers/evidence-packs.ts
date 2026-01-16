@@ -1,4 +1,5 @@
 import { auditLog, evidencePacks, obligations, regulations } from '@/db/schema'
+import { generateEvidenceNarrative } from '@/lib/ai'
 import { withAudit, withCreateAudit, withDeleteAudit } from '@/lib/audit'
 import { NotFoundError } from '@/lib/errors'
 import { requireMutatePermission, scopedAnd } from '@/lib/tenancy'
@@ -177,6 +178,7 @@ export const evidencePacksRouter = router({
 
   /**
    * Generate an evidence pack for a regulation
+   * Includes AI-powered narrative with executive summary, risk analysis, and predicted audit questions
    */
   generate: orgProcedure
     .input(
@@ -236,6 +238,9 @@ export const evidencePacksRouter = router({
         })
       })
 
+      const compliant = stats.verified + stats.implemented
+      const complianceRate = stats.total > 0 ? Math.round((compliant / stats.total) * 100) : 0
+
       // Create the evidence pack with generating status
       const [pack] = await ctx.db
         .insert(evidencePacks)
@@ -260,8 +265,41 @@ export const evidencePacksRouter = router({
         diff: { before: null, after: pack },
       })
 
-      // Evidence pack generation happens synchronously for now
-      // For large packs (>100 obligations), consider background processing via Inngest/Trigger.dev
+      // Generate AI-powered narrative
+      let aiNarrative = null
+      let aiMetrics = null
+      try {
+        const narrativeResult = await generateEvidenceNarrative({
+          regulationName: regulation.name,
+          framework: regulation.framework ?? 'General',
+          obligations: orgObligations.map((o) => ({
+            title: o.title,
+            status: o.status,
+            riskLevel: o.riskLevel ?? 'medium',
+            summary: o.summary ?? undefined,
+          })),
+          complianceRate,
+          systemsImpacted: Array.from(impactedSystems),
+          intendedAudience: input.intendedAudience,
+          organizationId: ctx.activeOrganizationId,
+        })
+
+        aiNarrative = narrativeResult.data
+        aiMetrics = {
+          model: narrativeResult.model,
+          cached: narrativeResult.cached,
+          tokensUsed: narrativeResult.tokensUsed,
+          latencyMs: narrativeResult.latencyMs,
+          confidence: narrativeResult.confidence,
+          promptVersion: narrativeResult.promptVersion,
+          generatedAt: narrativeResult.generatedAt,
+        }
+      } catch (error) {
+        // Log but don't fail the pack generation if AI narrative fails
+        console.error('Failed to generate AI narrative for evidence pack:', error)
+      }
+
+      // Update pack to ready status
       const [updatedPack] = await ctx.db
         .update(evidencePacks)
         .set({
@@ -271,14 +309,15 @@ export const evidencePacksRouter = router({
         .where(eq(evidencePacks.id, pack.id))
         .returning()
 
-      const compliant = stats.verified + stats.implemented
       return {
         ...updatedPack,
         summary: {
           ...stats,
-          complianceRate: stats.total > 0 ? Math.round((compliant / stats.total) * 100) : 0,
+          complianceRate,
           systemsImpacted: impactedSystems.size,
         },
+        aiNarrative,
+        aiMetrics,
       }
     }),
 

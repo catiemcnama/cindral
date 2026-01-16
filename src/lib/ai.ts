@@ -5,6 +5,7 @@
  * Currently implemented with Anthropic Claude.
  */
 
+import { recordAICall } from './ai-observability'
 import { logger } from './logger'
 
 // Types
@@ -18,6 +19,7 @@ export interface ExtractedObligation {
   summary: string
   requirementType: 'process' | 'technical' | 'reporting'
   riskLevel: 'low' | 'medium' | 'high' | 'critical'
+  confidence: number
 }
 
 export interface ImpactAssessment {
@@ -25,6 +27,7 @@ export interface ImpactAssessment {
   reasoning: string
   affectedAreas: string[]
   recommendations: string[]
+  confidence: number
 }
 
 export interface AIResponse<T> {
@@ -33,11 +36,14 @@ export interface AIResponse<T> {
   generatedAt: string
   model: string
   tokensUsed?: number
+  latencyMs?: number
+  confidence?: number
+  promptVersion?: string
 }
 
-// Cache for AI responses
-const responseCache = new Map<string, { data: unknown; expiresAt: number }>()
-const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
+// Cache for AI responses (short TTL - regulations change)
+const responseCache = new Map<string, { data: unknown; expiresAt: number; promptVersion: string }>()
+const CACHE_TTL_MS = 4 * 60 * 60 * 1000 // 4 hours (not 7 days - content evolves)
 
 /**
  * Generate cache key from inputs
@@ -59,10 +65,10 @@ function getCacheKey(operation: string, input: string, organizationId?: string):
 /**
  * Check cache for existing response
  */
-function getFromCache<T>(key: string): T | null {
+function getFromCache<T>(key: string): { data: T; promptVersion: string } | null {
   const cached = responseCache.get(key)
   if (cached && cached.expiresAt > Date.now()) {
-    return cached.data as T
+    return { data: cached.data as T, promptVersion: cached.promptVersion }
   }
   responseCache.delete(key)
   return null
@@ -71,10 +77,11 @@ function getFromCache<T>(key: string): T | null {
 /**
  * Store response in cache
  */
-function setCache<T>(key: string, data: T): void {
+function setCache(key: string, value: { data: unknown; promptVersion: string }): void {
   responseCache.set(key, {
-    data,
+    data: value.data,
     expiresAt: Date.now() + CACHE_TTL_MS,
+    promptVersion: value.promptVersion,
   })
 }
 
@@ -92,14 +99,19 @@ async function getAnthropicClient() {
 }
 
 /**
- * Call Claude with retry logic
+ * Call Claude with retry logic and instrumentation
  */
 async function callClaude(params: {
+  operation: string
   systemPrompt: string
   userPrompt: string
   maxTokens?: number
-}): Promise<{ content: string; tokensUsed: number }> {
+  organizationId?: string
+  promptVersion?: string
+}): Promise<{ content: string; inputTokens: number; outputTokens: number; latencyMs: number }> {
   const client = await getAnthropicClient()
+  const startTime = Date.now()
+  const model = 'claude-sonnet-4-20250514'
 
   const maxRetries = 3
   let lastError: Error | null = null
@@ -107,7 +119,7 @@ async function callClaude(params: {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const response = await client.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model,
         max_tokens: params.maxTokens ?? 1024,
         system: params.systemPrompt,
         messages: [{ role: 'user', content: params.userPrompt }],
@@ -118,9 +130,32 @@ async function callClaude(params: {
         throw new Error('Unexpected response type')
       }
 
+      const latencyMs = Date.now() - startTime
+      const inputTokens = response.usage.input_tokens
+      const outputTokens = response.usage.output_tokens
+
+      // Record metrics
+      recordAICall(
+        {
+          operation: params.operation,
+          promptVersion: params.promptVersion,
+          organizationId: params.organizationId,
+        },
+        {
+          model,
+          inputTokens,
+          outputTokens,
+          latencyMs,
+          cached: false,
+          success: true,
+        }
+      )
+
       return {
         content: content.text,
-        tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
+        inputTokens,
+        outputTokens,
+        latencyMs,
       }
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error))
@@ -132,6 +167,23 @@ async function callClaude(params: {
         await new Promise((resolve) => setTimeout(resolve, delay))
         continue
       }
+
+      // Record failure
+      recordAICall(
+        {
+          operation: params.operation,
+          promptVersion: params.promptVersion,
+          organizationId: params.organizationId,
+        },
+        {
+          model,
+          inputTokens: 0,
+          outputTokens: 0,
+          latencyMs: Date.now() - startTime,
+          cached: false,
+          success: false,
+        }
+      )
 
       throw lastError
     }
@@ -157,11 +209,17 @@ export async function summarize(
   // Check cache
   const cached = getFromCache<string>(cacheKey)
   if (cached) {
+    // Record cache hit
+    recordAICall(
+      { operation: 'summarize', promptVersion: cached.promptVersion, organizationId },
+      { model: 'claude-sonnet-4-20250514', inputTokens: 0, outputTokens: 0, latencyMs: 0, cached: true, success: true }
+    )
     return {
-      data: cached,
+      data: cached.data,
       cached: true,
       generatedAt: new Date().toISOString(),
       model: 'claude-sonnet-4-20250514',
+      promptVersion: cached.promptVersion,
     }
   }
 
@@ -174,21 +232,27 @@ export async function summarize(
 
   const systemPrompt = `You are a regulatory compliance expert. Summarize the following regulatory text concisely and accurately. ${formatInstruction} Maximum ${maxLength} words. Focus on key requirements and obligations.`
 
+  const promptVersion = '1.0.0'
   const result = await callClaude({
+    operation: 'summarize',
     systemPrompt,
     userPrompt: text,
     maxTokens: Math.ceil(maxLength * 1.5),
+    organizationId,
+    promptVersion,
   })
 
   // Cache result
-  setCache(cacheKey, result.content)
+  setCache(cacheKey, { data: result.content, promptVersion })
 
   return {
     data: result.content,
     cached: false,
     generatedAt: new Date().toISOString(),
     model: 'claude-sonnet-4-20250514',
-    tokensUsed: result.tokensUsed,
+    tokensUsed: result.inputTokens + result.outputTokens,
+    latencyMs: result.latencyMs,
+    promptVersion,
   }
 }
 
@@ -202,14 +266,20 @@ export async function extractObligations(
   organizationId?: string
 ): Promise<AIResponse<ExtractedObligation[]>> {
   const cacheKey = getCacheKey('extractObligations', articleText, organizationId)
+  const promptVersion = '1.1.0'
 
   const cached = getFromCache<ExtractedObligation[]>(cacheKey)
   if (cached) {
+    recordAICall(
+      { operation: 'extractObligations', promptVersion: cached.promptVersion, organizationId },
+      { model: 'claude-sonnet-4-20250514', inputTokens: 0, outputTokens: 0, latencyMs: 0, cached: true, success: true }
+    )
     return {
-      data: cached,
+      data: cached.data,
       cached: true,
       generatedAt: new Date().toISOString(),
       model: 'claude-sonnet-4-20250514',
+      promptVersion: cached.promptVersion,
     }
   }
 
@@ -220,24 +290,31 @@ For each obligation, provide:
 - summary: A brief description of what must be done (max 200 characters)
 - requirementType: One of "process", "technical", or "reporting"
 - riskLevel: One of "low", "medium", "high", or "critical"
+- confidence: A number between 0 and 1 indicating how confident you are this is a real obligation (1 = certain)
 
 Respond with a JSON array of obligations. Only include actual compliance requirements, not definitions or background information.`
 
   const result = await callClaude({
+    operation: 'extractObligations',
     systemPrompt,
     userPrompt: articleText,
     maxTokens: 2048,
+    organizationId,
+    promptVersion,
   })
 
   // Parse JSON response
   let obligations: ExtractedObligation[]
+  let avgConfidence = 0
   try {
-    // Extract JSON from response (handle markdown code blocks)
     const jsonMatch = result.content.match(/\[[\s\S]*\]/)
     if (!jsonMatch) {
       throw new Error('No JSON array found in response')
     }
     obligations = JSON.parse(jsonMatch[0])
+    // Calculate average confidence
+    const confidences = obligations.map((o) => o.confidence ?? 0.8)
+    avgConfidence = confidences.length > 0 ? confidences.reduce((a, b) => a + b, 0) / confidences.length : 0
   } catch (error) {
     logger.error('Failed to parse obligations from AI response', {
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -246,14 +323,17 @@ Respond with a JSON array of obligations. Only include actual compliance require
     obligations = []
   }
 
-  setCache(cacheKey, obligations)
+  setCache(cacheKey, { data: obligations, promptVersion })
 
   return {
     data: obligations,
     cached: false,
     generatedAt: new Date().toISOString(),
     model: 'claude-sonnet-4-20250514',
-    tokensUsed: result.tokensUsed,
+    tokensUsed: result.inputTokens + result.outputTokens,
+    latencyMs: result.latencyMs,
+    confidence: avgConfidence,
+    promptVersion,
   }
 }
 
@@ -268,15 +348,34 @@ export async function assessImpact(
   systemDescription: string,
   organizationId?: string
 ): Promise<AIResponse<ImpactAssessment>> {
+  const promptVersion = '1.1.0'
   const cacheKey = getCacheKey('assessImpact', `${articleText}:${systemDescription}`, organizationId)
 
   const cached = getFromCache<ImpactAssessment>(cacheKey)
-  if (cached) {
+  if (cached && cached.promptVersion === promptVersion) {
+    recordAICall(
+      {
+        operation: 'assessImpact',
+        promptVersion,
+        organizationId,
+      },
+      {
+        model: 'claude-sonnet-4-20250514',
+        inputTokens: 0,
+        outputTokens: 0,
+        latencyMs: 0,
+        cached: true,
+        success: true,
+      }
+    )
     return {
-      data: cached,
+      data: cached.data,
       cached: true,
       generatedAt: new Date().toISOString(),
       model: 'claude-sonnet-4-20250514',
+      latencyMs: 0,
+      confidence: cached.data.confidence,
+      promptVersion,
     }
   }
 
@@ -287,6 +386,7 @@ Analyze how the following regulatory article impacts the described system. Provi
 - reasoning: Why this impact level was assigned (max 200 words)
 - affectedAreas: List of specific areas/components affected
 - recommendations: Actionable steps to achieve compliance
+- confidence: A number between 0 and 1 indicating your confidence in this assessment (1 = highly confident)
 
 Respond with a JSON object.`
 
@@ -300,6 +400,9 @@ ${systemDescription}`
     systemPrompt,
     userPrompt,
     maxTokens: 1024,
+    operation: 'assessImpact',
+    organizationId,
+    promptVersion,
   })
 
   let assessment: ImpactAssessment
@@ -308,7 +411,11 @@ ${systemDescription}`
     if (!jsonMatch) {
       throw new Error('No JSON object found in response')
     }
-    assessment = JSON.parse(jsonMatch[0])
+    const parsed = JSON.parse(jsonMatch[0])
+    assessment = {
+      ...parsed,
+      confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.7,
+    }
   } catch (error) {
     logger.error('Failed to parse impact assessment from AI response', {
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -318,17 +425,197 @@ ${systemDescription}`
       reasoning: 'Unable to assess impact automatically. Manual review recommended.',
       affectedAreas: [],
       recommendations: ['Perform manual impact assessment'],
+      confidence: 0.3,
     }
   }
 
-  setCache(cacheKey, assessment)
+  setCache(cacheKey, { data: assessment, promptVersion })
 
   return {
     data: assessment,
     cached: false,
     generatedAt: new Date().toISOString(),
     model: 'claude-sonnet-4-20250514',
-    tokensUsed: result.tokensUsed,
+    tokensUsed: result.inputTokens + result.outputTokens,
+    latencyMs: result.latencyMs,
+    confidence: assessment.confidence,
+    promptVersion,
+  }
+}
+
+/**
+ * Evidence Pack Narrative
+ */
+export interface EvidenceNarrative {
+  executiveSummary: string
+  complianceAssessment: string
+  riskHighlights: Array<{
+    area: string
+    level: 'low' | 'medium' | 'high' | 'critical'
+    description: string
+    mitigation: string
+  }>
+  auditQuestions: Array<{
+    question: string
+    preparedAnswer: string
+    supportingEvidence: string[]
+  }>
+  recommendations: Array<{
+    priority: 'immediate' | 'short-term' | 'long-term'
+    action: string
+    rationale: string
+    effort: 'low' | 'medium' | 'high'
+  }>
+  confidence: number
+}
+
+/**
+ * Generate AI-powered narrative for evidence packs
+ * Provides executive summary, risk analysis, and predicted audit questions
+ */
+export async function generateEvidenceNarrative(params: {
+  regulationName: string
+  framework: string
+  obligations: Array<{
+    title: string
+    status: string
+    riskLevel: string
+    summary?: string
+  }>
+  complianceRate: number
+  systemsImpacted: string[]
+  intendedAudience: 'internal' | 'auditor' | 'regulator'
+  organizationId?: string
+}): Promise<AIResponse<EvidenceNarrative>> {
+  const promptVersion = '1.0.0'
+  const { regulationName, framework, obligations, complianceRate, systemsImpacted, intendedAudience, organizationId } =
+    params
+
+  const cacheKey = getCacheKey(
+    'evidenceNarrative',
+    `${regulationName}:${obligations.length}:${complianceRate}:${intendedAudience}`,
+    organizationId
+  )
+
+  const cached = getFromCache<EvidenceNarrative>(cacheKey)
+  if (cached && cached.promptVersion === promptVersion) {
+    recordAICall(
+      {
+        operation: 'evidenceNarrative',
+        promptVersion,
+        organizationId,
+      },
+      {
+        model: 'claude-sonnet-4-20250514',
+        inputTokens: 0,
+        outputTokens: 0,
+        latencyMs: 0,
+        cached: true,
+        success: true,
+      }
+    )
+    return {
+      data: cached.data,
+      cached: true,
+      generatedAt: new Date().toISOString(),
+      model: 'claude-sonnet-4-20250514',
+      latencyMs: 0,
+      confidence: cached.data.confidence,
+      promptVersion,
+    }
+  }
+
+  const audienceContext = {
+    internal: 'internal stakeholders who need actionable insights and clear next steps',
+    auditor: 'external auditors who require detailed evidence trails and control documentation',
+    regulator: 'regulatory authorities who expect formal compliance demonstrations and gap analyses',
+  }
+
+  const systemPrompt = `You are an expert compliance analyst generating evidence pack narratives for ${audienceContext[intendedAudience]}.
+
+Your output must be professional, precise, and tailored for the intended audience. Generate a comprehensive compliance narrative that includes:
+
+1. executiveSummary: A 2-3 paragraph overview of compliance posture (max 300 words)
+2. complianceAssessment: Detailed assessment of current compliance state (max 400 words)
+3. riskHighlights: Array of key risk areas with mitigation strategies
+4. auditQuestions: Predicted questions an auditor might ask, with prepared answers and evidence references
+5. recommendations: Prioritized action items with effort estimates
+6. confidence: Your confidence score (0-1) in this assessment
+
+For auditor/regulator audiences, be more formal and evidence-focused.
+For internal audiences, be more actionable and business-oriented.
+
+Respond with a JSON object matching this structure exactly.`
+
+  const obligationsSummary = obligations.map((o) => `- ${o.title} [${o.status}] (${o.riskLevel} risk)`).join('\n')
+
+  const userPrompt = `REGULATION: ${regulationName}
+FRAMEWORK: ${framework}
+COMPLIANCE RATE: ${complianceRate}%
+SYSTEMS IMPACTED: ${systemsImpacted.join(', ') || 'None identified'}
+INTENDED AUDIENCE: ${intendedAudience}
+
+OBLIGATIONS STATUS (${obligations.length} total):
+${obligationsSummary}
+
+Generate a comprehensive evidence pack narrative for this compliance position.`
+
+  const result = await callClaude({
+    systemPrompt,
+    userPrompt,
+    maxTokens: 4096,
+    operation: 'evidenceNarrative',
+    organizationId,
+    promptVersion,
+  })
+
+  let narrative: EvidenceNarrative
+  try {
+    const jsonMatch = result.content.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) {
+      throw new Error('No JSON object found in response')
+    }
+    const parsed = JSON.parse(jsonMatch[0])
+    narrative = {
+      executiveSummary: parsed.executiveSummary || 'Unable to generate summary.',
+      complianceAssessment: parsed.complianceAssessment || 'Unable to generate assessment.',
+      riskHighlights: Array.isArray(parsed.riskHighlights) ? parsed.riskHighlights : [],
+      auditQuestions: Array.isArray(parsed.auditQuestions) ? parsed.auditQuestions : [],
+      recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
+      confidence: typeof parsed.confidence === 'number' ? parsed.confidence : 0.7,
+    }
+  } catch (error) {
+    logger.error('Failed to parse evidence narrative from AI response', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
+    narrative = {
+      executiveSummary: `Compliance assessment for ${regulationName} under ${framework} framework. Current compliance rate: ${complianceRate}%.`,
+      complianceAssessment: 'Automated assessment unavailable. Manual review recommended.',
+      riskHighlights: [],
+      auditQuestions: [],
+      recommendations: [
+        {
+          priority: 'immediate',
+          action: 'Conduct manual compliance review',
+          rationale: 'Automated analysis could not be completed',
+          effort: 'medium',
+        },
+      ],
+      confidence: 0.3,
+    }
+  }
+
+  setCache(cacheKey, { data: narrative, promptVersion })
+
+  return {
+    data: narrative,
+    cached: false,
+    generatedAt: new Date().toISOString(),
+    model: 'claude-sonnet-4-20250514',
+    tokensUsed: result.inputTokens + result.outputTokens,
+    latencyMs: result.latencyMs,
+    confidence: narrative.confidence,
+    promptVersion,
   }
 }
 
