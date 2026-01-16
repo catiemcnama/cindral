@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { organization, useActiveOrganization, useSession } from '@/lib/auth-client'
+import { formatErrorForUser } from '@/lib/format-error'
 
 type SaveStatus = 'idle' | 'saving' | 'success' | 'error'
 

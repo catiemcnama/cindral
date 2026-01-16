@@ -141,7 +141,7 @@ export default function ObligationsPage() {
           if (!old) return old
           return {
             ...old,
-            items: old.items.map((item: { id: string; status: string }) =>
+            items: old.items.map((item) =>
               variables.ids.includes(item.id) ? { ...item, status: variables.status } : item
             ),
           }
