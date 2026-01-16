@@ -12,13 +12,9 @@ import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { orgProcedure, router } from '../init'
 
-// Check if demo mode is enabled globally
 const isDemoMode = process.env.IS_DEMO === 'true'
 
 export const demoRouter = router({
-  /**
-   * Get demo configuration for current organization
-   */
   getConfig: orgProcedure.query(async ({ ctx }) => {
     if (!isDemoMode) {
       return { isDemo: false, displayName: null, displayLogo: null, displayDomain: null }
@@ -36,9 +32,6 @@ export const demoRouter = router({
     }
   }),
 
-  /**
-   * Update demo customization (name, logo, domain)
-   */
   updateConfig: orgProcedure
     .input(
       z.object({
@@ -48,21 +41,16 @@ export const demoRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       if (!isDemoMode) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Demo mode is not enabled',
-        })
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Demo mode is not enabled' })
       }
 
       const existing = await db.query.demoConfig.findFirst({
         where: eq(demoConfig.organizationId, ctx.activeOrganizationId),
       })
 
-      // Generate logo URL from domain
       const displayLogo = input.displayDomain ? `https://logo.clearbit.com/${input.displayDomain}` : null
 
       if (existing) {
-        // Update existing config
         await db
           .update(demoConfig)
           .set({
@@ -73,7 +61,6 @@ export const demoRouter = router({
           })
           .where(eq(demoConfig.id, existing.id))
       } else {
-        // Create new config
         await db.insert(demoConfig).values({
           id: `demo-${ctx.activeOrganizationId}`,
           organizationId: ctx.activeOrganizationId,

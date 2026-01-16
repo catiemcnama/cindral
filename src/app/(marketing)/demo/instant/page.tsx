@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
+import type { MagicDemoResult, PlanRecommendation } from '@/lib/magic-demo'
 import { useTRPC } from '@/trpc/client'
 import { useMutation } from '@tanstack/react-query'
 import {
@@ -11,6 +12,7 @@ import {
   CheckCircle2,
   Clock,
   Cloud,
+  CreditCard,
   Database,
   FileText,
   Loader2,
@@ -27,59 +29,8 @@ const EXAMPLE_DESCRIPTIONS = [
   'Java Spring Boot APIs on GCP, MySQL database with financial transaction data, Docker containers orchestrated by K8s.',
 ]
 
-// Types for the analysis result
-interface DetectedSystem {
-  name: string
-  category: 'cloud' | 'database' | 'api' | 'storage' | 'compute' | 'network' | 'other'
-  dataTypes: string[]
-  riskLevel: 'low' | 'medium' | 'high' | 'critical'
-}
-
-interface ApplicableArticle {
-  regulation: string
-  articleNumber: string
-  title: string
-  summary: string
-  relevance: string
-  impactLevel: 'low' | 'medium' | 'high' | 'critical'
-  affectedSystems: string[]
-}
-
-interface ComplianceGap {
-  id: string
-  article: string
-  description: string
-  severity: 'low' | 'medium' | 'high' | 'critical'
-  recommendation: string
-  estimatedEffort: 'hours' | 'days' | 'weeks' | 'months'
-}
-
-interface AnalysisResult {
-  analysisTimeMs: number
-  timestamp: string
-  detectedSystems: DetectedSystem[]
-  applicableArticles: ApplicableArticle[]
-  complianceGaps: ComplianceGap[]
-  evidenceSummary: {
-    executiveSummary: string
-    riskHighlights: Array<{ area: string; level: string; description: string }>
-    immediateActions: string[]
-  }
-  metrics: {
-    systemsAnalyzed: number
-    articlesMatched: number
-    gapsIdentified: number
-    evidenceItemsGenerated: number
-  }
-  aiMetadata: {
-    tokensUsed: number
-    model: string
-    confidence: number
-  }
-  pricing: {
-    suggestedPlan: string
-  }
-}
+// Extend the result type with pricing
+type AnalysisResult = MagicDemoResult & { pricing: PlanRecommendation }
 
 export default function InstantDemoPage() {
   const [description, setDescription] = useState('')
@@ -115,6 +66,8 @@ export default function InstantDemoPage() {
         return <Database className="h-4 w-4" />
       case 'api':
         return <Server className="h-4 w-4" />
+      case 'payment':
+        return <CreditCard className="h-4 w-4" />
       default:
         return <Server className="h-4 w-4" />
     }
@@ -245,7 +198,7 @@ export default function InstantDemoPage() {
             </div>
 
             {/* Metrics Cards */}
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div className="grid grid-cols-3 gap-4">
               <Card className="border-primary/20 bg-primary/5">
                 <CardContent className="pt-6 text-center">
                   <div className="text-4xl font-bold text-primary">{analysisResult.metrics.systemsAnalyzed}</div>
@@ -262,14 +215,6 @@ export default function InstantDemoPage() {
                 <CardContent className="pt-6 text-center">
                   <div className="text-4xl font-bold text-orange-500">{analysisResult.metrics.gapsIdentified}</div>
                   <div className="mt-1 text-sm text-muted-foreground">Compliance Gaps</div>
-                </CardContent>
-              </Card>
-              <Card className="border-green-500/20 bg-green-500/5">
-                <CardContent className="pt-6 text-center">
-                  <div className="text-4xl font-bold text-green-500">
-                    {analysisResult.metrics.evidenceItemsGenerated}
-                  </div>
-                  <div className="mt-1 text-sm text-muted-foreground">Evidence Items</div>
                 </CardContent>
               </Card>
             </div>

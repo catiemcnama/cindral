@@ -1,21 +1,7 @@
 import { z } from 'zod'
 import { orgProcedure, protectedProcedure, publicProcedure, router } from '../init'
 
-/**
- * Consolidated Router Structure
- *
- * 8 logical domains:
- * 1. regulations  - Regulations + Articles
- * 2. compliance   - Obligations + Evidence Packs
- * 3. systems      - Systems + System Map
- * 4. ai           - AI Agent + AI operations
- * 5. alerts       - Alerts + Search
- * 6. dashboard    - Dashboard + Onboarding
- * 7. admin        - Billing + Integrations + Demo
- * 8. (root)       - User/org management
- */
-
-// Domain routers - CONSOLIDATED
+// Domain routers
 import { aiRouter } from './ai'
 import { alertsRouter } from './alerts'
 import { articlesRouter } from './articles'
@@ -33,76 +19,52 @@ import { systemMapRouter } from './systemMap'
 import { systemsRouter } from './systems'
 
 export const appRouter = router({
-  // ==========================================================================
-  // CONSOLIDATED DOMAIN ROUTERS
-  // ==========================================================================
-
-  // Content Domain: Regulations & Articles
+  // Content: Regulations & Articles
   regulations: regulationsRouter,
-  articles: articlesRouter, // TODO: Merge into regulations.articles
+  articles: articlesRouter,
 
-  // Compliance Domain: Obligations & Evidence
+  // Compliance: Obligations & Evidence
   obligations: obligationsRouter,
-  evidencePacks: evidencePacksRouter, // TODO: Merge into compliance.evidence
+  evidencePacks: evidencePacksRouter,
 
-  // Infrastructure Domain: Systems & Mapping
+  // Infrastructure: Systems
   systems: systemsRouter,
-  systemMap: systemMapRouter, // TODO: Merge into systems.map
+  systemMap: systemMapRouter,
 
-  // Intelligence Domain: AI Agent & Operations
+  // Intelligence: AI
   ai: aiRouter,
 
-  // Notifications Domain: Alerts & Discovery
+  // Notifications
   alerts: alertsRouter,
-  search: searchRouter, // TODO: Merge into root or alerts.search
+  search: searchRouter,
 
-  // UX Domain: Dashboard & Onboarding
+  // UX
   dashboard: dashboardRouter,
-  onboarding: onboardingRouter, // TODO: Merge into dashboard.onboarding
+  onboarding: onboardingRouter,
 
-  // Admin Domain: Billing, Integrations, Demo
+  // Admin
   billing: billingRouter,
-  integrations: integrationsRouter, // TODO: Merge into admin.integrations
-  demo: demoRouter, // TODO: Merge into admin.demo
-  magicDemo: magicDemoRouter, // THE conversion funnel - no auth required
+  integrations: integrationsRouter,
+  demo: demoRouter,
 
-  // ==========================================================================
-  // ROOT PROCEDURES
-  // ==========================================================================
+  // Public demo (no auth)
+  magicDemo: magicDemoRouter,
 
-  // Public procedures
+  // Root procedures
   hello: publicProcedure
-    .input(
-      z.object({
-        text: z.string(),
-      })
-    )
-    .query((opts) => {
-      return {
-        greeting: `Hello ${opts.input.text}`,
-      }
-    }),
+    .input(z.object({ text: z.string() }))
+    .query((opts) => ({ greeting: `Hello ${opts.input.text}` })),
 
-  // Protected procedures - require authentication
-  getMe: protectedProcedure.query(async (opts) => {
-    return opts.ctx.user
-  }),
+  getMe: protectedProcedure.query(async (opts) => opts.ctx.user),
 
   getMyOrganizations: protectedProcedure.query(async (opts) => {
     const memberships = await opts.ctx.db.query.member.findMany({
       where: (member, { eq }) => eq(member.userId, opts.ctx.user.id),
-      with: {
-        organization: true,
-      },
+      with: { organization: true },
     })
-
-    return memberships.map((m) => ({
-      ...m.organization,
-      role: m.role,
-    }))
+    return memberships.map((m) => ({ ...m.organization, role: m.role }))
   }),
 
-  // Organization-scoped procedures
   getOrgMembers: orgProcedure.query(async (opts) => {
     const members = await opts.ctx.db.query.member.findMany({
       where: (member, { eq }) => eq(member.organizationId, opts.ctx.activeOrganizationId),
