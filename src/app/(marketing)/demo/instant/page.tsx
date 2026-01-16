@@ -77,10 +77,6 @@ interface AnalysisResult {
     confidence: number
   }
   pricing: {
-    gapsIdentified: { count: number; unitPrice: number; total: number }
-    evidencePacks: { count: number; unitPrice: number; total: number }
-    articlesAnalyzed: { count: number; unitPrice: number; total: number }
-    totalValue: number
     suggestedPlan: string
   }
 }
@@ -88,6 +84,7 @@ interface AnalysisResult {
 export default function InstantDemoPage() {
   const [description, setDescription] = useState('')
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const trpc = useTRPC()
   const analyzeMutation = useMutation({
@@ -96,6 +93,7 @@ export default function InstantDemoPage() {
 
   const handleAnalyze = async () => {
     if (description.length < 20) return
+    setError(null)
 
     try {
       const result = await analyzeMutation.mutateAsync({
@@ -103,8 +101,9 @@ export default function InstantDemoPage() {
         region: description.toLowerCase().includes('eu') ? 'EU' : undefined,
       })
       setAnalysisResult(result as AnalysisResult)
-    } catch (error) {
-      console.error('Analysis failed:', error)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Analysis failed. Please try again.'
+      setError(message)
     }
   }
 
@@ -201,6 +200,20 @@ export default function InstantDemoPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Error State */}
+        {error && (
+          <div className="mx-auto mb-8 max-w-3xl">
+            <Card className="border-red-500/30 bg-red-500/5">
+              <CardContent className="py-6">
+                <div className="flex items-center gap-3 text-red-500">
+                  <AlertTriangle className="h-5 w-5" />
+                  <p className="font-medium">{error}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Loading State */}
         {analyzeMutation.isPending && (
@@ -375,33 +388,18 @@ export default function InstantDemoPage() {
               </CardContent>
             </Card>
 
-            {/* Outcome-Based Pricing */}
+            {/* Call to Action */}
             <Card className="border-2 border-primary">
               <CardHeader>
-                <CardTitle>Value Delivered</CardTitle>
-                <CardDescription>Pay for outcomes, not seats</CardDescription>
+                <CardTitle>Ready to Fix These Gaps?</CardTitle>
+                <CardDescription>
+                  Based on your {analysisResult.metrics.gapsIdentified} compliance gaps, we recommend our{' '}
+                  <span className="font-semibold text-primary capitalize">{analysisResult.pricing.suggestedPlan}</span>{' '}
+                  plan
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between border-b py-2">
-                    <span>{analysisResult.pricing.gapsIdentified.count} compliance gaps identified</span>
-                    <span className="font-mono">${analysisResult.pricing.gapsIdentified.total}</span>
-                  </div>
-                  <div className="flex items-center justify-between border-b py-2">
-                    <span>{analysisResult.pricing.evidencePacks.count} evidence pack generated</span>
-                    <span className="font-mono">${analysisResult.pricing.evidencePacks.total}</span>
-                  </div>
-                  <div className="flex items-center justify-between border-b py-2">
-                    <span>{analysisResult.pricing.articlesAnalyzed.count} regulation articles analyzed</span>
-                    <span className="font-mono">${analysisResult.pricing.articlesAnalyzed.total}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-2 text-lg font-bold">
-                    <span>Total Value</span>
-                    <span className="text-primary">${analysisResult.pricing.totalValue}</span>
-                  </div>
-                </div>
-
-                <div className="mt-6 flex gap-4">
+                <div className="flex gap-4">
                   <Button size="lg" className="flex-1">
                     Start Free Trial
                   </Button>

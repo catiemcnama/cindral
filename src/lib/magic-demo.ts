@@ -625,39 +625,25 @@ export async function runMagicDemo(profile: CompanyProfile): Promise<MagicDemoRe
 }
 
 // =============================================================================
-// Outcome-Based Pricing Calculator
+// Plan Recommendation
 // =============================================================================
 
-export interface OutcomePricing {
-  gapsIdentified: { count: number; unitPrice: number; total: number }
-  evidencePacks: { count: number; unitPrice: number; total: number }
-  articlesAnalyzed: { count: number; unitPrice: number; total: number }
-  totalValue: number
+export interface PricingRecommendation {
   suggestedPlan: 'starter' | 'professional' | 'enterprise'
 }
 
-export function calculateOutcomePricing(metrics: MagicDemoResult['metrics']): OutcomePricing {
-  // Outcome-based pricing: charge for value delivered
-  const GAP_PRICE = 25 // $25 per compliance gap identified
-  const EVIDENCE_PRICE = 100 // $100 per evidence pack generated
-  const ARTICLE_PRICE = 10 // $10 per regulation article analyzed
-
-  const gapsTotal = metrics.gapsIdentified * GAP_PRICE
-  const evidenceTotal = metrics.evidenceItemsGenerated * EVIDENCE_PRICE
-  const articlesTotal = metrics.articlesMatched * ARTICLE_PRICE
-
-  const totalValue = gapsTotal + evidenceTotal + articlesTotal
-
-  // Suggest plan based on total value
+export function calculateOutcomePricing(metrics: MagicDemoResult['metrics']): PricingRecommendation {
+  // Suggest plan based on complexity
+  // - Enterprise: 10+ gaps or 15+ articles (complex compliance landscape)
+  // - Professional: 5+ gaps or 8+ articles
+  // - Starter: everything else
   let suggestedPlan: 'starter' | 'professional' | 'enterprise' = 'starter'
-  if (totalValue > 1000) suggestedPlan = 'enterprise'
-  else if (totalValue > 300) suggestedPlan = 'professional'
 
-  return {
-    gapsIdentified: { count: metrics.gapsIdentified, unitPrice: GAP_PRICE, total: gapsTotal },
-    evidencePacks: { count: metrics.evidenceItemsGenerated, unitPrice: EVIDENCE_PRICE, total: evidenceTotal },
-    articlesAnalyzed: { count: metrics.articlesMatched, unitPrice: ARTICLE_PRICE, total: articlesTotal },
-    totalValue,
-    suggestedPlan,
+  if (metrics.gapsIdentified >= 10 || metrics.articlesMatched >= 15) {
+    suggestedPlan = 'enterprise'
+  } else if (metrics.gapsIdentified >= 5 || metrics.articlesMatched >= 8) {
+    suggestedPlan = 'professional'
   }
+
+  return { suggestedPlan }
 }
