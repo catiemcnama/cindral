@@ -7,6 +7,56 @@
 import type { AppRouter } from '@/trpc/routers/_app'
 import type { TRPCClientErrorLike } from '@trpc/client'
 
+interface TRPCErrorShape {
+  data?: {
+    code?: string
+    httpStatus?: number
+  }
+  code?: string
+  message?: string
+}
+
+/**
+ * Type-safe error code checking
+ */
+export function hasErrorCode(error: unknown, code: string): boolean {
+  if (!error || typeof error !== 'object') return false
+  const e = error as TRPCErrorShape
+  return e.data?.code === code || e.code === code
+}
+
+/**
+ * Check if error is an auth error (401)
+ */
+export function isAuthError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const e = error as TRPCErrorShape
+  return e.data?.httpStatus === 401 || e.code === 'UNAUTHORIZED' || hasErrorCode(error, 'UNAUTHORIZED')
+}
+
+/**
+ * Check if error is a forbidden/org-required error (403)
+ */
+export function isForbiddenError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const e = error as TRPCErrorShape
+  return (
+    e.data?.httpStatus === 403 ||
+    e.code === 'FORBIDDEN' ||
+    hasErrorCode(error, 'FORBIDDEN') ||
+    hasErrorCode(error, 'ORGANIZATION_REQUIRED')
+  )
+}
+
+/**
+ * Check if error is a not found error (404)
+ */
+export function isNotFoundError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const e = error as TRPCErrorShape
+  return e.data?.httpStatus === 404 || e.code === 'NOT_FOUND' || hasErrorCode(error, 'NOT_FOUND')
+}
+
 /**
  * User-friendly error messages for common error codes
  */

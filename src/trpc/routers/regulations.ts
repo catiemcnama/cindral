@@ -1,6 +1,6 @@
 import { articleSystemImpacts, obligations, regulations } from '@/db/schema'
 import { withAudit, withCreateAudit, withDeleteAudit } from '@/lib/audit'
-import { NotFoundError } from '@/lib/errors'
+import { CindralError, ERROR_CODES, NotFoundError } from '@/lib/errors'
 import { requireAdmin, requireMutatePermission, scopedAnd } from '@/lib/tenancy'
 import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm'
 import { z } from 'zod'
@@ -79,34 +79,94 @@ export const regulationsRouter = router({
         },
       })
 
-      // Get obligation compliance stats per regulation
-      const regulationsWithStats = await Promise.all(
-        regs.map(async (reg) => {
-          const obls = await ctx.db.query.obligations.findMany({
-            where: scopedAnd(obligations, ctx, eq(obligations.regulationId, reg.id)),
-            columns: { status: true },
-          })
+      // Batch query: get obligation stats for all regulations in one query
+      const regIds = regs.map((r) => r.id)
+      const obligationStats =
+        regIds.length > 0
+          ? await ctx.db
+              .select({
+                regulationId: obligations.regulationId,
+                status: obligations.status,
+                count: sql<number>`count(*)::int`,
+              })
+              .from(obligations)
+              .where(
+                and(
+                  eq(obligations.organizationId, ctx.activeOrganizationId),
+                  sql`${obligations.regulationId} = ANY(${regIds})`
+                )
+              )
+              .groupBy(obligations.regulationId, obligations.status)
+          : []
 
-          const stats = {
-            notStarted: obls.filter((o) => o.status === 'not_started').length,
-            inProgress: obls.filter((o) => o.status === 'in_progress').length,
-            implemented: obls.filter((o) => o.status === 'implemented').length,
-            underReview: obls.filter((o) => o.status === 'under_review').length,
-            verified: obls.filter((o) => o.status === 'verified').length,
-            total: obls.length,
-          }
+      // Build stats map from batch query
+      const statsMap = new Map<
+        string,
+        {
+          notStarted: number
+          inProgress: number
+          implemented: number
+          underReview: number
+          verified: number
+          total: number
+        }
+      >()
 
-          const compliant = stats.verified + stats.implemented
-          const compliancePercent = stats.total > 0 ? Math.round((compliant / stats.total) * 100) : 100
+      for (const row of obligationStats) {
+        if (!row.regulationId) continue
+        const existing = statsMap.get(row.regulationId) ?? {
+          notStarted: 0,
+          inProgress: 0,
+          implemented: 0,
+          underReview: 0,
+          verified: 0,
+          total: 0,
+        }
 
-          return {
-            ...reg,
-            articleCount: reg.articles.length,
-            compliancePercent,
-            obligationStats: stats,
-          }
-        })
-      )
+        const count = row.count
+        existing.total += count
+
+        switch (row.status) {
+          case 'not_started':
+            existing.notStarted = count
+            break
+          case 'in_progress':
+            existing.inProgress = count
+            break
+          case 'implemented':
+            existing.implemented = count
+            break
+          case 'under_review':
+            existing.underReview = count
+            break
+          case 'verified':
+            existing.verified = count
+            break
+        }
+
+        statsMap.set(row.regulationId, existing)
+      }
+
+      // Combine regulations with stats
+      const regulationsWithStats = regs.map((reg) => {
+        const stats = statsMap.get(reg.id) ?? {
+          notStarted: 0,
+          inProgress: 0,
+          implemented: 0,
+          underReview: 0,
+          verified: 0,
+          total: 0,
+        }
+        const compliant = stats.verified + stats.implemented
+        const compliancePercent = stats.total > 0 ? Math.round((compliant / stats.total) * 100) : 100
+
+        return {
+          ...reg,
+          articleCount: reg.articles.length,
+          compliancePercent,
+          obligationStats: stats,
+        }
+      })
 
       // Get total count for pagination
       const totalResult = await ctx.db
@@ -245,23 +305,46 @@ export const regulationsRouter = router({
         status: z.enum(['active', 'superseded', 'draft']).optional(),
         effectiveDate: z.date().optional(),
         sourceUrl: z.string().optional(),
+        lockVersion: z.number().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       requireMutatePermission(ctx)
 
       return withAudit(ctx, 'update_regulation', 'regulation', input.id, async () => {
-        const { id, ...updates } = input
+        const { id, lockVersion: clientVersion, ...updates } = input
 
         const before = await ctx.db.query.regulations.findFirst({
           where: scopedAnd(regulations, ctx, eq(regulations.id, id)),
         })
 
+        if (!before) {
+          throw new NotFoundError('Regulation', id)
+        }
+
+        // Optimistic locking check
+        const whereConditions = [scopedAnd(regulations, ctx, eq(regulations.id, id))]
+        if (clientVersion !== undefined) {
+          whereConditions.push(eq(regulations.lockVersion, clientVersion))
+        }
+
         const [after] = await ctx.db
           .update(regulations)
-          .set({ ...updates, lastUpdated: new Date() })
-          .where(scopedAnd(regulations, ctx, eq(regulations.id, id)))
+          .set({
+            ...updates,
+            lastUpdated: new Date(),
+            lockVersion: sql`${regulations.lockVersion} + 1`,
+          })
+          .where(and(...whereConditions))
           .returning()
+
+        if (!after && clientVersion !== undefined) {
+          throw new CindralError('Resource was modified by another user. Please refresh and try again.', {
+            code: ERROR_CODES.RESOURCE_LOCKED,
+            httpStatus: 409,
+            context: { regulationId: id, expectedVersion: clientVersion },
+          })
+        }
 
         return { before, after, result: after }
       })

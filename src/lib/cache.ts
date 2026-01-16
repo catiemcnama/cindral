@@ -6,6 +6,9 @@
  * - Stale-while-revalidate pattern
  * - Cache key generators for common patterns
  * - Redis adapter interface for production scaling
+ *
+ * Note: In serverless (Vercel), this cache is per-invocation only.
+ * For persistent caching across requests, use Redis via REDIS_URL env var.
  */
 
 import { logger } from './logger'
@@ -43,8 +46,8 @@ type CacheStore = Map<string, CacheEntry<unknown>>
 /** Default TTL (5 minutes) */
 const DEFAULT_TTL_SEC = 300
 
-/** Max cache entries before cleanup */
-const MAX_ENTRIES = 10000
+/** Max cache entries - conservative for serverless memory */
+const MAX_ENTRIES = 1000
 
 /** Cleanup interval (1 minute) */
 const CLEANUP_INTERVAL_MS = 60_000
@@ -402,6 +405,67 @@ export interface CacheAdapter {
   clear(): Promise<void>
 }
 
-// Note: Redis implementation would be added here when needed
-// Example: import Redis from 'ioredis'
-// export class RedisCacheAdapter implements CacheAdapter { ... }
+/**
+ * Redis cache adapter for production use.
+ * Set REDIS_URL environment variable to enable.
+ * Requires: npm install ioredis @types/ioredis
+ */
+export async function createRedisCacheAdapter(): Promise<CacheAdapter | null> {
+  const redisUrl = process.env.REDIS_URL
+  if (!redisUrl) return null
+
+  try {
+    // Dynamic import - ioredis is optional
+    // @ts-expect-error - ioredis is an optional dependency
+    const Redis = await import('ioredis').then((m) => m.default)
+    const client = new Redis(redisUrl)
+
+    return {
+      async get<T>(key: string) {
+        const raw = await client.get(key)
+        if (!raw) return null
+        const entry = JSON.parse(raw) as CacheEntry<T>
+        const now = Date.now()
+        if (entry.expiresAt < now) {
+          await client.del(key)
+          return null
+        }
+        const isStale = entry.staleAt !== undefined && entry.staleAt < now
+        return { value: entry.value, isStale }
+      },
+
+      async set<T>(key: string, value: T, options?: CacheOptions) {
+        const ttlSec = options?.ttlSec ?? DEFAULT_TTL_SEC
+        const now = Date.now()
+        const entry: CacheEntry<T> = {
+          value,
+          expiresAt: now + ttlSec * 1000,
+        }
+        if (options?.staleWhileRevalidateSec) {
+          entry.staleAt = now + ttlSec * 1000
+          entry.expiresAt = now + (ttlSec + options.staleWhileRevalidateSec) * 1000
+        }
+        const totalTtl = options?.staleWhileRevalidateSec ? ttlSec + options.staleWhileRevalidateSec : ttlSec
+        await client.setex(key, totalTtl, JSON.stringify(entry))
+      },
+
+      async delete(key: string) {
+        const result = await client.del(key)
+        return result > 0
+      },
+
+      async deletePattern(pattern: string) {
+        const keys = await client.keys(pattern.replace(/\*/g, '*'))
+        if (keys.length === 0) return 0
+        return await client.del(...keys)
+      },
+
+      async clear() {
+        await client.flushdb()
+      },
+    }
+  } catch {
+    logger.warn('Redis not available, using in-memory cache')
+    return null
+  }
+}

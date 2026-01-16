@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartSkeleton } from '@/components/ui/skeletons'
 import { useTRPCPollingOptions } from '@/hooks/use-polling'
+import { isAuthError, isForbiddenError } from '@/lib/format-error'
 import { useTRPC } from '@/trpc/client'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangleIcon, RefreshCwIcon } from 'lucide-react'
@@ -84,21 +85,8 @@ export function ComplianceStatus() {
 
   // Error state
   if (error) {
-    const errorObj = error as { data?: { httpStatus?: number; code?: string }; message?: string }
-    const msg = errorObj?.message || ''
-
-    const isNoOrgError =
-      errorObj?.data?.httpStatus === 403 ||
-      errorObj?.data?.code === 'FORBIDDEN' ||
-      msg.includes('403') ||
-      msg.toLowerCase().includes('forbidden') ||
-      msg.toLowerCase().includes('active organization')
-
-    const isAuthError =
-      msg.includes('401') || msg.toLowerCase().includes('unauthorized') || errorObj?.data?.httpStatus === 401
-
     // No org error - show setup prompt
-    if (isNoOrgError) {
+    if (isForbiddenError(error)) {
       return (
         <Card className="border-dashed border-primary/20">
           <CardHeader className="pb-2">
@@ -114,7 +102,7 @@ export function ComplianceStatus() {
       )
     }
 
-    if (isAuthError) {
+    if (isAuthError(error)) {
       // Show demo data for unauthenticated users
       const demoData: ComplianceDatum[] = [
         { name: 'Verified', value: 45, fill: STATUS_COLORS.verified },
