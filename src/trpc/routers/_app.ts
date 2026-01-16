@@ -63,6 +63,7 @@ export const appRouter = router({
   billing: billingRouter,
   integrations: integrationsRouter, // TODO: Merge into admin.integrations
   demo: demoRouter, // TODO: Merge into admin.demo
+  magicDemo: magicDemoRouter, // THE conversion funnel - no auth required
 
   // ==========================================================================
   // ROOT PROCEDURES
