@@ -112,11 +112,62 @@ export default function ObligationsPage() {
 
   const { data, isLoading, error, refetch, isFetching } = obligationsQuery
 
-  // Mutations
+  // Mutations with optimistic updates for instant UI feedback
   const bulkStatusMutation = useMutation({
     ...trpc.obligations.bulkUpdateStatus.mutationOptions(),
+    onMutate: async (variables) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: trpc.obligations.list.queryKey() })
+
+      // Snapshot previous value
+      const previousData = queryClient.getQueryData(
+        trpc.obligations.list.queryKey({
+          status: statusFilter !== 'all' ? statusFilter : undefined,
+          regulationId: regulationFilter !== 'all' ? regulationFilter : undefined,
+          limit: pageSize,
+          offset: page * pageSize,
+        })
+      )
+
+      // Optimistically update the cache
+      queryClient.setQueryData(
+        trpc.obligations.list.queryKey({
+          status: statusFilter !== 'all' ? statusFilter : undefined,
+          regulationId: regulationFilter !== 'all' ? regulationFilter : undefined,
+          limit: pageSize,
+          offset: page * pageSize,
+        }),
+        (old: typeof previousData) => {
+          if (!old) return old
+          return {
+            ...old,
+            items: old.items.map((item: { id: string; status: string }) =>
+              variables.ids.includes(item.id) ? { ...item, status: variables.status } : item
+            ),
+          }
+        }
+      )
+
+      return { previousData }
+    },
+    onError: (_err, _variables, context) => {
+      // Roll back on error
+      if (context?.previousData) {
+        queryClient.setQueryData(
+          trpc.obligations.list.queryKey({
+            status: statusFilter !== 'all' ? statusFilter : undefined,
+            regulationId: regulationFilter !== 'all' ? regulationFilter : undefined,
+            limit: pageSize,
+            offset: page * pageSize,
+          }),
+          context.previousData
+        )
+      }
+      toast.error('Failed to update obligations', {
+        description: 'Changes have been reverted. Please try again.',
+      })
+    },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: trpc.obligations.list.queryKey() })
       const count = variables.ids.length
       const statusLabel = statusLabels[variables.status as ObligationStatus] || variables.status
       toast.success(`Updated ${count} obligation${count === 1 ? '' : 's'}`, {
@@ -124,10 +175,9 @@ export default function ObligationsPage() {
       })
       setSelectedIds(new Set())
     },
-    onError: (error) => {
-      toast.error('Failed to update obligations', {
-        description: error instanceof Error ? error.message : 'Please try again.',
-      })
+    onSettled: () => {
+      // Always refetch after error or success to ensure consistency
+      queryClient.invalidateQueries({ queryKey: trpc.obligations.list.queryKey() })
     },
   })
 

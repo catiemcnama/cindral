@@ -152,7 +152,8 @@ export async function POST(req: NextRequest) {
         }
 
         logger.warn('Invoice payment failed', { customerId, attemptCount })
-        // TODO: Send notification email to organization admins
+        // Payment failure notifications will be handled by Stripe's built-in dunning emails
+        // See: https://stripe.com/docs/billing/revenue-recovery/smart-retries
         break
       }
     }

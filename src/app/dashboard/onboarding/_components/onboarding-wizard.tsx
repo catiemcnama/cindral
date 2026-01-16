@@ -35,6 +35,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import { organization, useActiveOrganization } from '@/lib/auth-client'
+import { formatErrorForUser } from '@/lib/format-error'
 import { readOnboardingState, writeOnboardingState } from '@/lib/onboarding-storage'
 import { cn } from '@/lib/utils'
 import { useTRPC } from '@/trpc/client'
@@ -340,7 +341,7 @@ export function OnboardingWizard() {
     },
     onError: (error) => {
       toast.error('Failed to complete setup', {
-        description: error instanceof Error ? error.message : 'Please try again.',
+        description: formatErrorForUser(error),
       })
     },
   })

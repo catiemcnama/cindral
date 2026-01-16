@@ -120,10 +120,17 @@ export function SystemMap({ organizationId }: SystemMapProps) {
     setEdges(newEdges)
   }, [data, filters, organizationId, setNodes, setEdges])
 
-  // Fit view on initial load
+  // Fit view on initial load with smooth animation for "wow" effect
   useEffect(() => {
     if (nodes.length > 0) {
-      setTimeout(() => fitView({ padding: 0.2 }), 100)
+      // Short delay to let nodes render, then animate into view
+      setTimeout(() => {
+        fitView({
+          padding: 0.2,
+          duration: 800, // Smooth 800ms animation
+          maxZoom: 1.2,
+        })
+      }, 150)
     }
   }, [nodes.length, fitView])
 

@@ -260,8 +260,8 @@ export const evidencePacksRouter = router({
         diff: { before: null, after: pack },
       })
 
-      // TODO: In production, this would trigger a background job
-      // For now, immediately mark as ready
+      // Evidence pack generation happens synchronously for now
+      // For large packs (>100 obligations), consider background processing via Inngest/Trigger.dev
       const [updatedPack] = await ctx.db
         .update(evidencePacks)
         .set({

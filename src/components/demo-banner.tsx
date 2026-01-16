@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { formatErrorForUser } from '@/lib/format-error'
 import { useTRPC } from '@/trpc/client'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Loader2Icon, RefreshCwIcon, SettingsIcon, SparklesIcon } from 'lucide-react'
@@ -88,7 +89,7 @@ export function DemoBanner() {
     onError: (error) => {
       setIsResetting(false)
       toast.error('Failed to reset demo data', {
-        description: error instanceof Error ? error.message : 'Please try again.',
+        description: formatErrorForUser(error),
       })
     },
   })
@@ -105,7 +106,7 @@ export function DemoBanner() {
       onError: (error) => {
         setIsSaving(false)
         toast.error('Failed to save customization', {
-          description: error instanceof Error ? error.message : 'Please try again.',
+          description: formatErrorForUser(error),
         })
       },
     })

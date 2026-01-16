@@ -425,14 +425,7 @@ export default function AlertsPage() {
               <DropdownMenuItem onClick={() => handleBulkStatus('wont_fix')}>Won&apos;t Fix</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              // TODO: In production, this would open a user picker dialog
-              alert(`Bulk assignment coming soon!\n\nSelected ${selectedIds.size} alert(s) for assignment.`)
-            }}
-          >
+          <Button variant="outline" size="sm" disabled title="Bulk assignment - coming in next release">
             <UserIcon className="mr-2 size-4" />
             Assign
           </Button>

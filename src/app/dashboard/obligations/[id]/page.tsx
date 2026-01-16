@@ -36,6 +36,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatErrorForUser } from '@/lib/format-error'
 import { cn } from '@/lib/utils'
 import { useTRPC } from '@/trpc/client'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -107,7 +108,7 @@ export default function ObligationDetailPage() {
     },
     onError: (error) => {
       toast.error('Failed to update status', {
-        description: error instanceof Error ? error.message : 'Please try again.',
+        description: formatErrorForUser(error),
       })
     },
   })
@@ -122,7 +123,7 @@ export default function ObligationDetailPage() {
     onError: (error) => {
       setIsDeleting(false)
       toast.error('Failed to delete obligation', {
-        description: error instanceof Error ? error.message : 'Please try again.',
+        description: formatErrorForUser(error),
       })
     },
   })

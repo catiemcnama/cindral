@@ -18,6 +18,8 @@ import Link from 'next/link'
 import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
+import { formatErrorForUser } from '@/lib/format-error'
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -134,7 +136,7 @@ export default function EvidencePacksPage() {
     },
     onError: (error) => {
       toast.error('Failed to delete evidence pack', {
-        description: error instanceof Error ? error.message : 'Please try again.',
+        description: formatErrorForUser(error),
       })
     },
   })

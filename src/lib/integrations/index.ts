@@ -1,11 +1,16 @@
-export * from './types'
 export { BaseIntegrationProvider } from './base'
-export { jiraIntegration } from './jira'
 export { confluenceIntegration } from './confluence'
+export { jiraIntegration } from './jira'
+export * from './types'
 
-import { jiraIntegration } from './jira'
 import { confluenceIntegration } from './confluence'
+import { jiraIntegration } from './jira'
 import type { IntegrationProvider } from './types'
+
+/**
+ * Integrations that are planned but not yet available
+ */
+const COMING_SOON_INTEGRATIONS = ['servicenow', 'slack', 'teams'] as const
 
 /**
  * Get integration instance by provider name
@@ -17,16 +22,19 @@ export function getIntegration(provider: IntegrationProvider) {
     case 'confluence':
       return confluenceIntegration
     case 'servicenow':
-      // TODO: Implement ServiceNow integration
-      throw new Error('ServiceNow integration not yet implemented')
     case 'slack':
-      // TODO: Implement Slack integration
-      throw new Error('Slack integration not yet implemented')
     case 'teams':
-      // TODO: Implement Teams integration
-      throw new Error('Teams integration not yet implemented')
+      throw new Error(
+        `${provider.charAt(0).toUpperCase() + provider.slice(1)} integration coming soon. Contact support@cindral.com for early access.`
+      )
     default:
       throw new Error(`Unknown integration provider: ${provider}`)
   }
 }
 
+/**
+ * Check if an integration is available
+ */
+export function isIntegrationAvailable(provider: string): boolean {
+  return !COMING_SOON_INTEGRATIONS.includes(provider as (typeof COMING_SOON_INTEGRATIONS)[number])
+}

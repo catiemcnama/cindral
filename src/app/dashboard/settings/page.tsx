@@ -150,7 +150,7 @@ export default function SettingsPage() {
       toast.success('Organization settings saved')
     } catch (error) {
       setOrgStatus('error')
-      const errorMessage = error instanceof Error ? error.message : 'Failed to save'
+      const errorMessage = formatErrorForUser(error)
       setOrgError(errorMessage)
       toast.error('Failed to save organization settings', {
         description: errorMessage,
