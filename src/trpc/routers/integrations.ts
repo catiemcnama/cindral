@@ -1,7 +1,7 @@
 import { integrations } from '@/db/schema'
 import { recordAudit } from '@/lib/audit'
 import { decryptObject, encryptObject, storeOAuthState, verifyOAuthState } from '@/lib/crypto'
-import { NotFoundError } from '@/lib/errors'
+import { AlreadyExistsError, NotFoundError, ValidationError } from '@/lib/errors'
 import { getIntegration, PROVIDER_INFO, type IntegrationProvider } from '@/lib/integrations'
 import type { IntegrationConfig } from '@/lib/integrations/types'
 import { requireMutatePermission } from '@/lib/tenancy'
@@ -70,7 +70,7 @@ export const integrationsRouter = router({
       })
 
       if (existing && existing.status === 'connected') {
-        throw new Error(`${PROVIDER_INFO[provider].name} is already connected`)
+        throw new AlreadyExistsError('Integration', `${PROVIDER_INFO[provider].name}`)
       }
 
       // Generate OAuth state for CSRF protection
@@ -139,7 +139,7 @@ export const integrationsRouter = router({
       const isValidState = verifyOAuthState(input.state, ctx.activeOrganizationId, provider)
 
       if (!isValidState) {
-        throw new Error('Invalid or expired OAuth state. Please try connecting again.')
+        throw new ValidationError('Invalid or expired OAuth state. Please try connecting again.')
       }
       const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/callback`
 
@@ -236,11 +236,11 @@ export const integrationsRouter = router({
     }
 
     if (integration.status !== 'connected') {
-      throw new Error('Integration is not connected')
+      throw new ValidationError('Integration is not connected')
     }
 
     if (!integration.config) {
-      throw new Error('Integration config is missing')
+      throw new ValidationError('Integration config is missing')
     }
 
     // Decrypt the stored config
@@ -250,7 +250,7 @@ export const integrationsRouter = router({
     if ('encrypted' in storedConfig && storedConfig.encrypted) {
       const decrypted = decryptObject<IntegrationConfig>(storedConfig.encrypted)
       if (!decrypted) {
-        throw new Error('Failed to decrypt integration config')
+        throw new ValidationError('Failed to decrypt integration config')
       }
       decryptedConfig = decrypted
     } else {

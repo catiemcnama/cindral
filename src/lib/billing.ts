@@ -143,9 +143,9 @@ export async function createCheckoutSession(options: {
   const priceId = getStripePriceId(options.planId, options.annual)
 
   if (!priceId) {
-    // Development mode: return mock session
+    // Only allow mock in development
     if (process.env.NODE_ENV === 'development') {
-      logger.info('Development mode: returning mock checkout session', {
+      logger.warn('[Billing] No Stripe price ID - returning mock session (dev only)', {
         planId: options.planId,
         annual: options.annual,
       })
@@ -154,7 +154,11 @@ export async function createCheckoutSession(options: {
         sessionId: `mock_session_${Date.now()}`,
       }
     }
-    throw new Error(`No Stripe price ID configured for plan: ${options.planId}`)
+    // In production, this is a configuration error
+    throw new Error(
+      `Stripe price ID not configured for plan '${options.planId}'. ` +
+        `Set STRIPE_PRICE_ID_${options.planId.toUpperCase()}_${options.annual ? 'ANNUAL' : 'MONTHLY'} environment variable.`
+    )
   }
 
   const stripe = await getStripe()
@@ -206,12 +210,16 @@ export async function createBillingPortalSession(options: {
   stripeCustomerId: string
   returnUrl: string
 }): Promise<{ url: string }> {
-  // Development mode: return mock portal
-  if (process.env.NODE_ENV === 'development' && !process.env.STRIPE_SECRET_KEY) {
-    logger.info('Development mode: returning mock billing portal URL')
-    return {
-      url: `${options.returnUrl}?billing_portal=mock`,
+  // Only allow mock in development
+  if (!process.env.STRIPE_SECRET_KEY) {
+    if (process.env.NODE_ENV === 'development') {
+      logger.warn('[Billing] No Stripe key - returning mock portal URL (dev only)')
+      return {
+        url: `${options.returnUrl}?billing_portal=mock`,
+      }
     }
+    // In production, this is a configuration error
+    throw new Error('STRIPE_SECRET_KEY is required in production')
   }
 
   const stripe = await getStripe()

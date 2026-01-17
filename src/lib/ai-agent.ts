@@ -21,6 +21,7 @@ import {
   systems,
 } from '@/db/schema'
 import { and, eq, isNull, sql } from 'drizzle-orm'
+import { AIServiceError, NotFoundError } from './errors'
 import { logger } from './logger'
 
 // =============================================================================
@@ -87,14 +88,7 @@ export interface AgentMetrics {
 // AI Client
 // =============================================================================
 
-async function getAnthropicClient() {
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) {
-    throw new Error('ANTHROPIC_API_KEY is not configured')
-  }
-  const { default: Anthropic } = await import('@anthropic-ai/sdk')
-  return new Anthropic({ apiKey })
-}
+import { getAnthropicClient } from './ai'
 
 async function callAgent(params: { systemPrompt: string; userPrompt: string; maxTokens?: number }): Promise<string> {
   const client = await getAnthropicClient()
@@ -108,7 +102,7 @@ async function callAgent(params: { systemPrompt: string; userPrompt: string; max
 
   const content = response.content[0]
   if (content.type !== 'text') {
-    throw new Error('Unexpected response type')
+    throw new AIServiceError('Unexpected response type from Claude')
   }
   return content.text
 }
@@ -491,7 +485,7 @@ Does this regulation apply to this system? If so, what is the impact and what ac
     })
 
     if (!regulation) {
-      throw new Error('Regulation not found')
+      throw new NotFoundError('Regulation', regulationId)
     }
 
     // Create evidence pack
@@ -536,7 +530,7 @@ Does this regulation apply to this system? If so, what is the impact and what ac
     })
 
     if (!change) {
-      throw new Error('Change not found')
+      throw new NotFoundError('Regulatory change', changeId)
     }
 
     const systemsList = await this.getSystems()

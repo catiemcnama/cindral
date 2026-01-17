@@ -41,13 +41,6 @@ import { toast } from 'sonner'
  * - Button to customize demo (org name, logo)
  */
 
-interface DemoConfig {
-  isDemo: boolean
-  displayName: string | null
-  displayLogo: string | null
-  displayDomain: string | null
-}
-
 export function DemoBanner() {
   const [isOpen, setIsOpen] = useState(false)
   const [customName, setCustomName] = useState('')
@@ -130,11 +123,8 @@ export function DemoBanner() {
     })
   }
 
-  // Generate logo URL from domain using Clearbit Logo API
-  const logoUrl = customDomain ? `https://logo.clearbit.com/${customDomain}` : demoConfig.displayLogo
-
   return (
-    <div className="flex items-center justify-between gap-4 bg-gradient-to-r from-amber-500/90 to-orange-500/90 px-4 py-2 text-white">
+    <div className="flex items-center justify-between gap-4 bg-linear-to-r from-amber-500/90 to-orange-500/90 px-4 py-2 text-white">
       <div className="flex items-center gap-2">
         <SparklesIcon className="size-4" />
         <span className="text-sm font-medium">Demo Mode {demoConfig.displayName && `— ${demoConfig.displayName}`}</span>

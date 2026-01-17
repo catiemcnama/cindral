@@ -2,6 +2,7 @@ import { auditLog, evidencePacks, obligations, regulations } from '@/db/schema'
 import { generateEvidenceNarrative } from '@/lib/ai'
 import { withAudit, withCreateAudit, withDeleteAudit } from '@/lib/audit'
 import { NotFoundError } from '@/lib/errors'
+import { logger } from '@/lib/logger'
 import { requireMutatePermission, scopedAnd } from '@/lib/tenancy'
 import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import { z } from 'zod'
@@ -296,7 +297,7 @@ export const evidencePacksRouter = router({
         }
       } catch (error) {
         // Log but don't fail the pack generation if AI narrative fails
-        console.error('Failed to generate AI narrative for evidence pack:', error)
+        logger.error('Failed to generate AI narrative for evidence pack', { error, packId: pack.id })
       }
 
       // Update pack to ready status

@@ -8,7 +8,7 @@
 import { articles, regulations, systems } from '@/db/schema'
 import { assessImpact, clearCache, extractObligations, getCacheStats, summarize } from '@/lib/ai'
 import { getAgent, runQuickScan } from '@/lib/ai-agent'
-import { NotFoundError } from '@/lib/errors'
+import { NotFoundError, ValidationError } from '@/lib/errors'
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { orgProcedure, router } from '../init'
@@ -102,7 +102,7 @@ export const aiRouter = router({
       // Get text to summarize
       const textToSummarize = article.normalizedText || article.rawText || article.description
       if (!textToSummarize) {
-        throw new Error('Article has no text content to summarize')
+        throw new ValidationError('Article has no text content to summarize')
       }
 
       // Generate summary (pass orgId for cache scoping)
@@ -151,7 +151,7 @@ export const aiRouter = router({
 
       const textToAnalyze = article.normalizedText || article.rawText
       if (!textToAnalyze) {
-        throw new Error('Article has no text content to analyze')
+        throw new ValidationError('Article has no text content to analyze')
       }
 
       // Pass orgId for cache scoping
@@ -197,7 +197,7 @@ export const aiRouter = router({
 
       const articleText = article.normalizedText || article.rawText || article.description
       if (!articleText) {
-        throw new Error('Article has no text content to analyze')
+        throw new ValidationError('Article has no text content to analyze')
       }
 
       const systemDescription = `
@@ -257,7 +257,7 @@ Owner: ${system.ownerTeam || 'Not specified'}
         .join('\n\n')
 
       if (!articleTexts) {
-        throw new Error('Regulation has no article content to summarize')
+        throw new ValidationError('Regulation has no article content to summarize')
       }
 
       const textToSummarize = `

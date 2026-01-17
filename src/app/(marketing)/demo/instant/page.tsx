@@ -87,7 +87,7 @@ export default function InstantDemoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+    <div className="min-h-screen bg-linear-to-b from-background to-muted/20">
       <div className="container mx-auto px-4 py-12">
         {/* Header */}
         <div className="mb-12 text-center">
@@ -113,7 +113,7 @@ export default function InstantDemoPage() {
                 placeholder="Describe your tech stack...&#10;&#10;Example: We use AWS, run Python APIs, store customer data in Postgres..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="min-h-[120px] resize-none border-0 bg-transparent text-lg focus-visible:ring-0"
+                className="min-h-30 resize-none border-0 bg-transparent text-lg focus-visible:ring-0"
                 disabled={analyzeMutation.isPending}
               />
               <div className="mt-4 flex items-center justify-between border-t pt-4">
@@ -287,7 +287,7 @@ export default function InstantDemoPage() {
                 <div className="space-y-3">
                   {analysisResult.applicableArticles.slice(0, 8).map((article, i) => (
                     <div key={i} className="flex items-start gap-4 rounded-lg bg-muted/50 p-3">
-                      <div className="flex-shrink-0">
+                      <div className="shrink-0">
                         <Badge variant="outline" className="font-mono">
                           {article.regulation} Art. {article.articleNumber}
                         </Badge>
@@ -305,7 +305,7 @@ export default function InstantDemoPage() {
             </Card>
 
             {/* Executive Summary */}
-            <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
+            <Card className="border-primary/20 bg-linear-to-r from-primary/5 to-primary/10">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Shield className="h-5 w-5" />
@@ -323,7 +323,7 @@ export default function InstantDemoPage() {
                     <ul className="space-y-2">
                       {analysisResult.evidenceSummary.immediateActions.map((action, i) => (
                         <li key={i} className="flex items-start gap-2">
-                          <CheckCircle2 className="mt-1 h-4 w-4 flex-shrink-0 text-primary" />
+                          <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-primary" />
                           <span className="text-sm">{action}</span>
                         </li>
                       ))}

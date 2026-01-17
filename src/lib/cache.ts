@@ -294,8 +294,40 @@ export function hashParams(params: Record<string, unknown>): string {
 // Cache Instance
 // =============================================================================
 
-/** Singleton cache instance */
-export const cache = new MemoryCache()
+/** In-memory cache instance (used as fallback or in dev) */
+const memoryCache = new MemoryCache()
+
+/**
+ * Cache interface that works with both memory and Redis adapters
+ */
+interface SyncCache {
+  get<T>(key: string): { value: T; isStale: boolean } | null
+  set<T>(key: string, value: T, options?: CacheOptions): void
+  delete(key: string): boolean
+  deletePattern(pattern: string): number
+  clear(): void
+  getStats(): CacheStats
+  has(key: string): boolean
+}
+
+/** Singleton cache instance - memory in dev, Redis in prod if available */
+export const cache: SyncCache = memoryCache
+
+/** Redis adapter for production (initialized lazily) */
+let redisAdapter: CacheAdapter | null = null
+let redisInitialized = false
+
+/**
+ * Get Redis adapter if available (for async operations)
+ * Falls back to memory cache if Redis not configured
+ */
+async function getRedisAdapter(): Promise<CacheAdapter | null> {
+  if (!redisInitialized) {
+    redisInitialized = true
+    redisAdapter = await createRedisCacheAdapter()
+  }
+  return redisAdapter
+}
 
 // =============================================================================
 // Cache Helpers
@@ -303,8 +335,32 @@ export const cache = new MemoryCache()
 
 /**
  * Get or set pattern - fetch from cache or compute and cache
+ * Uses Redis in production if REDIS_URL is configured, otherwise memory cache
  */
 export async function cached<T>(key: string, fetchFn: () => Promise<T>, options?: CacheOptions): Promise<T> {
+  // Try Redis first in production
+  const redis = await getRedisAdapter()
+
+  if (redis) {
+    const existing = await redis.get<T>(key)
+
+    if (existing && !existing.isStale) {
+      return existing.value
+    }
+
+    if (existing?.isStale) {
+      fetchFn()
+        .then((value) => redis.set(key, value, options))
+        .catch((error) => logger.warn('Background cache refresh failed', { key, error }))
+      return existing.value
+    }
+
+    const value = await fetchFn()
+    await redis.set(key, value, options)
+    return value
+  }
+
+  // Fallback to memory cache
   const existing = cache.get<T>(key)
 
   // Return cached value if fresh

@@ -278,6 +278,7 @@ export async function getAuditLogCount(organizationId: string, entityType?: Audi
 /**
  * Security event types that should always be logged (OWASP A09:2021)
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used as type for logSecurityEvent
 const SECURITY_ACTIONS: AuditAction[] = [
   'login_success',
   'login_failure',

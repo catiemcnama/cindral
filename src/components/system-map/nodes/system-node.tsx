@@ -36,7 +36,7 @@ function SystemNodeComponent({ data, selected }: SystemNodeProps) {
       <Handle
         type="target"
         position={Position.Left}
-        className="!h-2.5 !w-2.5 !border-2 !border-gray-400 !bg-gray-100"
+        className="h-2.5! w-2.5! border-2! border-gray-400! bg-gray-100!"
       />
 
       {/* Header */}

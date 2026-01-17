@@ -69,7 +69,7 @@ export default function DemoPage() {
       {/* Hero */}
       <section className="relative overflow-hidden pt-32 pb-20 lg:pt-40 lg:pb-28">
         <div className="absolute inset-0 -z-10">
-          <div className="absolute top-0 left-1/4 h-[500px] w-[500px] rounded-full bg-gradient-to-r from-violet-500/15 to-blue-500/15 blur-3xl" />
+          <div className="absolute top-0 left-1/4 h-125 w-125 rounded-full bg-linear-to-r from-violet-500/15 to-blue-500/15 blur-3xl" />
         </div>
 
         <Container>
@@ -87,7 +87,7 @@ export default function DemoPage() {
               <ul className="mb-10 space-y-3">
                 {benefits.map((benefit) => (
                   <li key={benefit} className="flex items-start gap-3 text-zinc-600 dark:text-zinc-400">
-                    <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-500" />
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
                     {benefit}
                   </li>
                 ))}

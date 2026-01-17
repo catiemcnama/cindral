@@ -3,13 +3,9 @@
 import {
   AlertTriangleIcon,
   ArrowLeftIcon,
-  CalendarIcon,
-  CheckCircle2Icon,
-  ClockIcon,
   DownloadIcon,
   ExternalLinkIcon,
   FileTextIcon,
-  Loader2Icon,
   NetworkIcon,
   RefreshCwIcon,
 } from 'lucide-react'
@@ -42,14 +38,6 @@ const impactStyles: Record<string, string> = {
   high: 'text-orange-400',
   medium: 'text-yellow-400',
   low: 'text-blue-400',
-}
-
-const statusStyles: Record<string, { label: string; className: string }> = {
-  not_started: { label: 'Not Started', className: 'bg-slate-500/10 text-slate-400 border-slate-500/20' },
-  in_progress: { label: 'In Progress', className: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
-  implemented: { label: 'Implemented', className: 'bg-amber-500/10 text-amber-500 border-amber-500/20' },
-  under_review: { label: 'Under Review', className: 'bg-purple-500/10 text-purple-500 border-purple-500/20' },
-  verified: { label: 'Verified', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
 }
 
 // =============================================================================

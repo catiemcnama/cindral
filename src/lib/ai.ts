@@ -6,6 +6,7 @@
  */
 
 import { recordAICall } from './ai-observability'
+import { AIServiceError, ConfigurationError } from './errors'
 import { logger } from './logger'
 
 // Types
@@ -41,9 +42,16 @@ export interface AIResponse<T> {
   promptVersion?: string
 }
 
-// Cache for AI responses (short TTL - regulations change)
+// =============================================================================
+// In-Memory Cache (per-instance only)
+// =============================================================================
+// NOTE: This cache is per-serverless-invocation only. On Vercel, each request
+// may hit a different instance, so cache hit rate will be low. For production,
+// consider using Redis via the cache module, or accept that this mainly helps
+// with rapid repeated calls within a single request context.
+
 const responseCache = new Map<string, { data: unknown; expiresAt: number; promptVersion: string }>()
-const CACHE_TTL_MS = 4 * 60 * 60 * 1000 // 4 hours (not 7 days - content evolves)
+const CACHE_TTL_MS = 4 * 60 * 60 * 1000 // 4 hours
 
 /**
  * Generate cache key from inputs
@@ -87,11 +95,12 @@ function setCache(key: string, value: { data: unknown; promptVersion: string }):
 
 /**
  * Get Anthropic client (lazy loaded)
+ * Exported for use in other AI modules
  */
-async function getAnthropicClient() {
+export async function getAnthropicClient() {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
-    throw new Error('ANTHROPIC_API_KEY is not configured')
+    throw new ConfigurationError('ANTHROPIC_API_KEY is not configured')
   }
 
   const { default: Anthropic } = await import('@anthropic-ai/sdk')
@@ -127,7 +136,7 @@ async function callClaude(params: {
 
       const content = response.content[0]
       if (content.type !== 'text') {
-        throw new Error('Unexpected response type')
+        throw new AIServiceError('Unexpected response type from Claude')
       }
 
       const latencyMs = Date.now() - startTime
@@ -309,7 +318,7 @@ Respond with a JSON array of obligations. Only include actual compliance require
   try {
     const jsonMatch = result.content.match(/\[[\s\S]*\]/)
     if (!jsonMatch) {
-      throw new Error('No JSON array found in response')
+      throw new AIServiceError('No JSON array found in AI response')
     }
     obligations = JSON.parse(jsonMatch[0])
     // Calculate average confidence
@@ -409,7 +418,7 @@ ${systemDescription}`
   try {
     const jsonMatch = result.content.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
-      throw new Error('No JSON object found in response')
+      throw new AIServiceError('No JSON object found in AI response')
     }
     const parsed = JSON.parse(jsonMatch[0])
     assessment = {
@@ -573,7 +582,7 @@ Generate a comprehensive evidence pack narrative for this compliance position.`
   try {
     const jsonMatch = result.content.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
-      throw new Error('No JSON object found in response')
+      throw new AIServiceError('No JSON object found in AI response')
     }
     const parsed = JSON.parse(jsonMatch[0])
     narrative = {

@@ -162,7 +162,7 @@ export default function SignUpPage() {
 
   if (sessionPending) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-950 dark:to-zinc-900">
+      <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-zinc-50 to-zinc-100 dark:from-zinc-950 dark:to-zinc-900">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">Loading...</p>
@@ -176,8 +176,8 @@ export default function SignUpPage() {
       {/* Left Panel - Branding */}
       <div className="relative hidden overflow-hidden bg-zinc-900 lg:block">
         {/* Animated gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-br from-zinc-900 via-zinc-800 to-zinc-900" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
 
         {/* Subtle grid pattern */}
         <div
@@ -252,7 +252,7 @@ export default function SignUpPage() {
                 &ldquo;Cindral reduced our compliance overhead by 70%. What used to take weeks now takes hours.&rdquo;
               </blockquote>
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 text-sm font-medium text-white">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-violet-500 to-purple-600 text-sm font-medium text-white">
                   SC
                 </div>
                 <div>
@@ -306,7 +306,7 @@ export default function SignUpPage() {
                 name="website"
                 value={honeypot}
                 onChange={(e) => setHoneypot(e.target.value)}
-                className="absolute -left-[9999px] h-0 w-0 opacity-0"
+                className="absolute -left-2499.75 h-0 w-0 opacity-0"
                 tabIndex={-1}
                 autoComplete="off"
                 aria-hidden="true"

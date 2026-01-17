@@ -1,13 +1,7 @@
 import { organization } from '@/db/schema'
-import { NotFoundError } from '@/lib/errors'
+import { createBillingPortalSession, createCheckoutSession, getPlan, PLANS, type PlanId } from '@/lib/billing'
+import { NotFoundError, ValidationError } from '@/lib/errors'
 import { requireMutatePermission } from '@/lib/tenancy'
-import {
-  createBillingPortalSession,
-  createCheckoutSession,
-  getPlan,
-  PLANS,
-  type PlanId,
-} from '@/lib/billing'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { orgProcedure, router } from '../init'
@@ -109,7 +103,7 @@ export const billingRouter = router({
     const metadata = org.metadata as { stripeCustomerId?: string } | null
 
     if (!metadata?.stripeCustomerId) {
-      throw new Error('No Stripe customer found for this organization')
+      throw new ValidationError('No Stripe customer found for this organization')
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
@@ -125,7 +119,8 @@ export const billingRouter = router({
   /**
    * Get usage statistics for the current billing period
    */
-  getUsage: orgProcedure.query(async ({ ctx }) => {
+  getUsage: orgProcedure.query(async ({ ctx: _ctx }) => {
+    void _ctx
     // In production, query actual usage from database
     // For now, return stub data
     return {
@@ -158,4 +153,3 @@ export const billingRouter = router({
     }
   }),
 })
-

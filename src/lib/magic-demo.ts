@@ -11,6 +11,7 @@ import { db } from '@/db'
 import { articles, regulations } from '@/db/schema'
 import { and, eq, isNull } from 'drizzle-orm'
 import { recordAICall } from './ai-observability'
+import { AIServiceError } from './errors'
 import { logger } from './logger'
 
 // =============================================================================
@@ -79,14 +80,7 @@ export interface PlanRecommendation {
 // AI Client
 // =============================================================================
 
-async function getAnthropicClient() {
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) {
-    throw new Error('ANTHROPIC_API_KEY is not configured')
-  }
-  const { default: Anthropic } = await import('@anthropic-ai/sdk')
-  return new Anthropic({ apiKey })
-}
+import { getAnthropicClient } from './ai'
 
 async function callAI<T>(params: {
   systemPrompt: string
@@ -106,13 +100,13 @@ async function callAI<T>(params: {
 
   const content = response.content[0]
   if (content.type !== 'text') {
-    throw new Error('Unexpected response type')
+    throw new AIServiceError('Unexpected response type from AI')
   }
 
   // Parse JSON from response
   const jsonMatch = content.text.match(/\{[\s\S]*\}/)
   if (!jsonMatch) {
-    throw new Error('No JSON object found in AI response')
+    throw new AIServiceError('No JSON object found in AI response')
   }
 
   return {

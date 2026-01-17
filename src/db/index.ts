@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from './schema'
@@ -69,7 +70,7 @@ function getConnection(): postgres.Sql {
     debug:
       process.env.NODE_ENV === 'development' && process.env.DATABASE_DEBUG === 'true'
         ? (connection, query, params) => {
-            console.log('[DB Query]', query.slice(0, 100), params?.slice(0, 3))
+            logger.debug('[DB Query]', { query: query.slice(0, 100), params: params?.slice(0, 3) })
           }
         : undefined,
 

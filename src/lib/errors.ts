@@ -294,6 +294,35 @@ export class AlreadyExistsError extends CindralError {
   }
 }
 
+/**
+ * AI service error
+ */
+export class AIServiceError extends CindralError {
+  constructor(message: string = 'AI service error', cause?: Error, context?: CindralErrorContext) {
+    super(message, {
+      code: ERROR_CODES.AI_SERVICE_ERROR,
+      httpStatus: 502,
+      cause,
+      context,
+    })
+    this.name = 'AIServiceError'
+  }
+}
+
+/**
+ * Configuration error (missing env vars, etc)
+ */
+export class ConfigurationError extends CindralError {
+  constructor(message: string, context?: CindralErrorContext) {
+    super(message, {
+      code: ERROR_CODES.INTERNAL_ERROR,
+      httpStatus: 500,
+      context,
+    })
+    this.name = 'ConfigurationError'
+  }
+}
+
 // =============================================================================
 // Error Handling Utilities
 // =============================================================================

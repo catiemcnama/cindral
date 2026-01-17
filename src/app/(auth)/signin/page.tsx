@@ -130,8 +130,8 @@ function SignInContent() {
       {/* Left Panel - Branding */}
       <div className="relative hidden overflow-hidden bg-zinc-900 lg:block">
         {/* Animated gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-br from-zinc-900 via-zinc-800 to-zinc-900" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
 
         {/* Subtle grid pattern */}
         <div
@@ -206,7 +206,7 @@ function SignInContent() {
                 &ldquo;The best compliance tool we&apos;ve ever used. Period.&rdquo;
               </blockquote>
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-cyan-600 text-sm font-medium text-white">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-blue-500 to-cyan-600 text-sm font-medium text-white">
                   MR
                 </div>
                 <div>
