@@ -8,43 +8,66 @@ import Link from 'next/link'
 export const metadata: Metadata = {
   title: 'Pricing - Cindral',
   description:
-    'Enterprise GRC platform pricing. ROI-focused plans for financial institutions and regulated enterprises.',
+    'DORA and AI Act compliance pricing for fintechs, AI companies, and regulated tech. Start at $499/month.',
 }
 
 const plans = [
   {
-    name: 'Growth',
-    description: 'For compliance teams ready to automate gap detection.',
-    price: '$2,500',
-    period: 'per month, billed annually',
-    annualPrice: '$30,000/year',
-    cta: 'Talk to Sales',
-    ctaLink: '/contact?plan=growth',
+    name: 'Startup',
+    description: 'For early-stage teams getting compliant for the first time.',
+    price: '$499',
+    period: 'per month',
+    annualPrice: '$5,388/year (save 10%)',
+    cta: 'Start Free Trial',
+    ctaLink: '/try?plan=startup',
     highlighted: false,
-    outcome: 'Avg. 120 hours saved per quarter',
-    roi: '4.2x ROI in Year 1',
+    outcome: 'Get DORA/AI Act ready in weeks',
+    roi: 'Avoid 6-figure fines',
     features: [
-      'Up to 15 team members',
+      'Up to 5 team members',
+      '50 systems',
+      'DORA + AI Act + GDPR',
+      'AI-powered gap detection',
+      'System impact mapping',
+      'Evidence pack generation',
+      'Email support',
+      'Self-serve onboarding',
+    ],
+  },
+  {
+    name: 'Growth',
+    description: 'For scaling teams with expanding compliance needs.',
+    price: '$1,499',
+    period: 'per month',
+    annualPrice: '$16,188/year (save 10%)',
+    cta: 'Start Free Trial',
+    ctaLink: '/try?plan=growth',
+    highlighted: true,
+    outcome: 'Avg. 80 hours saved per quarter',
+    roi: '4x ROI in Year 1',
+    features: [
+      'Up to 20 team members',
       'Unlimited systems',
-      '25 regulatory sources',
+      'All regulatory sources',
       'AI-powered gap detection',
       'System impact mapping',
       'Evidence pack generation',
       'Slack & Teams alerts',
-      'Implementation support',
+      'Jira & Confluence sync',
+      'Priority support',
     ],
   },
   {
     name: 'Enterprise',
-    description: 'For institutions with complex, multi-jurisdiction requirements.',
-    price: '$6,500',
-    period: 'per month, billed annually',
-    annualPrice: '$78,000/year',
+    description: 'For organizations with complex, multi-jurisdiction requirements.',
+    price: 'Custom',
+    period: 'tailored to your needs',
+    annualPrice: 'Starting at $50,000/year',
     cta: 'Talk to Sales',
     ctaLink: '/contact?plan=enterprise',
-    highlighted: true,
-    outcome: 'Avg. 400 hours saved per quarter',
-    roi: '6.8x ROI in Year 1',
+    highlighted: false,
+    outcome: 'Dedicated compliance partner',
+    roi: 'Guaranteed outcomes',
     features: [
       'Unlimited team members',
       'Unlimited systems',
@@ -55,29 +78,7 @@ const plans = [
       'SSO & SCIM provisioning',
       'Dedicated success manager',
       'Custom integrations',
-      '99.9% SLA guarantee',
-    ],
-  },
-  {
-    name: 'Strategic',
-    description: 'For global institutions requiring on-premise or custom deployment.',
-    price: 'Custom',
-    period: 'tailored engagement',
-    annualPrice: 'Starting at $150,000/year',
-    cta: 'Contact Sales',
-    ctaLink: '/contact?plan=strategic',
-    highlighted: false,
-    outcome: 'Dedicated compliance transformation',
-    roi: 'Guaranteed ROI commitment',
-    features: [
-      'Everything in Enterprise',
-      'On-premise deployment option',
-      'Custom AI model training',
-      'White-label capability',
-      'Regulatory advisory access',
-      'Executive business reviews',
-      'Multi-year pricing',
-      'Co-development roadmap',
+      'SLA guarantee',
     ],
   },
 ]
@@ -86,45 +87,34 @@ const comparisonFeatures = [
   {
     category: 'Regulatory Coverage',
     features: [
-      { name: 'Regulatory sources', growth: '25', enterprise: 'All 50+', strategic: 'Custom' },
-      { name: 'Custom sources', growth: false, enterprise: true, strategic: true },
-      { name: 'Real-time updates', growth: true, enterprise: true, strategic: true },
-      { name: 'Multi-jurisdiction', growth: true, enterprise: true, strategic: true },
+      { name: 'Regulatory sources', startup: '3 (DORA, AI Act, GDPR)', growth: 'All 50+', enterprise: 'Custom' },
+      { name: 'Custom sources', startup: false, growth: false, enterprise: true },
+      { name: 'Real-time updates', startup: true, growth: true, enterprise: true },
+      { name: 'Multi-jurisdiction', startup: false, growth: true, enterprise: true },
     ],
   },
   {
     category: 'AI & Automation',
     features: [
-      { name: 'Gap detection', growth: true, enterprise: true, strategic: true },
-      { name: 'Auto-mapping', growth: true, enterprise: true, strategic: true },
-      { name: 'Autonomous agent', growth: false, enterprise: true, strategic: true },
-      { name: 'Custom AI training', growth: false, enterprise: false, strategic: true },
+      { name: 'Gap detection', startup: true, growth: true, enterprise: true },
+      { name: 'Auto-mapping', startup: true, growth: true, enterprise: true },
+      { name: 'Evidence generation', startup: 'Basic', growth: 'Advanced', enterprise: 'Custom' },
     ],
   },
   {
     category: 'System Mapping',
     features: [
-      { name: 'Systems tracked', growth: 'Unlimited', enterprise: 'Unlimited', strategic: 'Unlimited' },
-      { name: 'Visual impact map', growth: true, enterprise: true, strategic: true },
-      { name: 'API integrations', growth: '5', enterprise: 'Unlimited', strategic: 'Custom' },
+      { name: 'Systems tracked', startup: '50', growth: 'Unlimited', enterprise: 'Unlimited' },
+      { name: 'Visual impact map', startup: true, growth: true, enterprise: true },
+      { name: 'API integrations', startup: '2', growth: 'All', enterprise: 'Custom' },
     ],
   },
   {
-    category: 'Security & Compliance',
+    category: 'Support',
     features: [
-      { name: 'SOC 2 Type II', growth: true, enterprise: true, strategic: true },
-      { name: 'SSO & SCIM', growth: false, enterprise: true, strategic: true },
-      { name: 'On-premise option', growth: false, enterprise: false, strategic: true },
-      { name: 'Custom SLA', growth: false, enterprise: true, strategic: true },
-    ],
-  },
-  {
-    category: 'Support & Success',
-    features: [
-      { name: 'Implementation', growth: 'Self-serve', enterprise: 'White-glove', strategic: 'Dedicated team' },
-      { name: 'Success manager', growth: false, enterprise: true, strategic: true },
-      { name: 'Training hours', growth: '4', enterprise: '16', strategic: 'Unlimited' },
-      { name: 'Executive reviews', growth: false, enterprise: 'Quarterly', strategic: 'Monthly' },
+      { name: 'Onboarding', startup: 'Self-serve', growth: 'Guided', enterprise: 'White-glove' },
+      { name: 'Support channel', startup: 'Email', growth: 'Priority', enterprise: 'Dedicated' },
+      { name: 'Success manager', startup: false, growth: false, enterprise: true },
     ],
   },
 ]
@@ -133,32 +123,32 @@ const faqs = [
   {
     question: 'Who is Cindral built for?',
     answer:
-      'Cindral is purpose-built for regulated enterprises—banks, fintechs, insurance companies, and any organization with significant compliance obligations. We focus on financial services regulations like DORA, GDPR, Basel III, and the EU AI Act.',
+      "Cindral is built for fintechs, AI companies, and any tech company facing EU regulations like DORA, the AI Act, GDPR, or NIS2. If you're a Series A+ company with compliance obligations, we're built for you.",
   },
   {
-    question: 'How long does implementation take?',
+    question: 'Can I start with a free trial?',
     answer:
-      'Most Enterprise customers are fully operational within 2-4 weeks. Our team handles system integration, regulatory scope configuration, and initial mapping. You see value in the first week.',
+      'Yes! All plans include a 14-day free trial. No credit card required. Import your systems, configure your regulatory scope, and see your compliance gaps immediately.',
   },
   {
-    question: 'What ROI can I expect?',
+    question: 'How long does it take to get started?',
     answer:
-      'Customers typically see 4-7x ROI in Year 1. This comes from: reduced manual mapping time (120-400 hours/quarter saved), earlier gap detection (avoiding $50K-$500K fine risk), and faster audit preparation.',
+      'Most teams are up and running within a day. Startup plan customers self-onboard in under an hour. Growth and Enterprise customers get guided onboarding within the first week.',
   },
   {
-    question: 'Do you offer a pilot program?',
+    question: 'Do I need to talk to sales to start?',
     answer:
-      'Yes. We offer a 30-day paid pilot for qualified enterprises. You get full platform access with a single regulation scope, letting you validate ROI before committing to an annual contract.',
+      'Not for Startup or Growth plans—you can start your free trial immediately. Enterprise customers typically start with a demo call to scope requirements.',
   },
   {
-    question: 'How does pricing work for multi-year deals?',
+    question: 'What if I need more than 50 systems on the Startup plan?',
     answer:
-      'Multi-year commitments (2-3 years) receive significant discounts and can include custom roadmap commitments. Contact our enterprise sales team for tailored pricing.',
+      'Upgrade to Growth anytime—it takes one click and your data carries over. We pro-rate upgrades so you only pay the difference.',
   },
   {
-    question: 'What makes Cindral different from legacy GRC tools?',
+    question: 'Is there a discount for annual billing?',
     answer:
-      'Unlike legacy GRC tools that are document repositories, Cindral is an active compliance system. Our AI agent automatically maps regulations to your systems, generates evidence packs, and alerts you to gaps—before auditors find them.',
+      'Yes, annual billing saves 10% on Startup and Growth plans. Enterprise pricing is always custom and typically structured annually.',
   },
 ]
 
@@ -184,18 +174,18 @@ export default function PricingPage() {
 
         <Container>
           <div className="mx-auto max-w-3xl text-center">
-            {/* Enterprise badge */}
+            {/* Badge */}
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-1.5 text-sm shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
               <TrendingUp className="h-4 w-4 text-emerald-500" />
-              <span className="text-zinc-600 dark:text-zinc-400">4-7x ROI in Year 1 for enterprise customers</span>
+              <span className="text-zinc-600 dark:text-zinc-400">Start free, upgrade when you&apos;re ready</span>
             </div>
 
             <h1 className="mb-6 text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl lg:text-6xl dark:text-white">
-              Enterprise <GradientText>compliance automation</GradientText>
+              Simple pricing for <GradientText>growing teams</GradientText>
             </h1>
             <p className="mx-auto mb-6 max-w-2xl text-lg text-zinc-600 lg:text-xl dark:text-zinc-400">
-              Purpose-built for regulated financial institutions. Annual contracts with white-glove implementation and
-              guaranteed ROI.
+              Start with the Startup plan at $499/month. Scale to Growth as your compliance needs expand. No enterprise
+              sales call required.
             </p>
 
             {/* ROI Stats */}
@@ -313,9 +303,9 @@ export default function PricingPage() {
               <thead>
                 <tr className="border-b border-zinc-200 dark:border-zinc-800">
                   <th className="py-4 text-left text-sm font-medium text-zinc-600 dark:text-zinc-400">Features</th>
+                  <th className="py-4 text-center text-sm font-medium text-zinc-900 dark:text-white">Startup</th>
                   <th className="py-4 text-center text-sm font-medium text-zinc-900 dark:text-white">Growth</th>
                   <th className="py-4 text-center text-sm font-medium text-zinc-900 dark:text-white">Enterprise</th>
-                  <th className="py-4 text-center text-sm font-medium text-zinc-900 dark:text-white">Strategic</th>
                 </tr>
               </thead>
               <tbody>
@@ -331,17 +321,17 @@ export default function PricingPage() {
                         <td className="py-3 text-sm text-zinc-600 dark:text-zinc-400">{feature.name}</td>
                         <td className="py-3 text-center">
                           <div className="flex justify-center">
+                            <FeatureValue value={feature.startup} />
+                          </div>
+                        </td>
+                        <td className="py-3 text-center">
+                          <div className="flex justify-center">
                             <FeatureValue value={feature.growth} />
                           </div>
                         </td>
                         <td className="py-3 text-center">
                           <div className="flex justify-center">
                             <FeatureValue value={feature.enterprise} />
-                          </div>
-                        </td>
-                        <td className="py-3 text-center">
-                          <div className="flex justify-center">
-                            <FeatureValue value={feature.strategic} />
                           </div>
                         </td>
                       </tr>

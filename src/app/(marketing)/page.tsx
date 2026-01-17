@@ -3,11 +3,9 @@ import {
   FAQItem,
   FeatureCard,
   GradientText,
-  LogoCloud,
   Section,
   SectionHeader,
   StatCard,
-  TestimonialCard,
 } from '@/components/marketing/sections'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Bell, CheckCircle2, FileCheck, GitBranch, Globe, Map, Shield, Sparkles, Zap } from 'lucide-react'
@@ -16,12 +14,13 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Cindral - Compliance That Maps to Your Reality',
+  title: 'Cindral - DORA & AI Act Compliance for Tech Companies',
   description:
-    'Transform complex regulations like the EU AI Act and DORA into actionable insights. Automatically map requirements to your systems, teams, and processes.',
+    'Map EU regulations to your systems—before auditors do it for you. DORA, AI Act, GDPR, NIS2. Built for fintechs, AI companies, and regulated tech.',
   openGraph: {
-    title: 'Cindral - Compliance That Maps to Your Reality',
-    description: 'Transform complex regulations into actionable insights. Stay ahead of DORA, AI Act, GDPR, and more.',
+    title: 'Cindral - DORA & AI Act Compliance for Tech Companies',
+    description:
+      'Map EU regulations to your systems—before auditors do it for you. Built for fintechs and AI companies.',
     url: 'https://trycindral.com',
     siteName: 'Cindral',
     images: [
@@ -87,42 +86,11 @@ const features = [
   },
 ]
 
-const testimonials = [
-  {
-    quote:
-      'Cindral cut our compliance review time by 60%. We went from spending weeks mapping regulation changes to having instant visibility.',
-    author: 'Sarah Chen',
-    role: 'Head of Compliance',
-    company: 'FinanceFlow',
-  },
-  {
-    quote:
-      'The system mapping feature is a game-changer. When DORA requirements changed, we knew exactly which APIs were affected within minutes.',
-    author: 'Marcus Weber',
-    role: 'CTO',
-    company: 'TechBank AG',
-  },
-  {
-    quote: 'Our auditors were impressed with the evidence packs. What used to take our team days now takes minutes.',
-    author: 'Emily Rodriguez',
-    role: 'VP of Risk',
-    company: 'Nexus Capital',
-  },
-]
-
 const stats = [
   { value: '60', suffix: '%', label: 'Reduction in compliance review time' },
   { value: '50', suffix: '+', label: 'Regulatory sources tracked' },
   { value: '10k', suffix: '+', label: 'Requirements mapped daily' },
   { value: '99.9', suffix: '%', label: 'Platform uptime SLA' },
-]
-
-const trustedBy = [
-  { name: 'FinanceFlow' },
-  { name: 'TechBank' },
-  { name: 'Nexus Capital' },
-  { name: 'DataSecure' },
-  { name: 'Cloudwise' },
 ]
 
 const faqs = [
@@ -142,9 +110,9 @@ const faqs = [
       'Yes! Cindral integrates with Jira, Confluence, ServiceNow, Slack, Microsoft Teams, and more. We also provide a REST API and webhooks for custom integrations.',
   },
   {
-    question: 'Is Cindral secure enough for financial services?',
+    question: 'Is Cindral secure enough for regulated companies?',
     answer:
-      "Absolutely. Cindral is SOC 2 Type II certified, GDPR compliant, and hosted on enterprise-grade infrastructure with end-to-end encryption. We're trusted by leading financial institutions.",
+      "Yes. Cindral is hosted on enterprise-grade infrastructure (AWS/Vercel) with end-to-end encryption, SOC 2-compliant hosting, and GDPR-compliant data handling. We're pursuing SOC 2 Type II certification and can share our security practices on request.",
   },
   {
     question: 'How long does it take to get started?',
@@ -170,18 +138,18 @@ export default function HomePage() {
             {/* Badge */}
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-1.5 text-sm shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
               <Sparkles className="h-4 w-4 text-amber-500" />
-              <span className="text-zinc-600 dark:text-zinc-400">Trusted by leading financial institutions</span>
+              <span className="text-zinc-600 dark:text-zinc-400">DORA is live. AI Act is coming. Are you ready?</span>
             </div>
 
             {/* Headline */}
             <h1 className="mb-6 text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl lg:text-7xl dark:text-white">
-              Compliance that maps to <GradientText>your reality</GradientText>
+              Map EU regulations to your systems—<GradientText>before auditors do</GradientText>
             </h1>
 
             {/* Subheadline */}
             <p className="mx-auto mb-10 max-w-2xl text-lg text-zinc-600 lg:text-xl dark:text-zinc-400">
-              Transform complex regulations like the EU AI Act and DORA into actionable insights. Automatically map
-              requirements to your systems, teams, and processes.
+              DORA, AI Act, GDPR, NIS2. One platform to track requirements, prove compliance, and sleep at night. Built
+              for fintechs, AI companies, and regulated tech.
             </p>
 
             {/* CTAs */}
@@ -222,13 +190,18 @@ export default function HomePage() {
         </Container>
       </section>
 
-      {/* Trust Logos */}
+      {/* Regulations */}
       <Section variant="muted" className="py-12 lg:py-16">
         <Container>
-          <p className="mb-8 text-center text-sm font-medium text-zinc-500">
-            TRUSTED BY FORWARD-THINKING COMPLIANCE TEAMS
-          </p>
-          <LogoCloud logos={trustedBy} />
+          <p className="mb-8 text-center text-sm font-medium text-zinc-500">COVERAGE FOR THE REGULATIONS THAT MATTER</p>
+          <div className="flex flex-wrap items-center justify-center gap-8 text-lg font-semibold text-zinc-400">
+            <span>DORA</span>
+            <span>AI Act</span>
+            <span>GDPR</span>
+            <span>NIS2</span>
+            <span>MiFID II</span>
+            <span>PSD2</span>
+          </div>
         </Container>
       </Section>
 
@@ -383,28 +356,6 @@ export default function HomePage() {
                 ))}
               </ul>
             </div>
-          </div>
-        </Container>
-      </Section>
-
-      {/* Testimonials */}
-      <Section variant="muted">
-        <Container>
-          <SectionHeader
-            title="Loved by compliance teams"
-            subtitle="See why leading organizations trust Cindral for their regulatory compliance."
-          />
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {testimonials.map((testimonial) => (
-              <TestimonialCard
-                key={testimonial.author}
-                quote={testimonial.quote}
-                author={testimonial.author}
-                role={testimonial.role}
-                company={testimonial.company}
-              />
-            ))}
           </div>
         </Container>
       </Section>
