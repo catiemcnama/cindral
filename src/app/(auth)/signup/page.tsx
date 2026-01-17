@@ -80,9 +80,34 @@ export default function SignUpPage() {
   const [error, setError] = useState('')
   const [emailTouched, setEmailTouched] = useState(false)
   const [nameTouched, setNameTouched] = useState(false)
+  const [fromTrial, setFromTrial] = useState(false)
+  const [companyName, setCompanyName] = useState('')
 
   // Honeypot field for bot detection
   const [honeypot, setHoneypot] = useState('')
+
+  // Pre-fill from URL params (trial flow)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const emailParam = params.get('email')
+    const companyParam = params.get('company')
+    const fromParam = params.get('from')
+
+    if (emailParam) {
+      setEmail(emailParam)
+      setEmailTouched(true)
+    }
+    if (companyParam) {
+      setCompanyName(companyParam)
+      // Use company name as default name if not set
+      setName(companyParam)
+      setNameTouched(true)
+    }
+    if (fromParam === 'trial') {
+      setFromTrial(true)
+    }
+  }, [])
 
   const passwordStrength = useMemo(() => getPasswordStrength(password), [password])
   const debouncedEmail = useDebounce(email, EMAIL_VALIDATION_DELAY_MS)
@@ -138,11 +163,21 @@ export default function SignUpPage() {
         if (result.error) {
           setError(mapErrorMessage(result.error.message || 'Sign up failed'))
         } else {
-          // Sign out the user so they need to sign in manually
-          // This ensures they verify their credentials work before accessing the app
-          await signOut()
-          // Redirect to sign-in page with success message
-          router.push('/signin?registered=true')
+          // For trial users, redirect directly to their analysis
+          if (fromTrial) {
+            // Store company name for org creation
+            if (companyName && typeof window !== 'undefined') {
+              sessionStorage.setItem('trial_company', companyName)
+            }
+            // Redirect to sign-in, then they'll be redirected to their analysis
+            router.push('/signin?registered=true&from=trial')
+          } else {
+            // Sign out the user so they need to sign in manually
+            // This ensures they verify their credentials work before accessing the app
+            await signOut()
+            // Redirect to sign-in page with success message
+            router.push('/signin?registered=true')
+          }
         }
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Sign up failed'
@@ -151,7 +186,7 @@ export default function SignUpPage() {
         setLoading(false)
       }
     },
-    [email, password, name, honeypot, router]
+    [email, password, name, honeypot, router, fromTrial, companyName]
   )
 
   const isFormValid = useMemo(() => {

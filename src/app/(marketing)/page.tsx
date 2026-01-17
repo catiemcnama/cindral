@@ -434,30 +434,30 @@ export default function HomePage() {
             <div className="relative">
               <Zap className="mx-auto mb-6 h-12 w-12 text-amber-400" />
               <h2 className="mb-4 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
-                Ready to simplify compliance?
+                See your compliance gaps in 60 seconds
               </h2>
               <p className="mx-auto mb-8 max-w-xl text-lg text-zinc-300">
-                Join forward-thinking organizations using Cindral to turn regulatory complexity into a competitive
-                advantage.
+                Paste your tech stack or upload a CSV. Our AI analyzes your systems against DORA and AI Act requirements
+                instantly.
               </p>
               <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-                <Link href="/signup">
+                <Link href="/try">
                   <Button size="lg" className="gap-2 bg-white text-zinc-900 hover:bg-zinc-100">
-                    Get Started Free
+                    Try Free Analysis
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
-                <Link href="/demo">
+                <Link href="/pricing">
                   <Button
                     variant="outline"
                     size="lg"
                     className="border-zinc-500 bg-transparent text-white hover:bg-white/10 hover:text-white"
                   >
-                    Talk to Sales
+                    View Pricing
                   </Button>
                 </Link>
               </div>
-              <p className="mt-6 text-sm text-zinc-400">No credit card required • 14-day free trial</p>
+              <p className="mt-6 text-sm text-zinc-400">No signup required • Results in under 60 seconds</p>
             </div>
           </div>
         </Container>

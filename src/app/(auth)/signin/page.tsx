@@ -66,6 +66,7 @@ function SignInContent() {
 
   // Check if user just registered
   const justRegistered = searchParams.get('registered') === 'true'
+  const fromTrial = searchParams.get('from') === 'trial'
 
   const debouncedEmail = useDebounce(email, EMAIL_VALIDATION_DELAY_MS)
 
@@ -98,7 +99,12 @@ function SignInContent() {
         if (result.error) {
           setError(mapErrorMessage(result.error.message || 'Invalid credentials'))
         } else {
-          router.push('/dashboard')
+          // If coming from trial, redirect to the trial results page
+          if (fromTrial) {
+            router.push('/dashboard/trial-results')
+          } else {
+            router.push('/dashboard')
+          }
         }
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Sign in failed'
@@ -107,7 +113,7 @@ function SignInContent() {
         setLoading(false)
       }
     },
-    [email, password, router]
+    [email, password, router, fromTrial]
   )
 
   const isFormValid = useMemo(() => {
